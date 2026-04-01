@@ -1,0 +1,32 @@
+{
+  "query": "SELECT openId, name, email, addressKvartal, addressBlok, addressVhod, addressEtaj, addressApartament, phone FROM users LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 48P8XnfxJZV8EyZ.175bf75abc48 --database 6WycboeERi6WeuABA7WnLM --execute SELECT openId, name, email, addressKvartal, addressBlok, addressVhod, addressEtaj, addressApartament, phone FROM users LIMIT 5;",
+  "rows": [
+    {
+      "openId": "7vVigPdMQkWnBiqsqEmUL6",
+      "name": "Орлин Александров",
+      "email": "o.aleksandrov.gilburt@gmail.com",
+      "addressKvartal": "NULL",
+      "addressBlok": "NULL",
+      "addressVhod": "NULL",
+      "addressEtaj": "NULL",
+      "addressApartament": "NULL",
+      "phone": "NULL"
+    },
+    {
+      "openId": "worker_KB9zRLBEil6LaKhp",
+      "name": "Aleksandra",
+      "email": "NULL",
+      "addressKvartal": "NULL",
+      "addressBlok": "NULL",
+      "addressVhod": "NULL",
+      "addressEtaj": "NULL",
+      "addressApartament": "NULL",
+      "phone": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "openId\tname\temail\taddressKvartal\taddressBlok\taddressVhod\taddressEtaj\taddressApartament\tphone\n7vVigPdMQkWnBiqsqEmUL6\tОрлин Александров\to.aleksandrov.gilburt@gmail.com\tNULL\tNULL\tNULL\tNULL\tNULL\tNULL\nworker_KB9zRLBEil6LaKhp\tAleksandra\tNULL\tNULL\tNULL\tNULL\tNULL\tNULL\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 255
+}

@@ -1,0 +1,52 @@
+{
+  "name": "TRASHit - Управление на отпадъци",
+  "short_name": "TRASHit",
+  "description": "Платформа за управление на отпадъци и почистване в България",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#388E3C",
+  "theme_color": "#4CAF50",
+  "orientation": "portrait-primary",
+  "lang": "bg",
+  "scope": "/",
+  "categories": ["utilities", "lifestyle"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Изхвърляне на отпадъци",
+      "short_name": "Отпадъци",
+      "description": "Подай заявка за изхвърляне на отпадъци",
+      "url": "/waste-disposal",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Почистване",
+      "short_name": "Почистване",
+      "description": "Заяви услуга за почистване",
+      "url": "/cleaning",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Моите заявки",
+      "short_name": "Заявки",
+      "description": "Виж своите заявки",
+      "url": "/my-requests",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "prefer_related_applications": false,
+  "screenshots": []
+}

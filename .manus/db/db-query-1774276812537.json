@@ -1,0 +1,46 @@
+{
+  "query": "SHOW TABLES",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 48P8XnfxJZV8EyZ.175bf75abc48 --database 6WycboeERi6WeuABA7WnLM --execute SHOW TABLES",
+  "rows": [
+    {
+      "Tables_in_6WycboeERi6WeuABA7WnLM": "__drizzle_migrations"
+    },
+    {
+      "Tables_in_6WycboeERi6WeuABA7WnLM": "admin_config"
+    },
+    {
+      "Tables_in_6WycboeERi6WeuABA7WnLM": "cleaning_requests"
+    },
+    {
+      "Tables_in_6WycboeERi6WeuABA7WnLM": "districts"
+    },
+    {
+      "Tables_in_6WycboeERi6WeuABA7WnLM": "requests"
+    },
+    {
+      "Tables_in_6WycboeERi6WeuABA7WnLM": "settings"
+    },
+    {
+      "Tables_in_6WycboeERi6WeuABA7WnLM": "transactions"
+    },
+    {
+      "Tables_in_6WycboeERi6WeuABA7WnLM": "users"
+    },
+    {
+      "Tables_in_6WycboeERi6WeuABA7WnLM": "worker_districts"
+    },
+    {
+      "Tables_in_6WycboeERi6WeuABA7WnLM": "worker_problems"
+    },
+    {
+      "Tables_in_6WycboeERi6WeuABA7WnLM": "worker_sessions"
+    },
+    {
+      "Tables_in_6WycboeERi6WeuABA7WnLM": "workers"
+    }
+  ],
+  "messages": [],
+  "stdout": "Tables_in_6WycboeERi6WeuABA7WnLM\n__drizzle_migrations\nadmin_config\ncleaning_requests\ndistricts\nrequests\nsettings\ntransactions\nusers\nworker_districts\nworker_problems\nworker_sessions\nworkers\n",
+  "stderr": "",
+  "execution_time_ms": 61
+}

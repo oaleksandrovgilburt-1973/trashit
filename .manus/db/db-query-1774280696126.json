@@ -1,0 +1,110 @@
+{
+  "query": "SELECT id, name, isActive FROM districts LIMIT 20;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 48P8XnfxJZV8EyZ.175bf75abc48 --database 6WycboeERi6WeuABA7WnLM --execute SELECT id, name, isActive FROM districts LIMIT 20;",
+  "rows": [
+    {
+      "id": "1",
+      "name": "Младост 1",
+      "isActive": "1"
+    },
+    {
+      "id": "2",
+      "name": "Младост 2",
+      "isActive": "1"
+    },
+    {
+      "id": "3",
+      "name": "Младост 3",
+      "isActive": "1"
+    },
+    {
+      "id": "4",
+      "name": "Младост 4",
+      "isActive": "1"
+    },
+    {
+      "id": "5",
+      "name": "Люлин",
+      "isActive": "1"
+    },
+    {
+      "id": "6",
+      "name": "Надежда",
+      "isActive": "0"
+    },
+    {
+      "id": "7",
+      "name": "Дружба",
+      "isActive": "1"
+    },
+    {
+      "id": "8",
+      "name": "Студентски град",
+      "isActive": "0"
+    },
+    {
+      "id": "9",
+      "name": "Красно село",
+      "isActive": "0"
+    },
+    {
+      "id": "10",
+      "name": "Лозенец",
+      "isActive": "0"
+    },
+    {
+      "id": "11",
+      "name": "Витоша",
+      "isActive": "0"
+    },
+    {
+      "id": "12",
+      "name": "Овча купел",
+      "isActive": "0"
+    },
+    {
+      "id": "17",
+      "name": "Люлин 1",
+      "isActive": "0"
+    },
+    {
+      "id": "18",
+      "name": "Люлин 2",
+      "isActive": "0"
+    },
+    {
+      "id": "19",
+      "name": "Люлин 3",
+      "isActive": "0"
+    },
+    {
+      "id": "20",
+      "name": "Люлин 4",
+      "isActive": "0"
+    },
+    {
+      "id": "21",
+      "name": "Люлин 5",
+      "isActive": "0"
+    },
+    {
+      "id": "22",
+      "name": "Люлин 6",
+      "isActive": "0"
+    },
+    {
+      "id": "23",
+      "name": "Люлин 7",
+      "isActive": "0"
+    },
+    {
+      "id": "24",
+      "name": "Люлин 8",
+      "isActive": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tisActive\n1\tМладост 1\t1\n2\tМладост 2\t1\n3\tМладост 3\t1\n4\tМладост 4\t1\n5\tЛюлин\t1\n6\tНадежда\t0\n7\tДружба\t1\n8\tСтудентски град\t0\n9\tКрасно село\t0\n10\tЛозенец\t0\n11\tВитоша\t0\n12\tОвча купел\t0\n17\tЛюлин 1\t0\n18\tЛюлин 2\t0\n19\tЛюлин 3\t0\n20\tЛюлин 4\t0\n21\tЛюлин 5\t0\n22\tЛюлин 6\t0\n23\tЛюлин 7\t0\n24\tЛюлин 8\t0\n",
+  "stderr": "",
+  "execution_time_ms": 55
+}

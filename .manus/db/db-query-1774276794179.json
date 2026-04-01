@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE IF NOT EXISTS `worker_problems` (\n  `id` int AUTO_INCREMENT NOT NULL,\n  `workerId` int NOT NULL,\n  `workerOpenId` varchar(64) NOT NULL,\n  `workerName` varchar(128),\n  `requestId` int,\n  `imageUrl` text,\n  `description` text NOT NULL,\n  `status` enum('open','resolved','forwarded') NOT NULL DEFAULT 'open',\n  `adminNotes` text,\n  `forwardedToClientAt` timestamp,\n  `resolvedAt` timestamp,\n  `createdAt` timestamp NOT NULL DEFAULT (now()),\n  `updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,\n  CONSTRAINT `worker_problems_id` PRIMARY KEY(`id`)\n)",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 48P8XnfxJZV8EyZ.175bf75abc48 --database 6WycboeERi6WeuABA7WnLM --execute CREATE TABLE IF NOT EXISTS `worker_problems` (\n  `id` int AUTO_INCREMENT NOT NULL,\n  `workerId` int NOT NULL,\n  `workerOpenId` varchar(64) NOT NULL,\n  `workerName` varchar(128),\n  `requestId` int,\n  `imageUrl` text,\n  `description` text NOT NULL,\n  `status` enum('open','resolved','forwarded') NOT NULL DEFAULT 'open',\n  `adminNotes` text,\n  `forwardedToClientAt` timestamp,\n  `resolvedAt` timestamp,\n  `createdAt` timestamp NOT NULL DEFAULT (now()),\n  `updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,\n  CONSTRAINT `worker_problems_id` PRIMARY KEY(`id`)\n)",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 61
+}

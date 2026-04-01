@@ -1,0 +1,9 @@
+{
+  "query": "INSERT INTO districts (name, isActive) VALUES\n('Младост 1', true),\n('Младост 2', true),\n('Младост 3', true),\n('Младост 4', true),\n('Люлин', true),\n('Надежда', true),\n('Дружба', true),\n('Студентски град', true),\n('Красно село', true),\n('Лозенец', true),\n('Витоша', true),\n('Овча купел', true)\nON DUPLICATE KEY UPDATE isActive = isActive;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 48P8XnfxJZV8EyZ.175bf75abc48 --database 6WycboeERi6WeuABA7WnLM --execute INSERT INTO districts (name, isActive) VALUES\n('Младост 1', true),\n('Младост 2', true),\n('Младост 3', true),\n('Младост 4', true),\n('Люлин', true),\n('Надежда', true),\n('Дружба', true),\n('Студентски град', true),\n('Красно село', true),\n('Лозенец', true),\n('Витоша', true),\n('Овча купел', true)\nON DUPLICATE KEY UPDATE isActive = isActive;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 186
+}

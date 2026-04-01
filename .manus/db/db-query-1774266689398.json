@@ -1,0 +1,9 @@
+{
+  "query": "\nCREATE TABLE IF NOT EXISTS `settings` (\n  `id` int AUTO_INCREMENT NOT NULL,\n  `key` varchar(128) NOT NULL,\n  `value` text,\n  `updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,\n  CONSTRAINT `settings_id` PRIMARY KEY(`id`),\n  CONSTRAINT `settings_key_unique` UNIQUE(`key`)\n);\n\nALTER TABLE `users` MODIFY COLUMN `role` enum('user','admin','worker') NOT NULL DEFAULT 'user';\n\nALTER TABLE `users` ADD COLUMN IF NOT EXISTS `credits` decimal(10,2) DEFAULT '0.00' NOT NULL;\n\nINSERT INTO `settings` (`key`, `value`) VALUES \n  ('contact_phone', '+359 88 888 8888'),\n  ('contact_email', 'trashit.bg@gmail.com')\nON DUPLICATE KEY UPDATE `value` = VALUES(`value`);\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 48P8XnfxJZV8EyZ.175bf75abc48 --database 6WycboeERi6WeuABA7WnLM --execute \nCREATE TABLE IF NOT EXISTS `settings` (\n  `id` int AUTO_INCREMENT NOT NULL,\n  `key` varchar(128) NOT NULL,\n  `value` text,\n  `updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,\n  CONSTRAINT `settings_id` PRIMARY KEY(`id`),\n  CONSTRAINT `settings_key_unique` UNIQUE(`key`)\n);\n\nALTER TABLE `users` MODIFY COLUMN `role` enum('user','admin','worker') NOT NULL DEFAULT 'user';\n\nALTER TABLE `users` ADD COLUMN IF NOT EXISTS `credits` decimal(10,2) DEFAULT '0.00' NOT NULL;\n\nINSERT INTO `settings` (`key`, `value`) VALUES \n  ('contact_phone', '+359 88 888 8888'),\n  ('contact_email', 'trashit.bg@gmail.com')\nON DUPLICATE KEY UPDATE `value` = VALUES(`value`);\n",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 818
+}

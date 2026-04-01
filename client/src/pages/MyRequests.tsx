@@ -1,0 +1,179 @@
+import { useLocation } from "wouter";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { trpc } from "@/lib/trpc";
+import { useLanguage } from "@/contexts/LanguageContext";
+import MainLayout from "@/components/MainLayout";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import {
+  Trash2, Recycle, Package, HardHat,
+  Clock, CheckCircle2, XCircle, Loader2,
+  ChevronLeft, Plus, MapPin
+} from "lucide-react";
+
+const TYPE_LABELS: Record<string, { bg: string; en: string; icon: React.ReactNode; color: string }> = {
+  standard: { bg: "Стандартен", en: "Standard", icon: <Trash2 className="w-4 h-4" />, color: "bg-green-100 text-green-700" },
+  recycling: { bg: "Разделно", en: "Recycling", icon: <Recycle className="w-4 h-4" />, color: "bg-blue-100 text-blue-700" },
+  nonstandard: { bg: "Нестандартен", en: "Non-standard", icon: <Package className="w-4 h-4" />, color: "bg-orange-100 text-orange-700" },
+  construction: { bg: "Строителен", en: "Construction", icon: <HardHat className="w-4 h-4" />, color: "bg-yellow-100 text-yellow-700" },
+};
+
+const STATUS_LABELS: Record<string, { bg: string; en: string; icon: React.ReactNode; color: string }> = {
+  pending: { bg: "Изчакване", en: "Pending", icon: <Clock className="w-4 h-4" />, color: "bg-amber-100 text-amber-700" },
+  assigned: { bg: "Възложено", en: "Assigned", icon: <Loader2 className="w-4 h-4" />, color: "bg-blue-100 text-blue-700" },
+  completed: { bg: "Завършено", en: "Completed", icon: <CheckCircle2 className="w-4 h-4" />, color: "bg-green-100 text-green-700" },
+  cancelled: { bg: "Анулирано", en: "Cancelled", icon: <XCircle className="w-4 h-4" />, color: "bg-gray-100 text-gray-500" },
+};
+
+export default function MyRequests() {
+  const [, navigate] = useLocation();
+  const { isAuthenticated, loading } = useAuth();
+  const { language } = useLanguage();
+  const isBg = language === "bg";
+
+  const { data: requests, isLoading, refetch } = trpc.requests.myList.useQuery(undefined, {
+    enabled: isAuthenticated,
+  });
+
+  const cancelMutation = trpc.requests.cancel.useMutation({
+    onSuccess: () => {
+      toast.success(isBg ? "Заявката е анулирана" : "Request cancelled");
+      refetch();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  if (loading || isLoading) {
+    return (
+      <MainLayout showFooter>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <MainLayout showFooter>
+        <div className="max-w-md mx-auto px-4 py-16 text-center">
+          <p className="text-gray-500 mb-4">{isBg ? "Трябва да влезете в акаунта си" : "You must be logged in"}</p>
+          <Button onClick={() => navigate("/auth")} className="rounded-2xl bg-primary hover:bg-primary/90">
+            {isBg ? "Влез" : "Login"}
+          </Button>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  return (
+    <MainLayout showFooter>
+      <div className="max-w-2xl mx-auto px-4 py-6">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <button onClick={() => navigate("/")} className="p-2 rounded-full hover:bg-gray-100 transition-colors">
+              <ChevronLeft className="w-5 h-5 text-gray-600" />
+            </button>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {isBg ? "Моите заявки" : "My Requests"}
+            </h1>
+          </div>
+          <Button
+            onClick={() => navigate("/waste-disposal")}
+            size="sm"
+            className="rounded-xl bg-primary hover:bg-primary/90 gap-1"
+          >
+            <Plus className="w-4 h-4" />
+            {isBg ? "Нова" : "New"}
+          </Button>
+        </div>
+
+        {/* Empty state */}
+        {(!requests || requests.length === 0) && (
+          <div className="text-center py-16">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Trash2 className="w-8 h-8 text-gray-400" />
+            </div>
+            <p className="text-gray-500 mb-4">
+              {isBg ? "Нямате подадени заявки" : "No requests submitted yet"}
+            </p>
+            <Button onClick={() => navigate("/waste-disposal")} className="rounded-2xl bg-primary hover:bg-primary/90">
+              {isBg ? "Подай заявка" : "Submit Request"}
+            </Button>
+          </div>
+        )}
+
+        {/* Requests list */}
+        <div className="space-y-3">
+          {requests?.map((req) => {
+            const typeInfo = TYPE_LABELS[req.type] ?? TYPE_LABELS.standard;
+            const statusInfo = STATUS_LABELS[req.status] ?? STATUS_LABELS.pending;
+            const date = new Date(req.createdAt).toLocaleDateString(isBg ? "bg-BG" : "en-GB", {
+              day: "2-digit", month: "short", year: "numeric"
+            });
+
+            return (
+              <div key={req.id} className={`rounded-2xl border p-4 shadow-sm ${req.hasProblem ? 'bg-red-50 border-red-300' : 'bg-white border-gray-200'}`}>
+                {req.hasProblem && (
+                  <div className="flex items-start gap-2 bg-red-100 border border-red-200 rounded-xl px-3 py-2 mb-3">
+                    <span className="text-red-500 text-sm mt-0.5">⚠️</span>
+                    <div>
+                      <p className="text-sm font-semibold text-red-700">Има проблем с заявката</p>
+                      {req.problemDescription && (
+                        <p className="text-xs text-red-600 mt-0.5">{req.problemDescription}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full ${typeInfo.color}`}>
+                      {typeInfo.icon}
+                      {isBg ? typeInfo.bg : typeInfo.en}
+                    </span>
+                    <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full ${statusInfo.color}`}>
+                      {statusInfo.icon}
+                      {isBg ? statusInfo.bg : statusInfo.en}
+                    </span>
+                  </div>
+                  <span className="text-xs text-gray-400 flex-shrink-0">{date}</span>
+                </div>
+
+                <div className="mt-3 flex items-center gap-1.5 text-sm text-gray-600">
+                  <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                  <span>{req.district}, Бл. {req.blok}, Вх. {req.vhod}, Ет. {req.etaj}, Ап. {req.apartament}</span>
+                </div>
+
+                {req.description && (
+                  <p className="mt-2 text-sm text-gray-500 line-clamp-2">{req.description}</p>
+                )}
+
+                {req.estimatedVolume && (
+                  <p className="mt-1 text-xs text-blue-600">
+                    {isBg ? "Прогнозен обем:" : "Est. volume:"} {req.estimatedVolume}
+                  </p>
+                )}
+
+                {/* Cancel button for pending requests */}
+                {req.status === "pending" && (
+                  <div className="mt-3 flex justify-end">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => cancelMutation.mutate({ id: req.id })}
+                      disabled={cancelMutation.isPending}
+                      className="rounded-xl text-red-600 border-red-200 hover:bg-red-50 text-xs"
+                    >
+                      {isBg ? "Анулирай" : "Cancel"}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </MainLayout>
+  );
+}

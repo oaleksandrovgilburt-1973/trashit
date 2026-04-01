@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE IF NOT EXISTS `workers` (\n  `id` int AUTO_INCREMENT NOT NULL,\n  `openId` varchar(64) NOT NULL,\n  `name` text NOT NULL,\n  `username` varchar(64) NOT NULL,\n  `passwordHash` varchar(256) NOT NULL,\n  `mustChangePassword` boolean NOT NULL DEFAULT true,\n  `isActive` boolean NOT NULL DEFAULT true,\n  `activeDistricts` json,\n  `deviceTokens` json,\n  `createdByAdmin` boolean NOT NULL DEFAULT true,\n  `createdAt` timestamp NOT NULL DEFAULT (now()),\n  `updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,\n  `lastSignedIn` timestamp,\n  CONSTRAINT `workers_id` PRIMARY KEY(`id`),\n  CONSTRAINT `workers_openId_unique` UNIQUE(`openId`),\n  CONSTRAINT `workers_username_unique` UNIQUE(`username`)\n)",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 48P8XnfxJZV8EyZ.175bf75abc48 --database 6WycboeERi6WeuABA7WnLM --execute CREATE TABLE IF NOT EXISTS `workers` (\n  `id` int AUTO_INCREMENT NOT NULL,\n  `openId` varchar(64) NOT NULL,\n  `name` text NOT NULL,\n  `username` varchar(64) NOT NULL,\n  `passwordHash` varchar(256) NOT NULL,\n  `mustChangePassword` boolean NOT NULL DEFAULT true,\n  `isActive` boolean NOT NULL DEFAULT true,\n  `activeDistricts` json,\n  `deviceTokens` json,\n  `createdByAdmin` boolean NOT NULL DEFAULT true,\n  `createdAt` timestamp NOT NULL DEFAULT (now()),\n  `updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,\n  `lastSignedIn` timestamp,\n  CONSTRAINT `workers_id` PRIMARY KEY(`id`),\n  CONSTRAINT `workers_openId_unique` UNIQUE(`openId`),\n  CONSTRAINT `workers_username_unique` UNIQUE(`username`)\n)",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 131
+}

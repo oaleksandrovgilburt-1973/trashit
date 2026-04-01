@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE IF NOT EXISTS `worker_districts` (\n  `id` int AUTO_INCREMENT NOT NULL,\n  `workerId` int NOT NULL,\n  `workerOpenId` varchar(64) NOT NULL,\n  `districtName` varchar(128) NOT NULL,\n  `createdAt` timestamp NOT NULL DEFAULT (now()),\n  CONSTRAINT `worker_districts_id` PRIMARY KEY(`id`)\n)",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 48P8XnfxJZV8EyZ.175bf75abc48 --database 6WycboeERi6WeuABA7WnLM --execute CREATE TABLE IF NOT EXISTS `worker_districts` (\n  `id` int AUTO_INCREMENT NOT NULL,\n  `workerId` int NOT NULL,\n  `workerOpenId` varchar(64) NOT NULL,\n  `districtName` varchar(128) NOT NULL,\n  `createdAt` timestamp NOT NULL DEFAULT (now()),\n  CONSTRAINT `worker_districts_id` PRIMARY KEY(`id`)\n)",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 59
+}

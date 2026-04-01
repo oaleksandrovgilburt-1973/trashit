@@ -1,0 +1,9 @@
+{
+  "query": "ALTER TABLE `requests` ADD `hasProblem` boolean DEFAULT false NOT NULL;\nALTER TABLE `requests` ADD `problemDescription` text;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 48P8XnfxJZV8EyZ.175bf75abc48 --database 6WycboeERi6WeuABA7WnLM --execute ALTER TABLE `requests` ADD `hasProblem` boolean DEFAULT false NOT NULL;\nALTER TABLE `requests` ADD `problemDescription` text;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 2047
+}
