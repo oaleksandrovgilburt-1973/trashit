@@ -1272,5 +1272,82 @@ export const appRouter = router({
         return { success: true };
       }),
   }),
+  // ── Entrance Access ───────────────────────────────────────────────────────
+  entranceAccess: router({
+    check: publicProcedure
+      .input(z.object({ district: z.string(), blok: z.string(), vhod: z.string() }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return { approved: false };
+        const { entranceAccess } = await import("../drizzle/schema");
+        const { eq, and } = await import("drizzle-orm");
+        const result = await db.select().from(entranceAccess)
+          .where(and(
+            eq(entranceAccess.district, input.district),
+            eq(entranceAccess.blok, input.blok),
+            eq(entranceAccess.vhod, input.vhod)
+          )).limit(1);
+        if (!result.length) return { approved: false };
+        return { approved: result[0].is_approved === 1 };
+      }),
+
+    register: publicProcedure
+      .input(z.object({ district: z.string(), blok: z.string(), vhod: z.string() }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return { approved: false };
+        const { entranceAccess } = await import("../drizzle/schema");
+        const { eq, and } = await import("drizzle-orm");
+        const existing = await db.select().from(entranceAccess)
+          .where(and(
+            eq(entranceAccess.district, input.district),
+            eq(entranceAccess.blok, input.blok),
+            eq(entranceAccess.vhod, input.vhod)
+          )).limit(1);
+        if (!existing.length) {
+          await db.insert(entranceAccess).values({
+            district: input.district,
+            blok: input.blok,
+            vhod: input.vhod,
+            is_approved: 0,
+          });
+          return { approved: false, isNew: true };
+        }
+        return { approved: existing[0].is_approved === 1, isNew: false };
+      }),
+
+    toggle: adminProcedure
+      .input(z.object({ district: z.string(), blok: z.string(), vhod: z.string(), isApproved: z.boolean() }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB не е достъпна." });
+        const { entranceAccess } = await import("../drizzle/schema");
+        const { eq, and } = await import("drizzle-orm");
+        await db.update(entranceAccess)
+          .set({ is_approved: input.isApproved ? 1 : 0 })
+          .where(and(
+            eq(entranceAccess.district, input.district),
+            eq(entranceAccess.blok, input.blok),
+            eq(entranceAccess.vhod, input.vhod)
+          ));
+        return { success: true };
+      }),
+
+    delete: adminProcedure
+      .input(z.object({ district: z.string(), blok: z.string(), vhod: z.string() }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB не е достъпна." });
+        const { entranceAccess } = await import("../drizzle/schema");
+        const { eq, and } = await import("drizzle-orm");
+        await db.delete(entranceAccess)
+          .where(and(
+            eq(entranceAccess.district, input.district),
+            eq(entranceAccess.blok, input.blok),
+            eq(entranceAccess.vhod, input.vhod)
+          ));
+        return { success: true };
+      }),
+  }),
 });
 export type AppRouter = typeof appRouter;
