@@ -77,7 +77,7 @@ const { data: descriptions } = trpc.activityDescriptions.getAll.useQuery();
 
 После намери с **Ctrl+F**:
 ```
-service.label}</p>
+
 
   return (
     <MainLayout>
