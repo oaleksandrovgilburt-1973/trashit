@@ -17,7 +17,10 @@ import UserProfile from "./pages/UserProfile";
 import MyRequests from "./pages/MyRequests";
 import WorkerRequests from "./pages/WorkerRequests";
 import Credits from "./pages/Credits";
+import PWAInstallBanner from "./components/PWAInstallBanner";
+
 import { FCMProvider } from "./components/FCMProvider";
+import { usePWA } from "./hooks/usePWA";
 
 function Router() {
   return (
@@ -51,10 +54,14 @@ function Router() {
 }
 
 function AppInner() {
+  const { } = usePWA();
   return (
-    <FCMProvider>
-      <Router />
-    </FCMProvider>
+    <>
+      <FCMProvider>
+        <Router />
+      </FCMProvider>
+      <PWAInstallBanner />
+    </>
   );
 }
 
