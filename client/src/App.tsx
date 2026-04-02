@@ -18,7 +18,7 @@ import MyRequests from "./pages/MyRequests";
 import WorkerRequests from "./pages/WorkerRequests";
 import Credits from "./pages/Credits";
 import PWAInstallBanner from "./components/PWAInstallBanner";
-import { UpdateBanner } from "./components/UpdateBanner";
+
 import { FCMProvider } from "./components/FCMProvider";
 import { usePWA } from "./hooks/usePWA";
 
