@@ -1,7 +1,7 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
 import MainLayout from "@/components/MainLayout";
-import { Trash2, Sparkles, LogIn, UserPlus, ChevronRight, Leaf, User, CreditCard, Recycle, LogOut, Bell, BellOff, Package, HardHat, Building2, Home as HomeIcon, MoreHorizontal } from "lucide-react";
+import { Trash2, Sparkles, LogIn, UserPlus, ChevronRight, Leaf, User, CreditCard, Recycle, LogOut, Bell, BellOff } from "lucide-react";
 import { StandardCoin, RecyclingCoin } from "@/components/CreditCoin";
 import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -14,6 +14,7 @@ export default function Home() {
   const [, navigate] = useLocation();
   const saveFcmToken = trpc.users.saveFcmToken.useMutation();
 
+  // Track notification permission state — refresh on mount, user change, and tab focus
   const [notifPermission, setNotifPermission] = useState<NotificationPermission | null>(null);
 
   const refreshPermission = () => {
@@ -24,6 +25,7 @@ export default function Home() {
 
   useEffect(() => {
     refreshPermission();
+    // Re-check when the user returns to the tab (FCMProvider may have changed it)
     window.addEventListener("visibilitychange", refreshPermission);
     window.addEventListener("focus", refreshPermission);
     return () => {
@@ -51,6 +53,7 @@ export default function Home() {
     navigate("/");
   };
 
+  // Fetch extended profile to get credits
   const profileQuery = trpc.users.getProfile.useQuery(undefined, {
     enabled: !!user,
   });
@@ -59,31 +62,12 @@ export default function Home() {
   const creditsStandard = profile?.creditsStandard ?? "0.00";
   const creditsRecycling = profile?.creditsRecycling ?? "0.00";
 
-const { data: descriptions } = trpc.activityDescriptions.getAll.useQuery();
-
-  const getDesc = (key: string) =>
-    descriptions?.find((d: any) => d.activityKey === key)?.description ?? "";
-
-  const services = [
-    { href: "/waste-disposal?type=standard", icon: <Trash2 className="w-6 h-6 text-primary" />, label: "Стандартен битов отпадък", key: "standard" },
-    { href: "/waste-disposal?type=recycling", icon: <Recycle className="w-6 h-6 text-primary" />, label: "Разделно изхвърляне", key: "recycling" },
-    { href: "/waste-disposal?type=nonstandard", icon: <Package className="w-6 h-6 text-primary" />, label: "Нестандартен отпадък", key: "nonstandard" },
-    { href: "/waste-disposal?type=construction", icon: <HardHat className="w-6 h-6 text-primary" />, label: "Строителен отпадък", key: "construction" },
-    { href: "/cleaning?type=entrance", icon: <Building2 className="w-6 h-6 text-primary" />, label: "Почистване на вход", key: "entrance" },
-    { href: "/cleaning?type=residence", icon: <HomeIcon className="w-6 h-6 text-primary" />, label: "Жилища", key: "residence" },
-    { href: "/cleaning?type=other", icon: <MoreHorizontal className="w-6 h-6 text-primary" />, label: "Друго", key: "other" },
-  ];
-```
-
-После намери с **Ctrl+F**:
-```
-
-
   return (
     <MainLayout>
       <div className="page-enter">
         {/* Hero / Account Section */}
         <section className="bg-gradient-to-br from-primary via-primary to-[#388E3C] relative overflow-hidden">
+          {/* Decorative circles */}
           <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/4" />
           <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/4" />
 
@@ -97,6 +81,7 @@ const { data: descriptions } = trpc.activityDescriptions.getAll.useQuery();
                 </div>
               </div>
             ) : user ? (
+              /* Logged-in user */
               <div className="flex items-center justify-between gap-2">
                 <Link href="/profile">
                   <div className="flex items-center gap-3 cursor-pointer group">
@@ -111,12 +96,16 @@ const { data: descriptions } = trpc.activityDescriptions.getAll.useQuery();
                     </div>
                   </div>
                 </Link>
+                {/* Right column: logout on top, credits below */}
                 <div className="flex flex-col items-end gap-2">
+                  {/* Top row: logout + notification bell */}
                   <div className="flex items-center gap-2">
+                    {/* Notification bell — show only if not yet granted */}
                     {notifPermission === "default" && (
                       <button
                         onClick={handleEnableNotifications}
                         className="flex items-center gap-1.5 bg-white/20 backdrop-blur-sm rounded-xl px-3 py-1.5 hover:bg-yellow-500/60 transition-colors"
+                        title="Разреши известия"
                       >
                         <Bell className="w-4 h-4 text-white" />
                         <span className="text-white text-xs font-semibold uppercase tracking-wide">Известия</span>
@@ -124,21 +113,27 @@ const { data: descriptions } = trpc.activityDescriptions.getAll.useQuery();
                     )}
                     {notifPermission === "denied" && (
                       <button
-                        onClick={() => alert("Известията са блокирани от браузъра.\n\nЗа да ги разрешите:\n1. Натиснете иконата 🔒 или ℹ️ в адресната лента\n2. Намерете 'Известия' и изберете 'Разреши'\n3. Презаредете страницата")}
+                        onClick={() => {
+                          alert("Известията са блокирани от браузъра.\n\nЗа да ги разрешите:\n1. Натиснете иконата 🔒 или ℹ️ в адресната лента\n2. Намерете 'Известия' и изберете 'Разреши'\n3. Презаредете страницата");
+                        }}
                         className="flex items-center gap-1.5 bg-red-500/40 backdrop-blur-sm rounded-xl px-3 py-1.5 hover:bg-red-500/60 transition-colors"
+                        title="Известията са блокирани"
                       >
                         <BellOff className="w-4 h-4 text-white" />
                         <span className="text-white text-xs font-semibold uppercase tracking-wide">Блокирани</span>
                       </button>
                     )}
+                    {/* Logout button */}
                     <button
                       onClick={handleLogout}
                       className="flex items-center gap-1.5 bg-white/20 backdrop-blur-sm rounded-xl px-3 py-1.5 hover:bg-red-500/60 transition-colors group"
+                      title="Изход"
                     >
                       <LogOut className="w-4 h-4 text-white" />
                       <span className="text-white text-xs font-semibold uppercase tracking-wide">Изход</span>
                     </button>
                   </div>
+                  {/* Credits — side by side */}
                   <Link href="/credits">
                     <div className="flex items-center gap-3 bg-white/20 backdrop-blur-sm rounded-xl px-3 py-1.5 cursor-pointer hover:bg-white/30 transition-colors">
                       <div className="flex items-center gap-1">
@@ -157,6 +152,7 @@ const { data: descriptions } = trpc.activityDescriptions.getAll.useQuery();
                 </div>
               </div>
             ) : (
+              /* Guest user */
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-white/80 text-sm font-medium mb-1">{t.appTagline}</p>
@@ -172,6 +168,8 @@ const { data: descriptions } = trpc.activityDescriptions.getAll.useQuery();
                 </div>
               </div>
             )}
+
+            {/* Tagline for logged-in users */}
             {user && (
               <div className="mt-4 flex items-center gap-2">
                 <Leaf className="w-4 h-4 text-white/70" />
@@ -181,27 +179,38 @@ const { data: descriptions } = trpc.activityDescriptions.getAll.useQuery();
           </div>
         </section>
 
-        {/* Services */}
+        {/* Main Menu */}
         <section className="container py-6">
           <h2 className="text-lg font-bold text-foreground mb-4">{t.mainMenuTitle}</h2>
 
-          <div className="space-y-2">
-            {services.map((service) => (
-              <Link key={service.href} href={service.href}>
-                <div className="flex items-center gap-3 p-4 rounded-2xl bg-primary/10 border border-primary/20 hover:bg-primary/20 hover:border-primary/40 transition-all cursor-pointer group">
-                  <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center group-hover:bg-primary/25 transition-colors flex-shrink-0">
-                    {service.icon}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {/* Waste Disposal Card */}
+            <Link href="/waste-disposal">
+              <div className="group trashit-card p-6 cursor-pointer hover:shadow-md hover:border-primary/40 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                    <Trash2 className="w-7 h-7 text-primary" />
                   </div>
-                  <div className="flex-1">
-  <p className="text-sm font-semibold text-foreground">{service.label}</p>
-  {getDesc(service.key) && (
-    <p className="text-xs text-muted-foreground mt-0.5">{getDesc(service.key)}</p>
-  )}
-</div>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                  <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
                 </div>
-              </Link>
-            ))}
+                <h3 className="font-bold text-foreground text-lg mb-1.5">{t.wasteDisposal}</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">{t.wasteDisposalDesc}</p>
+              </div>
+            </Link>
+
+            {/* Cleaning Card */}
+            <Link href="/cleaning">
+              <div className="group trashit-card p-6 cursor-pointer hover:shadow-md hover:border-primary/40 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="w-14 h-14 rounded-2xl bg-accent/20 flex items-center justify-center group-hover:bg-accent/30 transition-colors">
+                    <Sparkles className="w-7 h-7 text-primary" />
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+                </div>
+                <h3 className="font-bold text-foreground text-lg mb-1.5">{t.cleaning}</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">{t.cleaningDesc}</p>
+              </div>
+            </Link>
           </div>
 
           {/* Guest CTA */}
@@ -229,7 +238,7 @@ const { data: descriptions } = trpc.activityDescriptions.getAll.useQuery();
             </div>
           )}
 
-          {/* Quick links */}
+          {/* Quick links for logged-in users */}
           {user && (
             <div className="mt-4 space-y-2">
               <Link href="/credits">

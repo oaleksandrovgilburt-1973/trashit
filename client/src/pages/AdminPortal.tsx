@@ -9,11 +9,11 @@ import {
   Users, MapPin, Building2, CreditCard, ClipboardList,
   Settings, AlertTriangle, LogOut, Plus, Trash2, Power,
   PowerOff, CheckCircle, Phone, Mail, ChevronRight,
-  RefreshCw, Eye, Send, ShieldAlert, Pencil, Save, LayoutDashboard, FileText
+  RefreshCw, Eye, Send, ShieldAlert, Pencil, Save, LayoutDashboard
 } from "lucide-react";
 import AdminDashboard from "@/components/AdminDashboard";
 
-type Tab = "dashboard" | "workers" | "districts" | "blocks" | "credits" | "requests" | "content" | "descriptions" | "problems";
+type Tab = "dashboard" | "workers" | "districts" | "blocks" | "credits" | "requests" | "content" | "problems";
 
 export default function AdminPortal() {
   const [, navigate] = useLocation();
@@ -36,7 +36,6 @@ export default function AdminPortal() {
     { id: "credits", icon: CreditCard, label: "Кредити" },
     { id: "requests", icon: ClipboardList, label: "Заявки" },
     { id: "content", icon: Settings, label: "Съдържание" },
-    { id: "descriptions", icon: FileText, label: "Описания" },
     { id: "problems", icon: AlertTriangle, label: "Проблеми" },
   ];
 
@@ -98,7 +97,6 @@ export default function AdminPortal() {
         {activeTab === "credits" && <CreditsTab />}
         {activeTab === "requests" && <RequestsTab />}
         {activeTab === "content" && <ContentTab />}
-        {activeTab === "descriptions" && <DescriptionsTab />}
         {activeTab === "problems" && <ProblemsTab />}
       </div>
     </div>
@@ -887,85 +885,3 @@ function ProblemsTab() {
     </div>
   );
 }
-// ─── Tab 8: Descriptions ─────────────────────────────────────────────────────
-function DescriptionsTab() {
-  const [editingKey, setEditingKey] = useState<string | null>(null);
-  const [editValue, setEditValue] = useState("");
-
-  const { data: descriptions, refetch } = trpc.activityDescriptions.getAll.useQuery();
-  const update = trpc.activityDescriptions.update.useMutation({
-    onSuccess: () => { toast.success("Описанието е запазено"); refetch(); setEditingKey(null); },
-    onError: (e: any) => toast.error(e.message),
-  });
-
-  const activityLabels: Record<string, { label: string; icon: string }> = {
-    standard: { label: "Стандартен битов отпадък", icon: "🗑️" },
-    recycling: { label: "Разделно изхвърляне", icon: "♻️" },
-    nonstandard: { label: "Нестандартен битов отпадък", icon: "📦" },
-    construction: { label: "Строителен отпадък", icon: "🏗️" },
-    entrance: { label: "Почистване на вход", icon: "🏢" },
-    residence: { label: "Жилища", icon: "🏠" },
-    other: { label: "Друго", icon: "ℹ️" },
-  };
-
-  return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-gray-900">Описания на дейности</h2>
-        <p className="text-sm text-gray-500 mt-0.5">Добавете допълнителна информация към всяка дейност. Тя ще се показва на клиентите при избор на услуга.</p>
-      </div>
-
-      <div className="space-y-3">
-        {descriptions?.map((item: any) => {
-          const meta = activityLabels[item.activityKey] ?? { label: item.activityKey, icon: "📋" };
-          const isEditing = editingKey === item.activityKey;
-          return (
-            <div key={item.activityKey} className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">{meta.icon}</span>
-                  <div>
-                    <p className="font-semibold text-gray-900">{meta.label}</p>
-                    {!isEditing && (
-                      <p className="text-sm text-gray-400 mt-0.5">
-                        {item.description || <span className="italic">Няма описание още.</span>}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                {!isEditing && (
-                  <button
-                    onClick={() => { setEditingKey(item.activityKey); setEditValue(item.description ?? ""); }}
-                    className="text-green-600 hover:text-green-700 flex items-center gap-1 text-sm font-medium"
-                  >
-                    <Pencil className="w-3.5 h-3.5" />
-                    {item.description ? "Редактирай" : "Добави"}
-                  </button>
-                )}
-              </div>
-              {isEditing && (
-                <div className="mt-3 flex gap-2">
-                  <Input
-                    value={editValue}
-                    onChange={e => setEditValue(e.target.value)}
-                    placeholder="Въведете описание..."
-                    className="rounded-xl flex-1"
-                  />
-                  <Button
-                    onClick={() => update.mutate({ activityKey: item.activityKey, description: editValue })}
-                    disabled={update.isPending}
-                    className="bg-green-600 hover:bg-green-700 rounded-xl"
-                  >
-                    <Save className="w-4 h-4 mr-1" />Запази
-                  </Button>
-                  <Button variant="outline" onClick={() => setEditingKey(null)} className="rounded-xl">Отказ</Button>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
