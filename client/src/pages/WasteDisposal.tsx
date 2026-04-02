@@ -85,10 +85,12 @@ export default function WasteDisposal() {
   const { language } = useLanguage();
   const isBg = language === "bg";
 
+  const urlWasteType = WASTE_TYPES.find(w => w.id === typeFromUrl);
+  const hasWarning = !!urlWasteType?.warningBg;
   const [step, setStep] = useState<"select" | "form" | "success">(typeFromUrl ? "form" : "select");
   const [showSaveAddress, setShowSaveAddress] = useState(false);
   const [selectedType, setSelectedType] = useState<WasteType | null>(typeFromUrl);
-  const [showWarning, setShowWarning] = useState(false);
+  const [showWarning, setShowWarning] = useState(hasWarning);
 
   // Form state
   const [description, setDescription] = useState("");
