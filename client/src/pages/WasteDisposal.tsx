@@ -132,7 +132,7 @@ export default function WasteDisposal() {
   }, [profile]);
 
   const updateProfile = trpc.users.updateProfile.useMutation();
-
+  const registerEntrance = trpc.entranceAccess.register.useMutation();
   const createRequest = trpc.requests.create.useMutation({
     onSuccess: () => {
       setStep("success");
@@ -192,7 +192,7 @@ export default function WasteDisposal() {
     reader.readAsDataURL(file);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedType) return;
     if (!isAuthenticated) {
