@@ -269,5 +269,12 @@ export const workerDistricts = mysqlTable("worker_districts", {
 });
 
 export type WorkerDistrict = typeof workerDistricts.$inferSelect;
+// ── Activity Descriptions ─────────────────────────────────────────────────
+export const activityDescriptions = mysqlTable("activity_descriptions", {
+  id: int("id").autoincrement().primaryKey(),
+  activityKey: varchar("activityKey", { length: 64 }).notNull().unique(),
+  description: text("description"),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow().onUpdateNow(),
+});
 export type InsertWorkerDistrict = typeof workerDistricts.$inferInsert;
 

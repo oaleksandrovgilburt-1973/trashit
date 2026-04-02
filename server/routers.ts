@@ -1248,5 +1248,29 @@ export const appRouter = router({
         return { success: true, id };
       }),
   }),
+// ── Activity Descriptions ─────────────────────────────────────────────────
+  activityDescriptions: router({
+    getAll: publicProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return [];
+      const { activityDescriptions } = await import("../drizzle/schema");
+      return db.select().from(activityDescriptions);
+    }),
+    update: adminProcedure
+      .input(z.object({
+        activityKey: z.string(),
+        description: z.string(),
+      }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Базата данни не е достъпна." });
+        const { activityDescriptions } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        await db.update(activityDescriptions)
+          .set({ description: input.description })
+          .where(eq(activityDescriptions.activityKey, input.activityKey));
+        return { success: true };
+      }),
+  }),
 });
 export type AppRouter = typeof appRouter;
