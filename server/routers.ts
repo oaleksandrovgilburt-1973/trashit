@@ -1273,7 +1273,13 @@ export const appRouter = router({
       }),
   }),
   // ── Entrance Access ───────────────────────────────────────────────────────
-  entranceAccess: router({
+   entranceAccess: router({
+    list: adminProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return [];
+      const { entranceAccess } = await import("../drizzle/schema");
+      return db.select().from(entranceAccess);
+    }),
     check: publicProcedure
       .input(z.object({ district: z.string(), blok: z.string(), vhod: z.string() }))
       .query(async ({ input }) => {

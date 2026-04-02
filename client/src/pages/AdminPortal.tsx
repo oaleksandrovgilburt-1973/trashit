@@ -344,71 +344,86 @@ function DistrictsTab() {
   );
 }
 
-// ─── Tab 3: Blocks/Access ─────────────────────────────────────────────────────
 function BlocksTab() {
-  const { data: blocks, isLoading } = trpc.blockAccess.list.useQuery();
+  const { data: entrances, refetch } = trpc.entranceAccess.list.useQuery();
+  const toggle = trpc.entranceAccess.toggle.useMutation({
+    onSuccess: () => { toast.success("Достъпът е актуализиран"); refetch(); },
+    onError: (e: any) => toast.error(e.message),
+  });
+  const del = trpc.entranceAccess.delete.useMutation({
+    onSuccess: () => { toast.success("Изтрито"); refetch(); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  // Group by district -> blok
+  const grouped: Record<string, Record<string, typeof entrances>> = {};
+  for (const e of entrances ?? []) {
+    if (!grouped[e.district]) grouped[e.district] = {};
+    if (!grouped[e.district][e.blok]) grouped[e.district][e.blok] = [];
+    (grouped[e.district][e.blok] as any[]).push(e);
+  }
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold text-gray-900">Управление на достъп до блокове</h2>
-        <p className="text-sm text-gray-500 mt-0.5">Блокове с активни заявки — свържете се с клиента за осигуряване на достъп до входа</p>
+        <h2 className="text-xl font-bold text-gray-900">Достъп до входове</h2>
+        <p className="text-sm text-gray-500 mt-0.5">Одобрявайте входове за да могат клиентите да подават заявки</p>
       </div>
 
-      {isLoading && (
-        <div className="space-y-3">
-          {[1,2,3].map(i => <div key={i} className="h-20 rounded-2xl bg-gray-100 animate-pulse" />)}
-        </div>
-      )}
-
-      {!isLoading && !blocks?.length && (
+      {!entrances?.length && (
         <div className="text-center py-12 text-gray-400">
           <Building2 className="w-12 h-12 mx-auto mb-3 opacity-30" />
-          <p>Няма активни заявки с блокове</p>
+          <p>Няма регистрирани входове</p>
         </div>
       )}
 
-      <div className="grid gap-3">
-        {blocks?.map((block, i) => {
-          const hasContact = block.contactPhone || block.contactEmail;
-          return (
-            <div key={i} className={`bg-white rounded-2xl border p-4 shadow-sm ${!hasContact ? "border-red-200" : "border-gray-200"}`}>
-              <div className="flex items-start justify-between flex-wrap gap-3">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <Building2 className={`w-4 h-4 ${!hasContact ? "text-red-500" : "text-green-600"}`} />
-                    <span className="font-semibold text-gray-900">
-                      {block.district} — Бл. {block.blok}, Вх. {block.vhod}
-                    </span>
-                    {!hasContact && <Badge variant="destructive" className="text-xs">Без контакт</Badge>}
-                  </div>
-                  <p className="text-sm text-gray-500 pl-6">
-                    {block.requestCount} {block.requestCount === 1 ? "заявка" : "заявки"}
-                  </p>
-                </div>
-                <div className="flex flex-col gap-1.5 text-right">
-                  {block.contactPhone && (
-                    <a href={`tel:${block.contactPhone}`} className="flex items-center gap-1.5 text-sm text-green-600 hover:text-green-700">
-                      <Phone className="w-3.5 h-3.5" />{block.contactPhone}
-                    </a>
-                  )}
-                  {block.contactEmail && (
-                    <a href={`mailto:${block.contactEmail}`} className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700">
-                      <Mail className="w-3.5 h-3.5" />{block.contactEmail}
-                    </a>
-                  )}
-                  {!hasContact && <span className="text-xs text-red-500">Няма контактна информация</span>}
-                </div>
-              </div>
+      <div className="space-y-4">
+        {Object.entries(grouped).map(([district, bloks]) => (
+          <div key={district} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="bg-green-700 px-4 py-2.5">
+              <h3 className="font-semibold text-white flex items-center gap-2">
+                <MapPin className="w-4 h-4" />{district}
+              </h3>
             </div>
-          );
-        })}
+            {Object.entries(bloks).map(([blok, vhods]) => (
+              <div key={blok} className="border-b border-gray-100 last:border-0">
+                <div className="px-4 py-2 bg-gray-50 font-medium text-gray-700 text-sm flex items-center gap-2">
+                  <Building2 className="w-3.5 h-3.5 text-gray-400" />Бл. {blok}
+                </div>
+                {(vhods as any[]).map((entrance: any) => (
+                  <div key={entrance.vhod}
+                    className={`flex items-center justify-between px-4 py-3 border-t border-gray-50 ${entrance.is_approved ? "bg-green-50" : "bg-red-50"}`}>
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2.5 h-2.5 rounded-full ${entrance.is_approved ? "bg-green-500" : "bg-red-400"}`} />
+                      <span className="text-sm font-medium">Вх. {entrance.vhod}</span>
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${entrance.is_approved ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"}`}>
+                        {entrance.is_approved ? "Одобрен" : "Неодобрен"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => toggle.mutate({ district: entrance.district, blok: entrance.blok, vhod: entrance.vhod, isApproved: !entrance.is_approved })}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${entrance.is_approved ? "bg-green-500" : "bg-red-400"}`}
+                      >
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${entrance.is_approved ? "translate-x-6" : "translate-x-1"}`} />
+                      </button>
+                      <button
+                        onClick={() => { if (confirm(`Изтриване на Вх. ${entrance.vhod}, Бл. ${blok}, ${district}?`)) del.mutate({ district: entrance.district, blok: entrance.blok, vhod: entrance.vhod }); }}
+                        className="w-6 h-6 rounded-full bg-gray-200 hover:bg-red-100 flex items-center justify-center text-gray-500 hover:text-red-500 transition-colors"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        ))}
       </div>
     </div>
   );
-}
-
-// ─── Tab 4: Credits ───────────────────────────────────────────────────────────
+}// ─── Tab 4: Credits ───────────────────────────────────────────────────────────
 function CreditsTab() {
   const [searchEmail, setSearchEmail] = useState("");
   const [selectedUser, setSelectedUser] = useState<{ openId: string; name: string | null } | null>(null);
