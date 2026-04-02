@@ -61,7 +61,7 @@ function AppInner() {
         <Router />
       </FCMProvider>
       <PWAInstallBanner />
-      {updateAvailable && <UpdateBanner onUpdate={triggerUpdate} />}
+      {/*updateAvailable && <UpdateBanner onUpdate={triggerUpdate} />*/}
     </>
   );
 }
