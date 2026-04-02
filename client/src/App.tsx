@@ -54,12 +54,9 @@ function Router() {
 
 function AppInner() {
   return (
-    <>
-      <FCMProvider>
-        <Router />
-      </FCMProvider>
-      <PWAInstallBanner />
-    </>
+    <FCMProvider>
+      <Router />
+    </FCMProvider>
   );
 }
 
