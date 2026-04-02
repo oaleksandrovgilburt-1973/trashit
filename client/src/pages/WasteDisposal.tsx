@@ -79,13 +79,15 @@ const WASTE_TYPES: WasteTypeCard[] = [
 
 export default function WasteDisposal() {
   const [, navigate] = useLocation();
+  const search = new URLSearchParams(window.location.search);
+  const typeFromUrl = search.get("type") as WasteType | null;
   const { isAuthenticated } = useAuth();
   const { language } = useLanguage();
   const isBg = language === "bg";
 
   const [step, setStep] = useState<"select" | "form" | "success">("select");
   const [showSaveAddress, setShowSaveAddress] = useState(false);
-  const [selectedType, setSelectedType] = useState<WasteType | null>(null);
+  const [selectedType, setSelectedType] = useState<WasteType | null>(typeFromUrl);
   const [showWarning, setShowWarning] = useState(false);
 
   // Form state
