@@ -54,7 +54,7 @@ function Router() {
 }
 
 function AppInner() {
-  const { } = usePWA();
+  usePWA();
   return (
     <>
       <FCMProvider>
