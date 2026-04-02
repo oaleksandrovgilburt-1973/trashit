@@ -59,15 +59,25 @@ export default function Home() {
   const creditsStandard = profile?.creditsStandard ?? "0.00";
   const creditsRecycling = profile?.creditsRecycling ?? "0.00";
 
+const { data: descriptions } = trpc.activityDescriptions.getAll.useQuery();
+
+  const getDesc = (key: string) =>
+    descriptions?.find((d: any) => d.activityKey === key)?.description ?? "";
+
   const services = [
-    { href: "/waste-disposal?type=standard", icon: <Trash2 className="w-6 h-6 text-primary" />, label: "Стандартен битов отпадък" },
-    { href: "/waste-disposal?type=recycling", icon: <Recycle className="w-6 h-6 text-primary" />, label: "Разделно изхвърляне" },
-    { href: "/waste-disposal?type=nonstandard", icon: <Package className="w-6 h-6 text-primary" />, label: "Нестандартен отпадък" },
-    { href: "/waste-disposal?type=construction", icon: <HardHat className="w-6 h-6 text-primary" />, label: "Строителен отпадък" },
-    { href: "/cleaning?type=entrance", icon: <Building2 className="w-6 h-6 text-primary" />, label: "Почистване на вход" },
-    { href: "/cleaning?type=residence", icon: <HomeIcon className="w-6 h-6 text-primary" />, label: "Жилища" },
-    { href: "/cleaning?type=other", icon: <MoreHorizontal className="w-6 h-6 text-primary" />, label: "Друго" },
+    { href: "/waste-disposal?type=standard", icon: <Trash2 className="w-6 h-6 text-primary" />, label: "Стандартен битов отпадък", key: "standard" },
+    { href: "/waste-disposal?type=recycling", icon: <Recycle className="w-6 h-6 text-primary" />, label: "Разделно изхвърляне", key: "recycling" },
+    { href: "/waste-disposal?type=nonstandard", icon: <Package className="w-6 h-6 text-primary" />, label: "Нестандартен отпадък", key: "nonstandard" },
+    { href: "/waste-disposal?type=construction", icon: <HardHat className="w-6 h-6 text-primary" />, label: "Строителен отпадък", key: "construction" },
+    { href: "/cleaning?type=entrance", icon: <Building2 className="w-6 h-6 text-primary" />, label: "Почистване на вход", key: "entrance" },
+    { href: "/cleaning?type=residence", icon: <HomeIcon className="w-6 h-6 text-primary" />, label: "Жилища", key: "residence" },
+    { href: "/cleaning?type=other", icon: <MoreHorizontal className="w-6 h-6 text-primary" />, label: "Друго", key: "other" },
   ];
+```
+
+После намери с **Ctrl+F**:
+```
+service.label}</p>
 
   return (
     <MainLayout>
@@ -182,7 +192,12 @@ export default function Home() {
                   <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center group-hover:bg-primary/25 transition-colors flex-shrink-0">
                     {service.icon}
                   </div>
-                  <p className="flex-1 text-sm font-semibold text-foreground">{service.label}</p>
+                  <div className="flex-1">
+  <p className="text-sm font-semibold text-foreground">{service.label}</p>
+  {getDesc(service.key) && (
+    <p className="text-xs text-muted-foreground mt-0.5">{getDesc(service.key)}</p>
+  )}
+</div>
                   <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
                 </div>
               </Link>
