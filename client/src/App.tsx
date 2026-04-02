@@ -20,7 +20,6 @@ import Credits from "./pages/Credits";
 import PWAInstallBanner from "./components/PWAInstallBanner";
 
 import { FCMProvider } from "./components/FCMProvider";
-import { usePWA } from "./hooks/usePWA";
 
 function Router() {
   return (
@@ -54,7 +53,6 @@ function Router() {
 }
 
 function AppInner() {
-  usePWA();
   return (
     <>
       <FCMProvider>
