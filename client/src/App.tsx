@@ -54,14 +54,13 @@ function Router() {
 }
 
 function AppInner() {
-  const { updateAvailable, triggerUpdate } = usePWA();
+  const { } = usePWA();
   return (
     <>
       <FCMProvider>
         <Router />
       </FCMProvider>
       <PWAInstallBanner />
-      {updateAvailable && <UpdateBanner onUpdate={triggerUpdate} />}
     </>
   );
 }
