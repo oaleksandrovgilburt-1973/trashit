@@ -14,7 +14,7 @@ export default function ClientAuth() {
   const { t } = useLanguage();
   const [, navigate] = useLocation();
   const utils = trpc.useUtils();
-  const [tab, setTab] = useState<Tab>("social");
+  const [tab, setTab] = useState<Tab>("email");
   const [mode, setMode] = useState<Mode>("login");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -125,7 +125,7 @@ export default function ClientAuth() {
 
             {/* Tab selector */}
             <div className="flex gap-1 bg-muted rounded-xl p-1 mb-6">
-              {(["social", "email", "phone"] as Tab[]).map(tabKey => (
+              {(["email", "phone"] as Tab[]).map(tabKey => (
                 <button
                   key={tabKey}
                   onClick={() => setTab(tabKey)}
