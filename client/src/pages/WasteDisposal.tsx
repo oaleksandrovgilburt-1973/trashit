@@ -142,6 +142,10 @@ export default function WasteDisposal() {
     onError: (err) => toast.error(err.message),
   });
 
+const entranceCheck = trpc.entranceAccess.check.useQuery(
+  { district, blok, vhod },
+  { enabled: !!district && !!blok && !!vhod, refetchInterval: 10000 }
+);
   const estimateVolumeMutation = trpc.requests.estimateVolume.useMutation({
     onSuccess: (data) => {
       setEstimatedVolume(data.volume);
@@ -210,6 +214,10 @@ export default function WasteDisposal() {
     }
     if (!contactPhone && !contactEmail) {
       toast.error(isBg ? "Въведете телефон или имейл" : "Enter phone or email");
+      return;
+    }
+if (entranceCheck.data !== undefined && !entranceCheck.data.approved) {
+      toast.error(isBg ? "За този вход все още нямаме осигурен достъп. Свържете се с нас на trashit.bg@gmail.com за да го уредим." : "Access for this entrance is not yet approved.");
       return;
     }
     if ((selectedType === "nonstandard" || selectedType === "construction") && !imagePreview) {
@@ -435,7 +443,7 @@ export default function WasteDisposal() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs text-gray-500">{isBg ? "Блок" : "Block"}</Label>
-                  <Input value={blok} onChange={e => setBlok(e.target.value)} placeholder="358" required className="rounded-xl mt-1" />
+                  <Input value={blok} onChange={e => setBlok(e.target.value)} placeholder="358" required className="rounded-xl mt-1"  />
                 </div>
                 <div>
                   <Label className="text-xs text-gray-500">{isBg ? "Вход" : "Entrance"}</Label>
@@ -444,8 +452,14 @@ export default function WasteDisposal() {
                     onChange={e => setVhod(normalizeEntrance(e.target.value))}
                     placeholder={isBg ? "В (или 1=А, 2=Б...)" : "B (or 1=A, 2=B...)"}
                     required
-                    className="rounded-xl mt-1"
+                    className={`rounded-xl mt-1 ${district && blok && vhod && entranceCheck.data !== undefined && !entranceCheck.data.approved ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                   />
+{district && blok && vhod && entranceCheck.data !== undefined && !entranceCheck.data.approved && (
+                    <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3" />
+                      {isBg ? "За този вход все още нямаме осигурен достъп." : "Access for this entrance is not yet approved."}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <Label className="text-xs text-gray-500">{isBg ? "Етаж" : "Floor"}</Label>
