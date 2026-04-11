@@ -224,6 +224,18 @@ if (entranceCheck.data !== undefined && !entranceCheck.data.approved) {
       toast.error(isBg ? "Снимката е задължителна за този вид отпадък" : "Photo is required");
       return;
     }
+const regResult = await registerEntrance.mutateAsync({ district, blok, vhod });
+    if (!regResult.approved) {
+      toast.error(isBg ? "За този вход все още нямаме осигурен достъп. Свържете се с нас на trashit.bg@gmail.com за да го уредим." : "Access for this entrance is not yet approved.");
+      return;
+    }
+```
+
+Запази и:
+```
+git add .
+git commit -m "Register entrance on submit"
+git push
     createRequest.mutate({
       type: selectedType,
       description: description || undefined,
