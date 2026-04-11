@@ -230,12 +230,6 @@ const regResult = await registerEntrance.mutateAsync({ district, blok, vhod });
       return;
     }
 ```
-
-Запази и:
-```
-git add .
-git commit -m "Register entrance on submit"
-git push
     createRequest.mutate({
       type: selectedType,
       description: description || undefined,
