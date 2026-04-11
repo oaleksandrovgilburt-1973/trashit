@@ -118,6 +118,12 @@ export default function WasteDisposal() {
   // Load districts
   const { data: districtsData } = trpc.districts.list.useQuery();
 
+  // Entrance access check
+  const entranceCheck = trpc.entranceAccess.check.useQuery(
+    { district, blok, vhod },
+    { enabled: !!district && !!blok && !!vhod, refetchInterval: 10000 }
+  );
+
   // Auto-fill from profile
   useEffect(() => {
     if (profile) {
@@ -133,24 +139,15 @@ export default function WasteDisposal() {
 
   const updateProfile = trpc.users.updateProfile.useMutation();
   const registerEntrance = trpc.entranceAccess.register.useMutation();
-const entranceCheck = trpc.entranceAccess.check.useQuery(
-  { district, blok, vhod },
-  { enabled: !!district && !!blok && !!vhod, refetchInterval: 10000 }
-);
-  const registerEntrance = trpc.entranceAccess.register.useMutation();
+
   const createRequest = trpc.requests.create.useMutation({
     onSuccess: () => {
       setStep("success");
-      // Show save-address prompt only for authenticated users
       if (isAuthenticated) setShowSaveAddress(true);
     },
     onError: (err) => toast.error(err.message),
   });
 
-const entranceCheck = trpc.entranceAccess.check.useQuery(
-  { district, blok, vhod },
-  { enabled: !!district && !!blok && !!vhod, refetchInterval: 10000 }
-);
   const estimateVolumeMutation = trpc.requests.estimateVolume.useMutation({
     onSuccess: (data) => {
       setEstimatedVolume(data.volume);
@@ -221,16 +218,10 @@ const entranceCheck = trpc.entranceAccess.check.useQuery(
       toast.error(isBg ? "Въведете телефон или имейл" : "Enter phone or email");
       return;
     }
-if (entranceCheck.data !== undefined && !entranceCheck.data.approved) {
-      toast.error(isBg ? "За този вход все още нямаме осигурен достъп. Свържете се с нас на trashit.bg@gmail.com за да го уредим." : "Access for this entrance is not yet approved.");
-      return;
-    }
     if ((selectedType === "nonstandard" || selectedType === "construction") && !imagePreview) {
       toast.error(isBg ? "Снимката е задължителна за този вид отпадък" : "Photo is required");
       return;
     }
-
-```
     const regResult = await registerEntrance.mutateAsync({ district, blok, vhod });
     if (!regResult.approved) {
       toast.error(isBg ? "За този вход все още нямаме осигурен достъп. Свържете се с нас на trashit.bg@gmail.com за да го уредим." : "Access for this entrance is not yet approved.");
@@ -455,7 +446,7 @@ if (entranceCheck.data !== undefined && !entranceCheck.data.approved) {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs text-gray-500">{isBg ? "Блок" : "Block"}</Label>
-                  <Input value={blok} onChange={e => setBlok(e.target.value)} placeholder="358" required className="rounded-xl mt-1"  />
+                  <Input value={blok} onChange={e => setBlok(e.target.value)} placeholder="358" required className="rounded-xl mt-1" />
                 </div>
                 <div>
                   <Label className="text-xs text-gray-500">{isBg ? "Вход" : "Entrance"}</Label>
@@ -466,7 +457,7 @@ if (entranceCheck.data !== undefined && !entranceCheck.data.approved) {
                     required
                     className={`rounded-xl mt-1 ${district && blok && vhod && entranceCheck.data !== undefined && !entranceCheck.data.approved ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                   />
-{district && blok && vhod && entranceCheck.data !== undefined && !entranceCheck.data.approved && (
+                  {district && blok && vhod && entranceCheck.data !== undefined && !entranceCheck.data.approved && (
                     <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
                       <AlertTriangle className="w-3 h-3" />
                       {isBg ? "За този вход все още нямаме осигурен достъп." : "Access for this entrance is not yet approved."}
