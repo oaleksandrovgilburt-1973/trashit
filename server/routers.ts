@@ -169,7 +169,28 @@ export const appRouter = router({
         ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
         return { success: true, bonusCredits: BONUS_CREDITS, openId };
       }),
-  }),
+changePassword: protectedProcedure
+      .input(z.object({
+        currentPassword: z.string().min(1),
+        newPassword: z.string().min(6, "Паролата трябва да е поне 6 символа"),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const user = await getUserByOpenId(ctx.user.openId);
+        if (!user || !user.passwordHash) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Акаунтът не поддържа смяна на парола." });
+        }
+        const valid = await bcrypt.compare(input.currentPassword, user.passwordHash);
+        if (!valid) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Грешна текуща парола." });
+        }
+        const passwordHash = await bcrypt.hash(input.newPassword, 10);
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB не е достъпна." });
+        const { users } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        await db.update(users).set({ passwordHash }).where(eq(users.openId, ctx.user.openId));
+        return { success: true };
+      }),
 
   // ── Worker auth ───────────────────────────────────────────────────────────
   workerAuth: router({

@@ -22,6 +22,22 @@ export default function UserProfile() {
   const [editingProfile, setEditingProfile] = useState(false);
   const [editingAddress, setEditingAddress] = useState(false);
 
+  const [editingPassword, setEditingPassword] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+
+  const changePasswordMutation = trpc.clientAuth.changePassword.useMutation({
+    onSuccess: () => {
+      toast.success("Паролата е сменена успешно");
+      setEditingPassword(false);
+      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
   const [profileForm, setProfileForm] = useState({
     name: "",
     phone: "",
@@ -85,8 +101,92 @@ export default function UserProfile() {
               {t.loginOrRegister}
             </button>
           </div>
-        </div>
-      </MainLayout>
+      </div>
+
+        {/* Change Password card */}
+        {profile?.loginMethod === "email" && (
+          <div className="bg-card rounded-2xl border border-border p-5 mt-4 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <User className="w-4 h-4 text-primary" />
+                <span className="font-semibold text-sm">Смяна на парола</span>
+              </div>
+              {!editingPassword ? (
+                <button
+                  onClick={() => setEditingPassword(true)}
+                  className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 font-medium transition-colors"
+                >
+                  <Edit2 className="w-3.5 h-3.5" />
+                  Смени
+                </button>
+              ) : (
+                <button
+                  onClick={() => { setEditingPassword(false); setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" }); }}
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  Отказ
+                </button>
+              )}
+            </div>
+
+            {!editingPassword ? (
+              <p className="text-sm text-muted-foreground">••••••••</p>
+            ) : (
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Текуща парола</label>
+                  <input
+                    type="password"
+                    value={passwordForm.currentPassword}
+                    onChange={e => setPasswordForm(f => ({ ...f, currentPassword: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Нова парола</label>
+                  <input
+                    type="password"
+                    value={passwordForm.newPassword}
+                    onChange={e => setPasswordForm(f => ({ ...f, newPassword: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Потвърди нова парола</label>
+                  <input
+                    type="password"
+                    value={passwordForm.confirmPassword}
+                    onChange={e => setPasswordForm(f => ({ ...f, confirmPassword: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  />
+                </div>
+                <button
+                  onClick={() => {
+                    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+                      toast.error("Паролите не съвпадат");
+                      return;
+                    }
+                    if (passwordForm.newPassword.length < 6) {
+                      toast.error("Паролата трябва да е поне 6 символа");
+                      return;
+                    }
+                    changePasswordMutation.mutate({
+                      currentPassword: passwordForm.currentPassword,
+                      newPassword: passwordForm.newPassword,
+                    });
+                  }}
+                  disabled={!passwordForm.currentPassword || !passwordForm.newPassword || changePasswordMutation.isPending}
+                  className="w-full py-2.5 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50"
+                >
+                  {changePasswordMutation.isPending ? "Сменя се..." : "Смени паролата"}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </MainLayout>
     );
   }
 
