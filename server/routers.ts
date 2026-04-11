@@ -1405,13 +1405,26 @@ export const appRouter = router({
             eq(entranceAccess.blok, input.blok),
             eq(entranceAccess.vhod, input.vhod)
           )).limit(1);
-        if (!existing.length) {
+  if (!existing.length) {
           await db.insert(entranceAccess).values({
             district: input.district,
             blok: input.blok,
             vhod: input.vhod,
             is_approved: 0,
           });
+          // FCM до всички admin и worker потребители
+          const admins = await getUsersByRole("admin");
+          const workers = await getUsersByRole("worker");
+          const notify = [...admins, ...workers];
+          for (const u of notify) {
+            if (u.fcmToken) {
+              await sendPushNotification(u.fcmToken, {
+                title: "🏢 Нов вход за одобрение",
+                body: `${input.district}, Бл. ${input.blok}, Вх. ${input.vhod} — изисква одобрение`,
+                data: { type: "new_entrance" },
+              });
+            }
+          }
           return { approved: false, isNew: true };
         }
         return { approved: existing[0].is_approved === 1, isNew: false };
