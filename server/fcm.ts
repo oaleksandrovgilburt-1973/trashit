@@ -2,11 +2,11 @@
  * Firebase Cloud Messaging — server-side push notification helper.
  * Uses firebase-admin initialized with the service account from FCM_SERVICE_ACCOUNT_JSON env var.
  */
-import * as admin from "firebase-admin";
+import admin from "firebase-admin";
 
 let initialized = false;
 
-function getApp(): admin.app.App | null {
+function getApp(): any {
   if (initialized) return admin.app();
   const raw = process.env.FCM_SERVICE_ACCOUNT_JSON;
   if (!raw) {
@@ -17,7 +17,8 @@ function getApp(): admin.app.App | null {
     const serviceAccount = JSON.parse(raw);
     console.log("[FCM] Initializing Firebase Admin SDK...");
     console.log("[FCM] project_id:", serviceAccount.project_id);
-    admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+    const credential = admin.credential.cert(serviceAccount as admin.ServiceAccount);
+    admin.initializeApp({ credential });
     initialized = true;
     console.log("[FCM] Firebase Admin SDK initialized successfully");
     return admin.app();
@@ -35,7 +36,7 @@ export interface PushPayload {
 
 /**
  * Send a push notification to a single FCM token.
- * Silently swips invalid-token errors (token will be cleared by the caller if needed).
+ * Silently swallows invalid-token errors.
  */
 export async function sendPushNotification(
   fcmToken: string,
@@ -62,10 +63,9 @@ export async function sendPushNotification(
         },
       },
     });
-      console.log("[FCM] result: success");
-      return true;
+    console.log("[FCM] result: success");
+    return true;
   } catch (err: any) {
-    // Token expired / unregistered — not a hard error
     if (
       err?.errorInfo?.code === "messaging/registration-token-not-registered" ||
       err?.errorInfo?.code === "messaging/invalid-registration-token"
