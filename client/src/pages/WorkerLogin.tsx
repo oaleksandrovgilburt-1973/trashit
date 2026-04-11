@@ -5,6 +5,7 @@ import { HardHat, ArrowLeft, Eye, EyeOff, Smartphone } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
 import MainLayout from "@/components/MainLayout";
+import { requestFCMToken } from "@/lib/firebase";
 
 const WORKER_SESSION_KEY = "trashit_worker_session";
 
@@ -35,6 +36,10 @@ export default function WorkerLogin() {
     }
   }, [navigate]);
 
+  const saveFcmTokenMutation = trpc.workerAuth.saveFcmToken.useMutation({
+    onError: () => { /* silently ignore FCM token save errors */ },
+  });
+
   const loginMutation = trpc.workerAuth.login.useMutation({
     onSuccess: (data) => {
       // Save full session object under the key WorkerPortal reads
@@ -49,6 +54,13 @@ export default function WorkerLogin() {
       setWorkerId(data.workerId);
       setDeviceToken(data.deviceToken);
 
+      // Register FCM token (fire-and-forget)
+      requestFCMToken().then((fcmToken) => {
+        if (fcmToken) {
+          saveFcmTokenMutation.mutate({ deviceToken: data.deviceToken, fcmToken });
+        }
+      }).catch(() => {});
+
       if (data.mustChangePassword) {
         setStep("change_password");
         setChangeForm(f => ({ ...f, currentPassword: loginForm.password }));
@@ -60,6 +72,10 @@ export default function WorkerLogin() {
     onError: (err) => {
       toast.error(err.message || t.errorInvalidCredentials);
     },
+  });
+
+  const saveFcmTokenMutation = trpc.workerAuth.saveFcmToken.useMutation({
+    onError: () => { /* silently ignore FCM token save errors */ },
   });
 
   const changePasswordMutation = trpc.workerAuth.changePassword.useMutation({

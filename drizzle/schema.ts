@@ -66,6 +66,7 @@ export const workers = mysqlTable("workers", {
   /** JSON array of device token strings (max 4) */
   deviceTokens: json("deviceTokens").$type<string[]>().default([]),
   createdByAdmin: boolean("createdByAdmin").default(true).notNull(),
+  fcmToken: varchar("fcmToken", { length: 512 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn"),

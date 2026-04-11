@@ -588,3 +588,9 @@ export async function getRequestsByDistricts(districtNames: string[]): Promise<t
     .orderBy(requests.district, requests.blok, requests.vhod, requests.etaj, requests.apartament);
   return allPending.filter(r => districtNames.includes(r.district));
 }
+// ─── Worker FCM ───────────────────────────────────────────────────────────────
+export async function updateWorkerFcmToken(workerId: number, fcmToken: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(workers).set({ fcmToken }).where(eq(workers.id, workerId));
+}

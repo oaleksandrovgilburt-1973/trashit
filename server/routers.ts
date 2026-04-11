@@ -258,6 +258,21 @@ export const appRouter = router({
         await updateWorkerPassword(worker.id, newHash);
         return { success: true };
       }),
+    
+    saveFcmToken: publicProcedure
+      .input(z.object({
+        deviceToken: z.string().min(1),
+        fcmToken: z.string().min(10),
+      }))
+      .mutation(async ({ input }) => {
+        const session = await getWorkerSession(input.deviceToken);
+        if (!session) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Невалидна сесия." });
+        }
+        await updateWorkerFcmToken(session.workerId, input.fcmToken);
+        console.log("[FCM] Worker token saved for workerId:", session.workerId, input.fcmToken.substring(0, 20) + "...");
+        return { success: true };
+      }),
 
     verifySession: publicProcedure
       .input(z.object({ deviceToken: z.string() }))
@@ -582,17 +597,21 @@ export const appRouter = router({
           creditsUsed,
           creditType,
         });
-// FCM към всички работници с валиден токен
-        const workers = await getUsersByRole("worker");
-        for (const worker of workers) {
-          if (worker.fcmToken) {
-            await sendPushNotification(worker.fcmToken, {
-              title: "📦 Нова заявка",
-              body: `Нова заявка в ${input.district}, Бл. ${input.blok}, Вх. ${input.vhod}`,
-              data: { type: "new_request", requestId: String(id) },
-            });
+// FCM към работници в същия квартал
+        try {
+          const allWorkers = await getAllWorkers();
+          for (const worker of allWorkers) {
+            if (!worker.isActive || !worker.fcmToken) continue;
+            const workerDists = await getWorkerDistricts(worker.openId);
+            if (workerDists.includes(input.district)) {
+              await sendPushNotification(worker.fcmToken, {
+                title: "📦 Нова заявка",
+                body: `Нова заявка в ${input.district}, Бл. ${input.blok}, Вх. ${input.vhod}`,
+                data: { type: "new_request", requestId: String(id), district: input.district },
+              }).catch(() => {});
+            }
           }
-        }
+        } catch { /* ignore FCM errors */ }
         return { success: true, id, creditsUsed, creditType };
       }),
 
