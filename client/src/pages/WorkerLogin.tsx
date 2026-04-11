@@ -74,10 +74,6 @@ export default function WorkerLogin() {
     },
   });
 
-  const saveFcmTokenMutation = trpc.workerAuth.saveFcmToken.useMutation({
-    onError: () => { /* silently ignore FCM token save errors */ },
-  });
-
   const changePasswordMutation = trpc.workerAuth.changePassword.useMutation({
     onSuccess: () => {
       // Update session to mark mustChangePassword as false
