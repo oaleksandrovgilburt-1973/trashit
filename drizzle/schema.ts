@@ -278,3 +278,14 @@ export const activityDescriptions = mysqlTable("activity_descriptions", {
 });
 export type InsertWorkerDistrict = typeof workerDistricts.$inferInsert;
 
+// ── Entrance Access ───────────────────────────────────────────────────────────
+export const entranceAccess = mysqlTable("entrance_access", {
+  id: int("id").autoincrement().primaryKey(),
+  district: varchar("district", { length: 128 }).notNull(),
+  blok: varchar("blok", { length: 64 }).notNull(),
+  vhod: varchar("vhod", { length: 32 }).notNull(),
+  is_approved: int("is_approved").default(0).notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type EntranceAccess = typeof entranceAccess.$inferSelect;
+
