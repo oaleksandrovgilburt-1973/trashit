@@ -582,6 +582,17 @@ export const appRouter = router({
           creditsUsed,
           creditType,
         });
+// FCM към всички работници с валиден токен
+        const workers = await getUsersByRole("worker");
+        for (const worker of workers) {
+          if (worker.fcmToken) {
+            await sendPushNotification(worker.fcmToken, {
+              title: "📦 Нова заявка",
+              body: `Нова заявка в ${input.district}, Бл. ${input.blok}, Вх. ${input.vhod}`,
+              data: { type: "new_request", requestId: String(id) },
+            });
+          }
+        }
         return { success: true, id, creditsUsed, creditType };
       }),
 
