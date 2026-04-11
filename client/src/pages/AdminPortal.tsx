@@ -9,11 +9,12 @@ import {
   Users, MapPin, Building2, CreditCard, ClipboardList,
   Settings, AlertTriangle, LogOut, Plus, Trash2, Power,
   PowerOff, CheckCircle, Phone, Mail, ChevronRight,
-  RefreshCw, Eye, Send, ShieldAlert, Pencil, Save, LayoutDashboard, FileText
+  RefreshCw, Eye, Send, ShieldAlert, Pencil, Save, LayoutDashboard, FileText,
+  Search, UserCheck, ChevronUp, ChevronDown, History
 } from "lucide-react";
 import AdminDashboard from "@/components/AdminDashboard";
 
-type Tab = "dashboard" | "workers" | "districts" | "blocks" | "credits" | "requests" | "content" | "descriptions" | "problems";
+type Tab = "dashboard" | "clients" | "workers" | "districts" | "blocks" | "credits" | "requests" | "content" | "descriptions" | "problems";
 
 export default function AdminPortal() {
   const [, navigate] = useLocation();
@@ -30,6 +31,7 @@ export default function AdminPortal() {
 
   const tabs: { id: Tab; icon: any; label: string }[] = [
     { id: "dashboard", icon: LayoutDashboard, label: "Табло" },
+    { id: "clients", icon: UserCheck, label: "Клиенти" },
     { id: "workers", icon: Users, label: "Работници" },
     { id: "districts", icon: MapPin, label: "Квартали" },
     { id: "blocks", icon: Building2, label: "Блокове" },
@@ -92,6 +94,7 @@ export default function AdminPortal() {
       {/* Tab Content */}
       <div className="max-w-7xl mx-auto px-4 py-6">
         {activeTab === "dashboard" && <AdminDashboard />}
+        {activeTab === "clients" && <ClientsTab />}
         {activeTab === "workers" && <WorkersTab />}
         {activeTab === "districts" && <DistrictsTab />}
         {activeTab === "blocks" && <BlocksTab />}
@@ -101,6 +104,301 @@ export default function AdminPortal() {
         {activeTab === "descriptions" && <DescriptionsTab />}
         {activeTab === "problems" && <ProblemsTab />}
       </div>
+    </div>
+  );
+}
+
+// ─── Tab: Clients ─────────────────────────────────────────────────────────────
+function ClientsTab() {
+  const { data: clients, isLoading } = trpc.users.listClients.useQuery();
+  const { data: allRequests } = trpc.requests.listAll.useQuery();
+  const [search, setSearch] = useState("");
+  const [expandedClient, setExpandedClient] = useState<string | null>(null);
+  const [creditAmounts, setCreditAmounts] = useState<Record<string, string>>({});
+  const [creditTypes, setCreditTypes] = useState<Record<string, "standard" | "recycling">>({});
+  const [creditOps, setCreditOps] = useState<Record<string, "add" | "deduct">>({});
+
+  const utils = trpc.useUtils();
+
+  const adminAdd = trpc.credits.adminAdd.useMutation({
+    onSuccess: () => {
+      toast.success("Кредитите са актуализирани");
+      utils.users.listClients.invalidate();
+      utils.credits.userTransactions.invalidate();
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const filtered = (clients ?? []).filter(c => {
+    const q = search.toLowerCase();
+    return (
+      (c.name ?? "").toLowerCase().includes(q) ||
+      (c.email ?? "").toLowerCase().includes(q)
+    );
+  });
+
+  const getInitials = (name?: string | null) => {
+    if (!name) return "?";
+    return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+  };
+
+  const formatDate = (d: Date | string) => {
+    const date = new Date(d);
+    return date.toLocaleDateString("bg-BG", { day: "2-digit", month: "2-digit", year: "numeric" });
+  };
+
+  const formatTxType = (type: string) => {
+    const map: Record<string, string> = {
+      purchase: "Покупка",
+      transfer_in: "Получен трансфер",
+      transfer_out: "Изпратен трансфер",
+      deduction: "Изразходвани",
+      bonus: "Бонус",
+      admin_add: "Добавено от админ",
+      admin_deduct: "Отнето от админ",
+    };
+    return map[type] ?? type;
+  };
+
+  const formatReqType = (type: string) => {
+    const map: Record<string, string> = {
+      standard: "Стандартен",
+      recycling: "Разделно",
+      nonstandard: "Нестандартен",
+      construction: "Строителни",
+    };
+    return map[type] ?? type;
+  };
+
+  const formatReqStatus = (status: string) => {
+    const map: Record<string, string> = {
+      pending: "Изчаква",
+      assigned: "Назначена",
+      completed: "Завършена",
+      cancelled: "Отменена",
+    };
+    return map[status] ?? status;
+  };
+
+  const statusColor = (status: string) => {
+    if (status === "completed") return "bg-green-100 text-green-700";
+    if (status === "cancelled") return "bg-red-100 text-red-600";
+    if (status === "assigned") return "bg-blue-100 text-blue-700";
+    return "bg-yellow-100 text-yellow-700";
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">Клиенти</h2>
+          <p className="text-sm text-gray-500 mt-0.5">{clients?.length ?? 0} регистрирани клиента</p>
+        </div>
+        <div className="relative w-full max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Input
+            placeholder="Търсене по име или имейл..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="pl-9 rounded-xl"
+          />
+        </div>
+      </div>
+
+      {isLoading && (
+        <div className="space-y-3">
+          {[1, 2, 3].map(i => <div key={i} className="h-20 rounded-2xl bg-gray-100 animate-pulse" />)}
+        </div>
+      )}
+
+      {!isLoading && filtered.length === 0 && (
+        <div className="text-center py-12 text-gray-400">
+          <UserCheck className="w-12 h-12 mx-auto mb-3 opacity-30" />
+          <p>{search ? "Няма намерени клиенти." : "Няма регистрирани клиенти."}</p>
+        </div>
+      )}
+
+      <div className="space-y-3">
+        {filtered.map(client => {
+          const isExpanded = expandedClient === client.openId;
+          const clientRequests = (allRequests ?? []).filter(r => r.userOpenId === client.openId);
+          const completedCount = clientRequests.filter(r => r.status === "completed").length;
+          const stdCredits = parseFloat(client.creditsStandard ?? "0");
+          const recCredits = parseFloat(client.creditsRecycling ?? "0");
+          const creditType = creditTypes[client.openId] ?? "standard";
+          const creditOp = creditOps[client.openId] ?? "add";
+          const creditAmount = creditAmounts[client.openId] ?? "";
+
+          return (
+            <div key={client.openId} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+              <div
+                className="flex items-center gap-3 px-4 py-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                onClick={() => setExpandedClient(isExpanded ? null : client.openId)}
+              >
+                <div className="w-11 h-11 rounded-xl bg-green-600 flex items-center justify-center text-white font-bold text-base flex-shrink-0">
+                  {getInitials(client.name)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-gray-900 truncate">{client.name ?? "—"}</span>
+                    <span className="text-xs text-gray-400 truncate">{client.email ?? "—"}</span>
+                  </div>
+                  <div className="flex items-center gap-3 mt-1 flex-wrap">
+                    <span className="text-xs text-gray-500">Рег. {formatDate(client.createdAt)}</span>
+                    <span className="text-xs font-medium text-green-700">🗑️ {stdCredits.toFixed(0)} ст.</span>
+                    <span className="text-xs font-medium text-emerald-700">♻️ {recCredits.toFixed(0)} рец.</span>
+                    <Badge variant="secondary" className="text-xs">{clientRequests.length} заявки ({completedCount} завършени)</Badge>
+                  </div>
+                </div>
+                <div className="flex-shrink-0 text-gray-400">
+                  {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </div>
+              </div>
+
+              {isExpanded && (
+                <div className="border-t border-gray-100 px-4 py-4 space-y-5 bg-gray-50/50">
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-green-600" />Запазен адрес
+                    </h4>
+                    {client.addressKvartal ? (
+                      <div className="bg-white rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700">
+                        {[
+                          client.addressKvartal,
+                          client.addressBlok && `Бл. ${client.addressBlok}`,
+                          client.addressVhod && `Вх. ${client.addressVhod}`,
+                          client.addressEtaj && `Ет. ${client.addressEtaj}`,
+                          client.addressApartament && `Ап. ${client.addressApartament}`,
+                        ].filter(Boolean).join(", ")}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-400 italic">Няма запазен адрес</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+                      <CreditCard className="w-3.5 h-3.5 text-green-600" />Управление на кредити
+                    </h4>
+                    <div className="bg-white rounded-xl border border-gray-200 p-3 space-y-3">
+                      <div className="flex gap-2 flex-wrap">
+                        <select
+                          value={creditOp}
+                          onChange={e => setCreditOps(prev => ({ ...prev, [client.openId]: e.target.value as "add" | "deduct" }))}
+                          className="text-sm border border-gray-200 rounded-lg px-2 py-1.5 bg-white"
+                        >
+                          <option value="add">Добави</option>
+                          <option value="deduct">Отнеми</option>
+                        </select>
+                        <Input
+                          type="number"
+                          min="1"
+                          step="1"
+                          placeholder="Брой"
+                          value={creditAmount}
+                          onChange={e => setCreditAmounts(prev => ({ ...prev, [client.openId]: e.target.value }))}
+                          className="w-24 rounded-lg text-sm"
+                        />
+                        <select
+                          value={creditType}
+                          onChange={e => setCreditTypes(prev => ({ ...prev, [client.openId]: e.target.value as "standard" | "recycling" }))}
+                          className="text-sm border border-gray-200 rounded-lg px-2 py-1.5 bg-white"
+                        >
+                          <option value="standard">🗑️ Стандартни</option>
+                          <option value="recycling">♻️ Рециклиращи</option>
+                        </select>
+                        <Button
+                          size="sm"
+                          className="rounded-xl bg-green-600 hover:bg-green-700"
+                          disabled={!creditAmount || parseInt(creditAmount) < 1 || adminAdd.isPending}
+                          onClick={() => {
+                            const amount = parseInt(creditAmount);
+                            if (!amount || amount < 1) return;
+                            adminAdd.mutate({
+                              userOpenId: client.openId,
+                              creditType,
+                              amount: creditOp === "deduct" ? -amount : amount,
+                            });
+                            setCreditAmounts(prev => ({ ...prev, [client.openId]: "" }));
+                          }}
+                        >
+                          {adminAdd.isPending ? "..." : creditOp === "add" ? "Добави" : "Отнеми"}
+                        </Button>
+                      </div>
+                      <div className="flex gap-4 text-sm text-gray-600">
+                        <span>🗑️ Стандартни: <strong>{stdCredits.toFixed(0)}</strong></span>
+                        <span>♻️ Рециклиращи: <strong>{recCredits.toFixed(0)}</strong></span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+                      <ClipboardList className="w-3.5 h-3.5 text-green-600" />История на заявките ({clientRequests.length})
+                    </h4>
+                    {clientRequests.length === 0 ? (
+                      <p className="text-sm text-gray-400 italic">Няма заявки</p>
+                    ) : (
+                      <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                        {[...clientRequests].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map(r => (
+                          <div key={r.id} className="bg-white rounded-xl border border-gray-100 px-3 py-2 flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="text-xs text-gray-500 flex-shrink-0">{formatDate(r.createdAt)}</span>
+                              <span className="text-sm font-medium text-gray-800 truncate">{formatReqType(r.type)}</span>
+                            </div>
+                            <Badge className={`text-xs flex-shrink-0 ${statusColor(r.status)}`}>{formatReqStatus(r.status)}</Badge>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <ClientTransactionHistory openId={client.openId} formatDate={formatDate} formatTxType={formatTxType} />
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ClientTransactionHistory({ openId, formatDate, formatTxType }: {
+  openId: string;
+  formatDate: (d: Date | string) => string;
+  formatTxType: (type: string) => string;
+}) {
+  const { data: txs, isLoading } = trpc.credits.userTransactions.useQuery({ userOpenId: openId });
+
+  return (
+    <div>
+      <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+        <History className="w-3.5 h-3.5 text-green-600" />История на транзакциите
+      </h4>
+      {isLoading && <div className="h-8 rounded-xl bg-gray-100 animate-pulse" />}
+      {!isLoading && (!txs || txs.length === 0) && (
+        <p className="text-sm text-gray-400 italic">Няма транзакции</p>
+      )}
+      {txs && txs.length > 0 && (
+        <div className="space-y-1.5 max-h-48 overflow-y-auto">
+          {[...txs].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map(tx => (
+            <div key={tx.id} className="bg-white rounded-xl border border-gray-100 px-3 py-2 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-xs text-gray-500 flex-shrink-0">{formatDate(tx.createdAt)}</span>
+                <span className="text-sm text-gray-800">{formatTxType(tx.type)}</span>
+                {tx.note && <span className="text-xs text-gray-400 truncate">{tx.note}</span>}
+              </div>
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                <span className={`text-sm font-semibold ${parseFloat(tx.totalAmount) >= 0 ? "text-green-600" : "text-red-500"}`}>
+                  {parseFloat(tx.totalAmount) >= 0 ? "+" : ""}{parseFloat(tx.totalAmount).toFixed(0)}
+                </span>
+                <span className="text-xs text-gray-400">{tx.creditType === "standard" ? "🗑️" : "♻️"}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -355,7 +653,6 @@ function BlocksTab() {
     onError: (e: any) => toast.error(e.message),
   });
 
-  // Group by district -> blok
   const grouped: Record<string, Record<string, typeof entrances>> = {};
   for (const e of entrances ?? []) {
     if (!grouped[e.district]) grouped[e.district] = {};
@@ -423,7 +720,9 @@ function BlocksTab() {
       </div>
     </div>
   );
-}// ─── Tab 4: Credits ───────────────────────────────────────────────────────────
+}
+
+// ─── Tab 4: Credits ───────────────────────────────────────────────────────────
 function CreditsTab() {
   const [searchEmail, setSearchEmail] = useState("");
   const [selectedUser, setSelectedUser] = useState<{ openId: string; name: string | null } | null>(null);
@@ -709,7 +1008,6 @@ function ContentTab() {
     <div className="space-y-6">
       <h2 className="text-xl font-bold text-gray-900">Управление на съдържанието</h2>
 
-      {/* Contact phone */}
       <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
         <h3 className="font-semibold text-gray-800 mb-1 flex items-center gap-2">
           <Phone className="w-4 h-4 text-green-600" />Телефон за контакт
@@ -726,7 +1024,6 @@ function ContentTab() {
         {currentPhone && <p className="text-xs text-gray-400 mt-2">Текущ: {currentPhone}</p>}
       </div>
 
-      {/* Content descriptions */}
       <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
         <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
           <Pencil className="w-4 h-4 text-green-600" />Описания и текстове
@@ -763,7 +1060,6 @@ function ContentTab() {
         </div>
       </div>
 
-      {/* Admin credentials */}
       <div className="bg-white rounded-2xl border border-amber-200 p-5 shadow-sm">
         <h3 className="font-semibold text-gray-800 mb-1 flex items-center gap-2">
           <ShieldAlert className="w-4 h-4 text-amber-600" />Смяна на администраторски данни
@@ -840,11 +1136,6 @@ function ProblemsTab() {
                 <AlertTriangle className={`w-4 h-4 ${problem.status === "open" ? "text-red-500" : "text-gray-400"}`} />
                 <span className="font-semibold text-gray-900">{problem.workerName ?? "Работник"}</span>
                 {problem.requestId && <span className="text-xs text-gray-500">Заявка #{problem.requestId}</span>}
-                {(problem.reqDistrict || problem.reqBlok) && (
-                  <span className="text-xs text-gray-500">
-                    {[problem.reqDistrict, problem.reqBlok && `Бл. ${problem.reqBlok}`, problem.reqVhod && `Вх. ${problem.reqVhod}`, problem.reqEtaj && `Ет. ${problem.reqEtaj}`, problem.reqApartament && `Ап. ${problem.reqApartament}`].filter(Boolean).join(", ")}
-                  </span>
-                )}
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant={problem.status === "open" ? "destructive" : "secondary"}>
@@ -902,6 +1193,7 @@ function ProblemsTab() {
     </div>
   );
 }
+
 // ─── Tab 8: Descriptions ─────────────────────────────────────────────────────
 function DescriptionsTab() {
   const [editingKey, setEditingKey] = useState<string | null>(null);

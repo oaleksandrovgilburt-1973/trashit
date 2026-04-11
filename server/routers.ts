@@ -953,6 +953,11 @@ export const appRouter = router({
       }),
 
      // Admin: view all transactions
+    userTransactions: adminProcedure
+      .input(z.object({ userOpenId: z.string() }))
+      .query(async ({ input }) => {
+        return getTransactionsByUser(input.userOpenId);
+      }),
     allTransactions: adminProcedure.query(async () => getAllTransactions()),
   }),
 
