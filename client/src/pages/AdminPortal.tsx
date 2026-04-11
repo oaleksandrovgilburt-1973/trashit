@@ -117,6 +117,7 @@ function ClientsTab() {
   const [creditAmounts, setCreditAmounts] = useState<Record<string, string>>({});
   const [creditTypes, setCreditTypes] = useState<Record<string, "standard" | "recycling">>({});
   const [creditOps, setCreditOps] = useState<Record<string, "add" | "deduct">>({});
+  const [resetPasswords, setResetPasswords] = useState<Record<string, string>>({});
 
   const utils = trpc.useUtils();
 
@@ -126,6 +127,11 @@ function ClientsTab() {
       utils.users.listClients.invalidate();
       utils.credits.userTransactions.invalidate();
     },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const resetPassword = trpc.users.resetPassword.useMutation({
+    onSuccess: () => toast.success("Паролата е нулирана успешно"),
     onError: (e: any) => toast.error(e.message),
   });
 
@@ -329,6 +335,37 @@ function ClientsTab() {
                         <span>🗑️ Стандартни: <strong>{stdCredits.toFixed(0)}</strong></span>
                         <span>♻️ Рециклиращи: <strong>{recCredits.toFixed(0)}</strong></span>
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Reset Password */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+                      <ShieldAlert className="w-3.5 h-3.5 text-red-500" />Нулиране на парола
+                    </h4>
+                    <div className="bg-white rounded-xl border border-gray-200 p-3 flex gap-2">
+                      <Input
+                        type="text"
+                        placeholder="Нова парола..."
+                        value={resetPasswords[client.openId] ?? ""}
+                        onChange={e => setResetPasswords(prev => ({ ...prev, [client.openId]: e.target.value }))}
+                        className="rounded-lg text-sm flex-1"
+                      />
+                      <Button
+                        size="sm"
+                        className="rounded-xl bg-red-500 hover:bg-red-600 text-white"
+                        disabled={!resetPasswords[client.openId] || resetPassword.isPending}
+                        onClick={() => {
+                          if (!confirm("Сигурни ли сте?")) return;
+                          resetPassword.mutate({
+                            openId: client.openId,
+                            newPassword: resetPasswords[client.openId],
+                          });
+                          setResetPasswords(prev => ({ ...prev, [client.openId]: "" }));
+                        }}
+                      >
+                        Нулирай
+                      </Button>
                     </div>
                   </div>
 

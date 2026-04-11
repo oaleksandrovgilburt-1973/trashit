@@ -438,6 +438,21 @@ export const appRouter = router({
       .mutation(async ({ input }) => { await updateUserCredits(input.userId, input.credits); return { success: true }; }),
 
     listAllWorkers: adminProcedure.query(async () => getAllWorkers()),
+
+    resetPassword: adminProcedure
+      .input(z.object({
+        openId: z.string(),
+        newPassword: z.string().min(6, "Паролата трябва да е поне 6 символа"),
+      }))
+      .mutation(async ({ input }) => {
+        const passwordHash = await bcrypt.hash(input.newPassword, 10);
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB не е достъпна." });
+        const { users } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        await db.update(users).set({ passwordHash }).where(eq(users.openId, input.openId));
+        return { success: true };
+      }),
   }),
 
   // ── Districts ────────────────────────────────────────────────────────────────────────────────
