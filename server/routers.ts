@@ -169,7 +169,9 @@ export const appRouter = router({
         ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
         return { success: true, bonusCredits: BONUS_CREDITS, openId };
       }),
-changePassword: protectedProcedure
+
+
+  changePassword: protectedProcedure
       .input(z.object({
         currentPassword: z.string().min(1),
         newPassword: z.string().min(6, "Паролата трябва да е поне 6 символа"),
@@ -191,6 +193,7 @@ changePassword: protectedProcedure
         await db.update(users).set({ passwordHash }).where(eq(users.openId, ctx.user.openId));
         return { success: true };
       }),
+  }),
 
   // ── Worker auth ───────────────────────────────────────────────────────────
   workerAuth: router({
