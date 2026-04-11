@@ -1188,7 +1188,7 @@ export const appRouter = router({
         }
         return { success: true };
       }),
-    // Worker: complete all requests from an entrance using deviceToken
+// Worker: complete all requests from an entrance using deviceToken
     completeEntrance: publicProcedure
       .input(z.object({
         deviceToken: z.string(),
@@ -1202,10 +1202,28 @@ export const appRouter = router({
         const allWorkers = await getAllWorkers();
         const worker = allWorkers.find(w => w.id === session.workerId);
         if (!worker) throw new TRPCError({ code: "NOT_FOUND", message: "Работникът не е намерен." });
+        // Вземи заявките ПРЕДИ да ги приключим
+        const allReqs = await getRequestsByDistricts([input.district]);
+        const entranceReqs = allReqs.filter(r =>
+          r.blok === input.blok && r.vhod === input.vhod && r.status === "pending"
+        );
         const count = await completeRequestsByEntrance(
           input.district, input.blok, input.vhod,
           worker.openId, worker.id
         );
+        // FCM към всеки клиент
+        for (const req of entranceReqs) {
+          if (req.userOpenId) {
+            const client = await getUserByOpenId(req.userOpenId);
+            if (client?.fcmToken) {
+              await sendPushNotification(client.fcmToken, {
+                title: "✅ Заявката е изпълнена",
+                body: "Вашата заявка за изхвърляне на отпадъци е успешно изпълнена.",
+                data: { requestId: String(req.id), type: "completed" },
+              });
+            }
+          }
+        }
         return { success: true, count };
       }),
     // Worker: report a problem using deviceToken
