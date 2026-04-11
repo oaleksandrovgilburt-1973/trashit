@@ -133,6 +133,11 @@ export default function WasteDisposal() {
 
   const updateProfile = trpc.users.updateProfile.useMutation();
   const registerEntrance = trpc.entranceAccess.register.useMutation();
+const entranceCheck = trpc.entranceAccess.check.useQuery(
+  { district, blok, vhod },
+  { enabled: !!district && !!blok && !!vhod, refetchInterval: 10000 }
+);
+  const registerEntrance = trpc.entranceAccess.register.useMutation();
   const createRequest = trpc.requests.create.useMutation({
     onSuccess: () => {
       setStep("success");
@@ -224,12 +229,13 @@ if (entranceCheck.data !== undefined && !entranceCheck.data.approved) {
       toast.error(isBg ? "Снимката е задължителна за този вид отпадък" : "Photo is required");
       return;
     }
-const regResult = await registerEntrance.mutateAsync({ district, blok, vhod });
+
+```
+    const regResult = await registerEntrance.mutateAsync({ district, blok, vhod });
     if (!regResult.approved) {
       toast.error(isBg ? "За този вход все още нямаме осигурен достъп. Свържете се с нас на trashit.bg@gmail.com за да го уредим." : "Access for this entrance is not yet approved.");
       return;
     }
-```
     createRequest.mutate({
       type: selectedType,
       description: description || undefined,
