@@ -235,7 +235,19 @@ export async function upsertSetting(key: string, value: string): Promise<void> {
   if (!db) return;
   await db.insert(settings).values({ key, value }).onDuplicateKeyUpdate({ set: { value } });
 }
-
+// ─── FCM Diagnostics ──────────────────────────────────────────────────────────
+export async function getFirstUserWithFcmToken(): Promise<{ id: number; name: string | null; fcmToken: string } | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db
+    .select({ id: users.id, name: users.name, fcmToken: users.fcmToken })
+    .from(users)
+    .where(eq(users.role, "user"))
+    .limit(50);
+  const found = rows.find((r) => r.fcmToken && r.fcmToken.length > 10);
+  if (!found || !found.fcmToken) return null;
+  return { id: found.id, name: found.name ?? null, fcmToken: found.fcmToken };
+}
 // ─── Districts ────────────────────────────────────────────────────────────────
 
 export async function getAllDistricts() {

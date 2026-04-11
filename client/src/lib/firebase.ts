@@ -11,6 +11,15 @@ const firebaseConfig = {
 
 const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
 
+// Diagnostic: log which env vars are present
+console.log("[Firebase] Config check:", {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY ? "SET" : "MISSING",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID ? "SET" : "MISSING",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID ? "SET" : "MISSING",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID ? "SET" : "MISSING",
+  vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY ? "SET" : "MISSING",
+});
+
 // Initialize Firebase app (singleton)
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 

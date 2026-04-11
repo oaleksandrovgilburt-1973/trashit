@@ -15,8 +15,11 @@ function getApp(): admin.app.App | null {
   }
   try {
     const serviceAccount = JSON.parse(raw);
+    console.log("[FCM] Initializing Firebase Admin SDK...");
+    console.log("[FCM] project_id:", serviceAccount.project_id);
     admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
     initialized = true;
+    console.log("[FCM] Firebase Admin SDK initialized successfully");
     return admin.app();
   } catch (err) {
     console.error("[FCM] Failed to initialize firebase-admin:", err);
@@ -39,6 +42,8 @@ export async function sendPushNotification(
   payload: PushPayload
 ): Promise<boolean> {
   const app = getApp();
+  console.log("[FCM] initialized:", initialized);
+  console.log("[FCM] token received:", fcmToken ? fcmToken.substring(0, 20) + "..." : "EMPTY");
   if (!app) return false;
   try {
     await admin.messaging(app).send({
@@ -57,7 +62,8 @@ export async function sendPushNotification(
         },
       },
     });
-    return true;
+      console.log("[FCM] result: success");
+      return true;
   } catch (err: any) {
     // Token expired / unregistered — not a hard error
     if (

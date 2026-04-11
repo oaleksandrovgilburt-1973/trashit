@@ -2,10 +2,20 @@ import { trpc } from "@/lib/trpc";
 import {
   ClipboardList, CheckCircle2, BarChart3, Coins,
   MapPin, Users, HardHat, RefreshCw, TrendingUp,
-  Activity, Trophy
+  Activity, Trophy, Bell
 } from "lucide-react";
 
 export default function AdminDashboard() {
+  const testFcm = trpc.test.sendTestNotification.useMutation({
+    onSuccess: (data) => {
+      if (data.success) {
+        alert(`✅ FCM изпратено! Токен: ${data.tokenPreview}`);
+      } else {
+        alert(`❌ FCM неуспешно: ${data.result}`);
+      }
+    },
+    onError: (err) => alert(`Грешка: ${err.message}`),
+  });
   const { data: stats, isLoading, refetch, isFetching } = trpc.adminDashboard.getStats.useQuery(
     undefined,
     { refetchInterval: 30_000 } // auto-refresh every 30s
@@ -111,6 +121,27 @@ export default function AdminDashboard() {
             accent="text-teal-700"
           />
         </div>
+      </div>
+      
+      {/* FCM Test Button */}
+      <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 bg-orange-100 rounded-xl flex items-center justify-center">
+            <Bell className="w-5 h-5 text-orange-600" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-orange-800">Тест FCM</p>
+            <p className="text-xs text-orange-600">Изпраща известие до първия клиент с токен</p>
+          </div>
+        </div>
+        <button
+          onClick={() => testFcm.mutate()}
+          disabled={testFcm.isPending}
+          className="flex items-center gap-2 text-sm font-medium text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-50 px-4 py-2 rounded-xl transition-colors shrink-0"
+        >
+          {testFcm.isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}
+          {testFcm.isPending ? "Изпраща..." : "Изпрати"}
+        </button>
       </div>
 
       {/* Top Districts */}

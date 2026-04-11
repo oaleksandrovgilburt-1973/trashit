@@ -1277,6 +1277,28 @@ export const appRouter = router({
         return { success: true };
       }),
   }),
+// ── FCM Test ──────────────────────────────────────────────────────────────
+  test: router({
+    sendTestNotification: adminProcedure
+      .mutation(async () => {
+        const { getFirstUserWithFcmToken } = await import("./db");
+        const user = await getFirstUserWithFcmToken();
+        if (!user) {
+          console.warn("[FCM-TEST] No user with FCM token found in DB");
+          return { success: false, tokenPreview: null, result: "Няма потребители с FCM токен в базата" };
+        }
+        const tokenPreview = user.fcmToken.slice(0, 20) + "...";
+        console.log("[FCM-TEST] Sending to user:", user.id, user.name, "token:", tokenPreview);
+        const success = await sendPushNotification(user.fcmToken, {
+          title: "Тест TRASHit",
+          body: "FCM работи!",
+          data: { type: "test" },
+        });
+        const result = success ? "Изпратено успешно" : "Неуспешно — виж server logs";
+        console.log("[FCM-TEST] Result:", result);
+        return { success, tokenPreview, result };
+      }),
+  }),
   // ── Entrance Access ───────────────────────────────────────────────────────
    entranceAccess: router({
     list: adminProcedure.query(async () => {
