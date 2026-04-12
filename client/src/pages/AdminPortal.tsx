@@ -83,8 +83,8 @@ export default function AdminPortal() {
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
                 }`}
               >
-                <Icon className="w-4 h-4" />
-                {label}
+               <Icon className="w-4 h-4" />
+               <span className="hidden sm:inline">{label}</span>
               </button>
             ))}
           </div>
