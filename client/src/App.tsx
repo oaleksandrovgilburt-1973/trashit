@@ -12,6 +12,7 @@ import WorkerPortal from "./pages/WorkerPortal";
 import WorkerLogin from "./pages/WorkerLogin";
 import AdminPortal from "./pages/AdminPortal";
 import AdminLogin from "./pages/AdminLogin";
+import SubAdminPortal from "./pages/SubAdminPortal";
 import ClientAuth from "./pages/ClientAuth";
 import UserProfile from "./pages/UserProfile";
 import MyRequests from "./pages/MyRequests";
@@ -45,6 +46,7 @@ function Router() {
       {/* Admin */}
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin" component={AdminPortal} />
+      <Route path="/subadmin" component={SubAdminPortal} />
 
       {/* Fallback */}
       <Route path="/404" component={NotFound} />
