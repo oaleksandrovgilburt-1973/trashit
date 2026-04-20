@@ -171,7 +171,64 @@ function DistrictSelector({ deviceToken }: { deviceToken: string }) {
     </div>
   );
 }
+function WorkerQuotePanel({ requestId, deviceToken, isBg }: { requestId: number; deviceToken: string; isBg: boolean }) {
+  const [price, setPrice] = useState("");
+  const [note, setNote] = useState("");
+  const [showForm, setShowForm] = useState(false);
 
+  const sendQuote = trpc.workerQuotes.send.useMutation({
+    onSuccess: () => {
+      toast.success(isBg ? "Офертата е изпратена!" : "Quote sent!");
+      setShowForm(false);
+      setPrice("");
+      setNote("");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  if (!showForm) {
+    return (
+      <Button
+        size="sm"
+        variant="outline"
+        className="w-full rounded-xl text-xs border-amber-300 text-amber-700 hover:bg-amber-50"
+        onClick={() => setShowForm(true)}
+      >
+        💰 {isBg ? "Изпрати оферта" : "Send quote"}
+      </Button>
+    );
+  }
+
+  return (
+    <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 space-y-2">
+      <p className="text-xs font-semibold text-amber-800">{isBg ? "Изпрати оферта" : "Send quote"}</p>
+      <input
+        type="number"
+        placeholder={isBg ? "Цена в лв." : "Price in BGN"}
+        value={price}
+        onChange={e => setPrice(e.target.value)}
+        className="w-full border border-amber-200 rounded-lg px-2 py-1.5 text-sm"
+      />
+      <input
+        type="text"
+        placeholder={isBg ? "Бележка (незадължително)" : "Note (optional)"}
+        value={note}
+        onChange={e => setNote(e.target.value)}
+        className="w-full border border-amber-200 rounded-lg px-2 py-1.5 text-sm"
+      />
+      <div className="flex gap-2">
+        <Button size="sm" className="flex-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs"
+          disabled={!price || sendQuote.isPending}
+          onClick={() => sendQuote.mutate({ deviceToken, requestId, price, note: note || undefined })}>
+          {sendQuote.isPending ? "..." : isBg ? "Изпрати" : "Send"}
+        </Button>
+        <Button size="sm" variant="outline" className="rounded-lg text-xs" onClick={() => setShowForm(false)}>
+          {isBg ? "Отказ" : "Cancel"}
+        </Button>
+      </div>
+    </div>
+  );
+}
 // ─── Request Card ─────────────────────────────────────────────────────────────
 function RequestCard({
   req, deviceToken, onComplete, onProblem
@@ -271,12 +328,30 @@ function RequestCard({
         </div>
       )}
 
-      <div className="flex gap-2">
-        <Button
-          size="sm"
-          className="flex-1 rounded-xl bg-primary text-white text-xs"
-          onClick={() => onComplete(req.id)}
-        >
+      <div className="flex gap-2 flex-col">
+  {(req.type === "nonstandard" || req.type === "construction") && (
+    <WorkerQuotePanel requestId={req.id} deviceToken={deviceToken} isBg={isBg} />
+  )}
+  <div className="flex gap-2">
+    <Button
+      size="sm"
+      className="flex-1 rounded-xl bg-primary text-white text-xs"
+      onClick={() => onComplete(req.id)}
+    >
+      <CheckCircle className="w-3 h-3 mr-1" />
+      {isBg ? "Приключи" : "Complete"}
+    </Button>
+    <Button
+      size="sm"
+      variant="outline"
+      className="rounded-xl text-xs border-orange-300 text-orange-600 hover:bg-orange-50"
+      onClick={() => onProblem(req)}
+    >
+      <AlertTriangle className="w-3 h-3 mr-1" />
+      {isBg ? "Проблем" : "Problem"}
+    </Button>
+  </div>
+</div>
           <CheckCircle className="w-3 h-3 mr-1" />
           {isBg ? "Приключи" : "Complete"}
         </Button>
