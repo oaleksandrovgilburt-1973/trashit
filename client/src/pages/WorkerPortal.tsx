@@ -246,13 +246,19 @@ function RequestCard({
   const navLinks = hasGps ? getNavLinks(req.gpsLat!, req.gpsLng!) : null;
 
   return (
-    <div className={`border rounded-2xl p-3 shadow-sm space-y-2 ${req.hasProblem ? 'bg-red-50 border-red-300' : 'bg-white'}`}>
+    <div className={`border rounded-2xl p-3 shadow-sm space-y-2 ${req.hasProblem ? 'bg-red-50 border-red-300' : req.status === 'assigned' ? 'bg-blue-50 border-blue-300' : 'bg-white'}`}>
       {req.hasProblem && (
         <div className="flex items-center gap-1.5 text-xs font-semibold text-red-600 bg-red-100 rounded-xl px-2 py-1">
           <span>⚠️ Проблем:</span>
           <span className="font-normal">{req.problemDescription}</span>
         </div>
       )}
+{req.status === "assigned" && (
+  <div className="flex items-center gap-1.5 text-xs font-semibold text-blue-700 bg-blue-100 rounded-xl px-2 py-1">
+    <CheckCircle className="w-3 h-3" />
+    <span>Офертата е приета — изчаква изпълнение!</span>
+  </div>
+)}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           {getWasteIcon(req.type)}
