@@ -55,6 +55,15 @@ export default function WorkerRequests() {
 
   const { data, isLoading, refetch } = trpc.requests.listPending.useQuery();
 
+  const quoteMutation = trpc.workerQuotes.send.useMutation({
+    onSuccess: () => {
+      toast.success(isBg ? "Офертата е изпратена!" : "Quote sent!");
+      setQuoteReq(null);
+      setQuotePrice(""); setQuoteDate(""); setQuoteNote("");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
   const completeMutation = trpc.requests.complete.useMutation({
     onSuccess: () => {
       toast.success(isBg ? "Заявката е приключена" : "Request completed");
@@ -73,15 +82,6 @@ export default function WorkerRequests() {
       refetch();
     },
     onError: (err) => toast.error(err.message),
-  });
-
-  const quoteMutation = trpc.workerQuotes.send.useMutation({
-    onSuccess: () => {
-      toast.success(isBg ? "Офертата е изпратена!" : "Quote sent!");
-      setQuoteReq(null);
-      setQuotePrice(""); setQuoteDate(""); setQuoteNote("");
-    },
-    onError: (e) => toast.error(e.message),
   });
 
   const toggleDistrict = (d: string) => {
@@ -314,9 +314,8 @@ export default function WorkerRequests() {
                                                 </div>
                                               </div>
 
-                                              {/* Action buttons */}
+                                              {/* Complete single + Quote button */}
                                               <div className="flex flex-col gap-1 flex-shrink-0">
-                                                {/* Complete single */}
                                                 <Button
                                                   size="sm"
                                                   variant="outline"
@@ -326,8 +325,6 @@ export default function WorkerRequests() {
                                                 >
                                                   <CheckCircle2 className="w-3 h-3" />
                                                 </Button>
-
-                                                {/* Quote button for nonstandard/construction */}
                                                 {(req.type === "nonstandard" || req.type === "construction") && (
                                                   <Button
                                                     size="sm"
@@ -362,7 +359,6 @@ export default function WorkerRequests() {
           })}
         </div>
       </div>
-
       {/* Quote Dialog */}
       <Dialog open={!!quoteReq} onOpenChange={() => setQuoteReq(null)}>
         <DialogContent className="rounded-2xl">
@@ -375,29 +371,47 @@ export default function WorkerRequests() {
           {quoteReq && (
             <div className="space-y-3">
               <div className="bg-amber-50 rounded-xl p-3 text-sm text-amber-800">
-                {`Заявка #${quoteReq.id} · ${quoteReq.type === "nonstandard" ? "Нестандартен" : "Строителен"} · ${quoteReq.district}`}
+                {isBg
+                  ? `Заявка #${quoteReq.id} · ${quoteReq.type === "nonstandard" ? "Нестандартен" : "Строителен"} · ${quoteReq.district}`
+                  : `Request #${quoteReq.id} · ${quoteReq.type} · ${quoteReq.district}`}
               </div>
               <div>
-                <label className="text-sm font-medium mb-1 block">Цена (лв.) *</label>
-                <Input type="number" min="1" step="0.01" placeholder="напр. 150.00"
-                  value={quotePrice} onChange={e => setQuotePrice(e.target.value)} className="rounded-xl" />
+                <label className="text-sm font-medium mb-1 block">{isBg ? "Цена (лв.) *" : "Price (BGN) *"}</label>
+                <Input
+                  type="number" min="1" step="0.01"
+                  placeholder={isBg ? "напр. 150.00" : "e.g. 150.00"}
+                  value={quotePrice}
+                  onChange={e => setQuotePrice(e.target.value)}
+                  className="rounded-xl"
+                />
               </div>
               <div>
-                <label className="text-sm font-medium mb-1 block">Предложена дата/час (по желание)</label>
-                <Input type="datetime-local" value={quoteDate}
-                  onChange={e => setQuoteDate(e.target.value)} className="rounded-xl" />
+                <label className="text-sm font-medium mb-1 block">{isBg ? "Предложена дата/час (по желание)" : "Proposed date/time (optional)"}</label>
+                <Input
+                  type="datetime-local"
+                  value={quoteDate}
+                  onChange={e => setQuoteDate(e.target.value)}
+                  className="rounded-xl"
+                />
               </div>
               <div>
-                <label className="text-sm font-medium mb-1 block">Бележка (по желание)</label>
-                <textarea className="w-full border rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-300"
-                  placeholder="Допълнителна информация..." value={quoteNote}
-                  onChange={e => setQuoteNote(e.target.value)} rows={2} />
+                <label className="text-sm font-medium mb-1 block">{isBg ? "Бележка (по желание)" : "Note (optional)"}</label>
+                <textarea
+                  className="w-full border rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-300"
+                  placeholder={isBg ? "Допълнителна информация..." : "Additional information..."}
+                  value={quoteNote}
+                  onChange={e => setQuoteNote(e.target.value)}
+                  rows={2}
+                />
               </div>
             </div>
           )}
           <DialogFooter className="gap-2">
-            <Button variant="outline" className="rounded-xl" onClick={() => setQuoteReq(null)}>Отказ</Button>
-            <Button className="rounded-xl bg-amber-500 hover:bg-amber-600 text-white"
+            <Button variant="outline" className="rounded-xl" onClick={() => setQuoteReq(null)}>
+              {isBg ? "Отказ" : "Cancel"}
+            </Button>
+            <Button
+              className="rounded-xl bg-amber-500 hover:bg-amber-600 text-white"
               disabled={!quotePrice.trim() || quoteMutation.isPending}
               onClick={() => {
                 if (!quoteReq) return;
@@ -408,10 +422,11 @@ export default function WorkerRequests() {
                   proposedDate: quoteDate || undefined,
                   note: quoteNote || undefined,
                 });
-              }}>
+              }}
+            >
               {quoteMutation.isPending
-                ? <><Send className="w-3 h-3 mr-1 animate-pulse" />Изпраща...</>
-                : <><Send className="w-3 h-3 mr-1" />Изпрати оферта</>}
+                ? <><Send className="w-3 h-3 mr-1 animate-pulse" />{isBg ? "Изпраща..." : "Sending..."}</>
+                : <><Send className="w-3 h-3 mr-1" />{isBg ? "Изпрати оферта" : "Send Quote"}</>}
             </Button>
           </DialogFooter>
         </DialogContent>

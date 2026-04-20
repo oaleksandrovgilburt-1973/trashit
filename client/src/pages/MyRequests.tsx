@@ -8,8 +8,7 @@ import { toast } from "sonner";
 import {
   Trash2, Recycle, Package, HardHat,
   Clock, CheckCircle2, XCircle, Loader2,
-  ChevronLeft, Plus, MapPin, DollarSign,
-  CalendarDays, CheckCheck, X,
+  ChevronLeft, Plus, MapPin, DollarSign, CalendarDays, CheckCheck, X
 } from "lucide-react";
 
 const TYPE_LABELS: Record<string, { bg: string; en: string; icon: React.ReactNode; color: string }> = {
@@ -21,19 +20,19 @@ const TYPE_LABELS: Record<string, { bg: string; en: string; icon: React.ReactNod
 
 const STATUS_LABELS: Record<string, { bg: string; en: string; icon: React.ReactNode; color: string }> = {
   pending: { bg: "Изчакване", en: "Pending", icon: <Clock className="w-4 h-4" />, color: "bg-amber-100 text-amber-700" },
-  assigned: { bg: "Възложено", en: "Assigned", icon: <Loader2 className="w-4 h-4" />, color: "bg-blue-100 text-blue-700" },
+  assigned: { bg: "В изпълнение", en: "In progress", icon: <Loader2 className="w-4 h-4 animate-spin" />, color: "bg-blue-100 text-blue-700" },
   completed: { bg: "Завършено", en: "Completed", icon: <CheckCircle2 className="w-4 h-4" />, color: "bg-green-100 text-green-700" },
   cancelled: { bg: "Анулирано", en: "Cancelled", icon: <XCircle className="w-4 h-4" />, color: "bg-gray-100 text-gray-500" },
 };
 
-// ─── QuotePanel ───────────────────────────────────────────────────────────────
+/** Inline quote panel for a single request */
 function QuotePanel({ requestId, isBg, onAction }: { requestId: number; isBg: boolean; onAction: () => void }) {
   const { data: quotes = [], isLoading } = trpc.workerQuotes.getForRequest.useQuery({ requestId });
   const utils = trpc.useUtils();
 
   const acceptMutation = trpc.workerQuotes.accept.useMutation({
     onSuccess: () => {
-      toast.success(isBg ? "Офертата е приета! Работникът ще се свърже с вас." : "Quote accepted!");
+      toast.success(isBg ? "Офертата е приета! Работникът ще се свърже с вас." : "Quote accepted! The worker will contact you.");
       utils.requests.myList.invalidate();
       onAction();
     },
@@ -49,8 +48,9 @@ function QuotePanel({ requestId, isBg, onAction }: { requestId: number; isBg: bo
     onError: (e) => toast.error(e.message),
   });
 
-  if (isLoading) return <div className="text-xs text-muted-foreground py-1">Зарежда...</div>;
-  const pending = (quotes as any[]).filter((q: any) => q.status === "pending");
+  if (isLoading) return <div className="text-xs text-muted-foreground py-1">{isBg ? "Зарежда..." : "Loading..."}</div>;
+
+  const pending = quotes.filter((q: any) => q.status === "pending");
   if (pending.length === 0) return null;
 
   return (
@@ -62,26 +62,37 @@ function QuotePanel({ requestId, isBg, onAction }: { requestId: number; isBg: bo
             {isBg ? "Получена оферта от работник" : "Quote received from worker"}
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-lg font-bold text-amber-900">{q.price} лв.</span>
+            <span className="text-lg font-bold text-amber-900">{q.price} €</span>
             <span className="text-xs text-amber-700">{q.workerName}</span>
           </div>
           {q.proposedDate && (
             <div className="flex items-center gap-1 text-xs text-amber-700">
               <CalendarDays className="w-3 h-3" />
-              {new Date(q.proposedDate).toLocaleString("bg-BG", { dateStyle: "medium", timeStyle: "short" })}
+              {new Date(q.proposedDate).toLocaleString(isBg ? "bg-BG" : "en-GB", { dateStyle: "medium", timeStyle: "short" })}
             </div>
           )}
-          {q.note && <p className="text-xs text-amber-800 italic">"{q.note}"</p>}
+          {q.note && (
+            <p className="text-xs text-amber-800 italic">"{q.note}"</p>
+          )}
           <div className="flex gap-2 pt-1">
-            <Button size="sm" className="flex-1 rounded-xl bg-green-600 hover:bg-green-700 text-white text-xs"
+            <Button
+              size="sm"
+              className="flex-1 rounded-xl bg-green-600 hover:bg-green-700 text-white text-xs"
               disabled={acceptMutation.isPending || rejectMutation.isPending}
-              onClick={() => acceptMutation.mutate({ quoteId: q.id })}>
-              <CheckCheck className="w-3 h-3 mr-1" />{isBg ? "Приеми" : "Accept"}
+              onClick={() => acceptMutation.mutate({ quoteId: q.id })}
+            >
+              <CheckCheck className="w-3 h-3 mr-1" />
+              {isBg ? "Приеми" : "Accept"}
             </Button>
-            <Button size="sm" variant="outline" className="flex-1 rounded-xl text-red-600 border-red-200 hover:bg-red-50 text-xs"
+            <Button
+              size="sm"
+              variant="outline"
+              className="flex-1 rounded-xl text-red-600 border-red-200 hover:bg-red-50 text-xs"
               disabled={acceptMutation.isPending || rejectMutation.isPending}
-              onClick={() => rejectMutation.mutate({ quoteId: q.id })}>
-              <X className="w-3 h-3 mr-1" />{isBg ? "Откажи" : "Reject"}
+              onClick={() => rejectMutation.mutate({ quoteId: q.id })}
+            >
+              <X className="w-3 h-3 mr-1" />
+              {isBg ? "Откажи" : "Reject"}
             </Button>
           </div>
         </div>
@@ -90,7 +101,6 @@ function QuotePanel({ requestId, isBg, onAction }: { requestId: number; isBg: bo
   );
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
 export default function MyRequests() {
   const [, navigate] = useLocation();
   const { isAuthenticated, loading } = useAuth();
@@ -186,7 +196,7 @@ export default function MyRequests() {
                   <div className="flex items-start gap-2 bg-red-100 border border-red-200 rounded-xl px-3 py-2 mb-3">
                     <span className="text-red-500 text-sm mt-0.5">⚠️</span>
                     <div>
-                      <p className="text-sm font-semibold text-red-700">{isBg ? "Има проблем с заявката" : "There is a problem with the request"}</p>
+                      <p className="text-sm font-semibold text-red-700">Има проблем с заявката</p>
                       {req.problemDescription && (
                         <p className="text-xs text-red-600 mt-0.5">{req.problemDescription}</p>
                       )}
@@ -233,7 +243,39 @@ export default function MyRequests() {
                   </a>
                 )}
 
-                {/* Quote panel */}
+                {/* Assigned worker info + expected date */}
+                {req.status === "assigned" && (
+                  <div className="mt-3 space-y-2">
+                    {(req as any).assignedWorkerName && (
+                      <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-xl px-3 py-2">
+                        {(req as any).workerPhotoUrl ? (
+                          <img src={(req as any).workerPhotoUrl} alt={(req as any).assignedWorkerName} className="w-8 h-8 rounded-full object-cover border border-blue-200 flex-shrink-0" />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-blue-200 flex items-center justify-center flex-shrink-0">
+                            <span className="text-blue-700 font-bold text-sm">{((req as any).assignedWorkerName as string).charAt(0).toUpperCase()}</span>
+                          </div>
+                        )}
+                        <div>
+                          <p className="text-xs font-semibold text-blue-800">{(req as any).assignedWorkerName}</p>
+                          <p className="text-xs text-blue-600">{isBg ? "Работник в изпълнение" : "Worker in progress"}</p>
+                        </div>
+                      </div>
+                    )}
+                    {(req as any).acceptedQuoteProposedDate && (
+                      <div className="flex items-center gap-2 bg-green-50 border border-green-100 rounded-xl px-3 py-2">
+                        <CalendarDays className="w-4 h-4 text-green-600 flex-shrink-0" />
+                        <div>
+                          <p className="text-xs font-semibold text-green-800">{isBg ? "Очаквана дата/час" : "Expected date/time"}</p>
+                          <p className="text-xs text-green-700">
+                            {new Date((req as any).acceptedQuoteProposedDate).toLocaleString(isBg ? "bg-BG" : "en-GB", { dateStyle: "medium", timeStyle: "short" })}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Quote panel for nonstandard/construction pending requests */}
                 {isQuotable && (
                   <QuotePanel requestId={req.id} isBg={isBg} onAction={refetch} />
                 )}
