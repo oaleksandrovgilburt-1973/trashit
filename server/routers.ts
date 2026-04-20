@@ -274,6 +274,8 @@ export const appRouter = router({
         };
       }),
 
+    
+
     saveFcmToken: publicProcedure
       .input(z.object({
         deviceToken: z.string().min(1),
@@ -1663,6 +1665,26 @@ export const appRouter = router({
           permissions: sa.permissions,
         };
       }),
+      changePassword: publicProcedure
+    .input(z.object({
+      id: z.number(),
+      currentPassword: z.string().min(1),
+      newPassword: z.string().min(6),
+    }))
+    .mutation(async ({ input }) => {
+      const sa = await getSubAdminById(input.id);
+      if (!sa) throw new TRPCError({ code: "NOT_FOUND", message: "Подадминът не е намерен." });
+      const valid = await bcrypt.compare(input.currentPassword, sa.passwordHash);
+      if (!valid) throw new TRPCError({ code: "UNAUTHORIZED", message: "Грешна текуща парола." });
+      const passwordHash = await bcrypt.hash(input.newPassword, 10);
+      const now = Math.floor(Date.now() / 1000);
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB не е достъпна." });
+      const { subAdmins } = await import("../drizzle/schema");
+      const { eq } = await import("drizzle-orm");
+      await db.update(subAdmins).set({ passwordHash, updatedAt: now }).where(eq(subAdmins.id, input.id));
+      return { success: true };
+    }),
   }),
-});
+});   
 export type AppRouter = typeof appRouter;

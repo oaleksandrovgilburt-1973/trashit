@@ -70,6 +70,7 @@ export default function SubAdminPortal() {
     localStorage.removeItem("subadmin_session");
     setSession(null);
   };
+  const [showChangePassword, setShowChangePassword] = useState(false);
 
   if (!session) {
     return <SubAdminLogin onLogin={handleLogin} />;
@@ -92,15 +93,32 @@ export default function SubAdminPortal() {
               <p className="text-xs text-gray-500">{session.name} • TRASHit</p>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-red-500 hover:text-red-700 hover:bg-red-50"
-            onClick={handleLogout}
-          >
-            <LogOut className="w-4 h-4 mr-1" />
-            Изход
-          </Button>
+      <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+              onClick={() => setShowChangePassword(!showChangePassword)}
+            >
+              <Shield className="w-4 h-4 mr-1" />
+              Парола
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-red-500 hover:text-red-700 hover:bg-red-50"
+              onClick={handleLogout}
+            >
+              <LogOut className="w-4 h-4 mr-1" />
+              Изход
+            </Button>
+          </div>
+          {showChangePassword && session && (
+            <SubAdminChangePassword
+              sessionId={session.id}
+              onClose={() => setShowChangePassword(false)}
+            />
+          )}
         </div>
         {/* Tab Navigation */}
         <div className="max-w-7xl mx-auto px-4 overflow-x-auto">
@@ -1018,6 +1036,47 @@ function ClientsTab() {
           )}
         </div>
       )}
+    </div>
+  );
+}
+// ─── Change Password ──────────────────────────────────────────────────────────
+function SubAdminChangePassword({ sessionId, onClose }: { sessionId: number; onClose: () => void }) {
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const changePassword = trpc.subAdmins.changePassword.useMutation({
+    onSuccess: () => {
+      toast.success("Паролата е сменена успешно!");
+      onClose();
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  return (
+    <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mx-4 mb-2 space-y-3">
+      <h3 className="font-semibold text-blue-800 text-sm">Смяна на парола</h3>
+      <Input type="password" placeholder="Текуща парола" value={currentPassword}
+        onChange={e => setCurrentPassword(e.target.value)} className="rounded-xl" />
+      <Input type="password" placeholder="Нова парола" value={newPassword}
+        onChange={e => setNewPassword(e.target.value)} className="rounded-xl" />
+      <Input type="password" placeholder="Потвърди нова парола" value={confirmPassword}
+        onChange={e => setConfirmPassword(e.target.value)} className="rounded-xl" />
+      <div className="flex gap-2">
+        <Button
+          size="sm"
+          onClick={() => {
+            if (newPassword !== confirmPassword) { toast.error("Паролите не съвпадат"); return; }
+            if (newPassword.length < 6) { toast.error("Паролата трябва да е поне 6 символа"); return; }
+            changePassword.mutate({ id: sessionId, currentPassword, newPassword });
+          }}
+          disabled={changePassword.isPending}
+          className="bg-blue-600 hover:bg-blue-700 rounded-xl text-white"
+        >
+          {changePassword.isPending ? "Сменя се..." : "Смени"}
+        </Button>
+        <Button size="sm" variant="outline" onClick={onClose} className="rounded-xl">Отказ</Button>
+      </div>
     </div>
   );
 }
