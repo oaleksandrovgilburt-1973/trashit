@@ -182,7 +182,7 @@ export default function MyRequests() {
 
         {/* Requests list */}
         <div className="space-y-2">
-          {requests?.map((req) => {
+          {requests?.slice().sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((req) => {
             const typeInfo = TYPE_LABELS[req.type] ?? TYPE_LABELS.standard;
             const statusInfo = STATUS_LABELS[req.status] ?? STATUS_LABELS.pending;
             const date = new Date(req.createdAt).toLocaleDateString(isBg ? "bg-BG" : "en-GB", {
