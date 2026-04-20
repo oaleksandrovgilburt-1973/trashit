@@ -284,7 +284,7 @@ function RequestCard({
       )}
 
       {req.imageUrl && (
-        <img src={req.imageUrl} alt="waste" className="w-full h-32 object-cover rounded-xl" />
+        <img src={req.imageUrl} alt="waste" className="max-h-48 w-auto object-contain rounded-xl" />
       )}
 
       <div className="flex items-center gap-3 text-xs text-muted-foreground">
