@@ -11,7 +11,7 @@ import {
   PowerOff, CheckCircle, Phone, Mail, ChevronRight,
   RefreshCw, Eye, Send, ShieldAlert, Pencil, Save, LayoutDashboard,
   FileText, UserCheck, Search, ChevronDown, ChevronUp, Coins, History,
-  Shield, Lock
+  Shield, Lock, DollarSign, CalendarDays, CheckCheck, X
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import AdminDashboard from "@/components/AdminDashboard";
@@ -688,6 +688,17 @@ function RequestsTab() {
                             </div>
                             {r.hasProblem && r.problemDescription && (
                               <p className="text-xs text-red-600 mt-0.5">{r.problemDescription}</p>
+                            )}
+                            {/* Image for nonstandard/construction */}
+                            {(r.type === "nonstandard" || r.type === "construction") && (r as any).imageUrl && (
+                              <a href={(r as any).imageUrl} target="_blank" rel="noopener noreferrer" className="mt-1 block">
+                                <img src={(r as any).imageUrl} alt="Снимка"
+                                  className="rounded-lg max-h-32 w-full object-cover border border-gray-200 hover:opacity-90 transition-opacity" />
+                              </a>
+                            )}
+                            {/* Admin Quote Panel */}
+                            {(r.type === "nonstandard" || r.type === "construction") && (
+                              <AdminQuotePanel requestId={r.id} />
                             )}
                           </div>
                         ))}
@@ -1549,6 +1560,77 @@ function SubAdminsTab() {
           ))}
         </div>
       )}
+    </div>
+  );
+// ─── AdminQuotePanel ──────────────────────────────────────────────────────────
+function AdminQuotePanel({ requestId }: { requestId: number }) {
+  const utils = trpc.useUtils();
+  const { data: quotes = [], isLoading } = trpc.workerQuotes.adminGetForRequest.useQuery({ requestId });
+
+  const acceptMutation = trpc.workerQuotes.adminAccept.useMutation({
+    onSuccess: () => {
+      toast.success("Офертата е приета!");
+      utils.requests.listAll.invalidate();
+      utils.workerQuotes.adminGetForRequest.invalidate({ requestId });
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const rejectMutation = trpc.workerQuotes.adminReject.useMutation({
+    onSuccess: () => {
+      toast.success("Офертата е отхвърлена. Кредитите са възстановени.");
+      utils.requests.listAll.invalidate();
+      utils.workerQuotes.adminGetForRequest.invalidate({ requestId });
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  if (isLoading) return <p className="text-xs text-muted-foreground mt-1">Зарежда...</p>;
+  if ((quotes as any[]).length === 0) return null;
+
+  const pending = (quotes as any[]).filter((q: any) => q.status === "pending");
+
+  return (
+    <div className="mt-2 space-y-1.5">
+      {pending.map((q: any) => (
+        <div key={q.id} className="bg-amber-50 border border-amber-200 rounded-lg p-2 space-y-1">
+          <div className="flex items-center gap-1 text-xs font-semibold text-amber-800">
+            <DollarSign className="w-3 h-3" />Оферта от работник
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="font-bold text-amber-900">{q.price} лв.</span>
+            <span className="text-xs text-amber-700">{q.workerName}</span>
+          </div>
+          {q.proposedDate && (
+            <div className="flex items-center gap-1 text-xs text-amber-700">
+              <CalendarDays className="w-3 h-3" />
+              {new Date(q.proposedDate).toLocaleString("bg-BG", { dateStyle: "medium", timeStyle: "short" })}
+            </div>
+          )}
+          {q.note && <p className="text-xs text-amber-800 italic">"{q.note}"</p>}
+          <div className="flex gap-1.5 pt-0.5">
+            <Button size="sm" className="flex-1 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs h-6 px-2"
+              disabled={acceptMutation.isPending || rejectMutation.isPending}
+              onClick={() => acceptMutation.mutate({ quoteId: q.id })}>
+              <CheckCheck className="w-3 h-3 mr-1" />Приеми
+            </Button>
+            <Button size="sm" variant="outline" className="flex-1 rounded-lg text-red-600 border-red-200 hover:bg-red-50 text-xs h-6 px-2"
+              disabled={acceptMutation.isPending || rejectMutation.isPending}
+              onClick={() => rejectMutation.mutate({ quoteId: q.id })}>
+              <X className="w-3 h-3 mr-1" />Отхвърли
+            </Button>
+          </div>
+        </div>
+      ))}
+      {(quotes as any[]).filter((q: any) => q.status !== "pending").map((q: any) => (
+        <div key={q.id} className="flex items-center gap-2 text-xs text-gray-500">
+          <DollarSign className="w-3 h-3" />
+          <span>{q.workerName}: {q.price} лв.</span>
+          <Badge variant="outline" className={q.status === "accepted" ? "text-green-700 border-green-300" : "text-gray-400"}>
+            {q.status === "accepted" ? "Приета" : "Отхвърлена"}
+          </Badge>
+        </div>
+      ))}
     </div>
   );
 }

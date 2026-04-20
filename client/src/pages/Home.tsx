@@ -60,13 +60,14 @@ export default function Home() {
   const creditsRecycling = profile?.creditsRecycling ?? "0.00";
 
   const services = [
-    { href: "/waste-disposal?type=standard", icon: <Trash2 className="w-6 h-6 text-primary" />, label: "Стандартен смесен битов отпадък" },
-    { href: "/waste-disposal?type=recycling", icon: <Recycle className="w-6 h-6 text-primary" />, label: "Разделно събиране на отпадъци" },
-    { href: "/waste-disposal?type=nonstandard", icon: <Package className="w-6 h-6 text-primary" />, label: "Нестандартен отпадък" },
-    { href: "/waste-disposal?type=construction", icon: <HardHat className="w-6 h-6 text-primary" />, label: "Строителен отпадък" },
-    { href: "/cleaning?type=entrance", icon: <Building2 className="w-6 h-6 text-primary" />, label: "Почистване на вход" },
-    { href: "/cleaning?type=residence", icon: <HomeIcon className="w-6 h-6 text-primary" />, label: "Жилища" },
-    { href: "/cleaning?type=other", icon: <MoreHorizontal className="w-6 h-6 text-primary" />, label: "Друго" },
+const services = [
+    { href: "/waste-disposal?type=standard", icon: <Trash2 className="w-6 h-6 text-primary" />, label: "Стандартен смесен битов отпадък", active: true },
+    { href: "/waste-disposal?type=recycling", icon: <Recycle className="w-6 h-6 text-primary" />, label: "Разделно събиране на отпадъци", active: true },
+    { href: "/waste-disposal?type=nonstandard", icon: <Package className="w-6 h-6 text-primary" />, label: "Нестандартен отпадък", active: true },
+    { href: "/waste-disposal?type=construction", icon: <HardHat className="w-6 h-6 text-primary" />, label: "Строителен отпадък", active: true },
+    { href: "/cleaning?type=entrance", icon: <Building2 className="w-6 h-6 text-gray-400" />, label: "Почистване на вход", active: false },
+    { href: "/cleaning?type=residence", icon: <HomeIcon className="w-6 h-6 text-gray-400" />, label: "Жилища", active: false },
+    { href: "/cleaning?type=other", icon: <MoreHorizontal className="w-6 h-6 text-primary" />, label: "Друго", active: true },
   ];
 
   return (
@@ -175,17 +176,27 @@ export default function Home() {
         <section className="container py-6">
           <h2 className="text-lg font-bold text-foreground mb-4">{t.mainMenuTitle}</h2>
 
-          <div className="space-y-2">
+<div className="space-y-2">
             {services.map((service) => (
-              <Link key={service.href} href={service.href}>
-                <div className="flex items-center gap-3 p-4 rounded-2xl bg-primary/10 border border-primary/20 hover:bg-primary/20 hover:border-primary/40 transition-all cursor-pointer group">
-                  <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center group-hover:bg-primary/25 transition-colors flex-shrink-0">
+              service.active ? (
+                <Link key={service.href} href={service.href}>
+                  <div className="flex items-center gap-3 p-4 rounded-2xl bg-primary/10 border border-primary/20 hover:bg-primary/20 hover:border-primary/40 transition-all cursor-pointer group">
+                    <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center group-hover:bg-primary/25 transition-colors flex-shrink-0">
+                      {service.icon}
+                    </div>
+                    <p className="flex-1 text-sm font-semibold text-foreground">{service.label}</p>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                  </div>
+                </Link>
+              ) : (
+                <div key={service.href} className="flex items-center gap-3 p-4 rounded-2xl bg-gray-100 border border-gray-200 opacity-60 cursor-not-allowed">
+                  <div className="w-10 h-10 rounded-xl bg-gray-200 flex items-center justify-center flex-shrink-0">
                     {service.icon}
                   </div>
-                  <p className="flex-1 text-sm font-semibold text-foreground">{service.label}</p>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                  <p className="flex-1 text-sm font-semibold text-gray-400">{service.label}</p>
+                  <span className="text-xs text-gray-400 font-medium">Очаквайте скоро</span>
                 </div>
-              </Link>
+              )
             ))}
           </div>
 

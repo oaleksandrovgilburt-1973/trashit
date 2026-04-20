@@ -1685,6 +1685,62 @@ export const appRouter = router({
       await db.update(subAdmins).set({ passwordHash, updatedAt: now }).where(eq(subAdmins.id, input.id));
       return { success: true };
     }),
+/** Admin: get all quotes for a request */
+    adminGetForRequest: adminProcedure
+      .input(z.object({ requestId: z.number() }))
+      .query(async ({ input }) => {
+        return getQuotesByRequest(input.requestId);
+      }),
+
+    /** Admin: accept a quote on behalf of the client */
+    adminAccept: adminProcedure
+      .input(z.object({ quoteId: z.number() }))
+      .mutation(async ({ input }) => {
+        const quote = await getQuoteById(input.quoteId);
+        if (!quote) throw new TRPCError({ code: "NOT_FOUND" });
+        await updateQuoteStatus(input.quoteId, "accepted");
+        const db = await getDb();
+        if (db) {
+          const { requests: reqTable } = await import("../drizzle/schema");
+          const { eq } = await import("drizzle-orm");
+          await db.update(reqTable)
+            .set({ status: "assigned", workerOpenId: quote.workerOpenId })
+            .where(eq(reqTable.id, quote.requestId));
+        }
+        return { success: true };
+      }),
+
+    /** Admin: reject a quote and refund credits */
+    adminReject: adminProcedure
+      .input(z.object({ quoteId: z.number() }))
+      .mutation(async ({ input }) => {
+        const quote = await getQuoteById(input.quoteId);
+        if (!quote) throw new TRPCError({ code: "NOT_FOUND" });
+        const req = await getRequestById(quote.requestId);
+        if (!req) throw new TRPCError({ code: "NOT_FOUND" });
+        await updateQuoteStatus(input.quoteId, "rejected");
+        const db = await getDb();
+        if (db) {
+          const { requests: reqTable } = await import("../drizzle/schema");
+          const { eq } = await import("drizzle-orm");
+          await db.update(reqTable).set({ status: "cancelled" }).where(eq(reqTable.id, quote.requestId));
+          if (req.creditsUsed && parseFloat(req.creditsUsed) > 0) {
+            const user = await getUserByOpenId(req.userOpenId);
+            if (user) {
+              const refund = parseFloat(req.creditsUsed);
+              const isRecycling = req.creditType === "recycling";
+              const currentStandard = parseFloat(user.creditsStandard ?? "0");
+              const currentRecycling = parseFloat(user.creditsRecycling ?? "0");
+              const updateData = isRecycling
+                ? { creditsRecycling: String(currentRecycling + refund) }
+                : { creditsStandard: String(currentStandard + refund) };
+              const { users: usersTable } = await import("../drizzle/schema");
+              await db.update(usersTable).set(updateData).where(eq(usersTable.id, user.id));
+            }
+          }
+        }
+        return { success: true };
+      }),
   }),
-});   
+});
 export type AppRouter = typeof appRouter;

@@ -4,11 +4,16 @@ import { trpc } from "@/lib/trpc";
 import { useLanguage } from "@/contexts/LanguageContext";
 import MainLayout from "@/components/MainLayout";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
 import {
   Trash2, Recycle, Package, HardHat,
   CheckCircle2, Loader2, ChevronDown, ChevronRight,
-  MapPin, Phone, Mail, Navigation, ChevronLeft
+  MapPin, Phone, Mail, Navigation, ChevronLeft,
+  DollarSign, Send,
 } from "lucide-react";
 import { sortBgEntrances } from "../../../shared/bgAlphabet";
 
@@ -35,6 +40,19 @@ export default function WorkerRequests() {
   const [expandedBloks, setExpandedBloks] = useState<Set<string>>(new Set());
   const [expandedVhods, setExpandedVhods] = useState<Set<string>>(new Set());
 
+  // Quote state
+  const [quoteReq, setQuoteReq] = useState<{ id: number; type: string; district: string } | null>(null);
+  const [quotePrice, setQuotePrice] = useState("");
+  const [quoteDate, setQuoteDate] = useState("");
+  const [quoteNote, setQuoteNote] = useState("");
+
+  const getDeviceToken = (): string => {
+    try {
+      const raw = localStorage.getItem("trashit_worker_session");
+      return raw ? JSON.parse(raw).deviceToken ?? "" : "";
+    } catch { return ""; }
+  };
+
   const { data, isLoading, refetch } = trpc.requests.listPending.useQuery();
 
   const completeMutation = trpc.requests.complete.useMutation({
@@ -55,6 +73,15 @@ export default function WorkerRequests() {
       refetch();
     },
     onError: (err) => toast.error(err.message),
+  });
+
+  const quoteMutation = trpc.workerQuotes.send.useMutation({
+    onSuccess: () => {
+      toast.success(isBg ? "Офертата е изпратена!" : "Quote sent!");
+      setQuoteReq(null);
+      setQuotePrice(""); setQuoteDate(""); setQuoteNote("");
+    },
+    onError: (e) => toast.error(e.message),
   });
 
   const toggleDistrict = (d: string) => {
@@ -252,6 +279,17 @@ export default function WorkerRequests() {
                                                   </p>
                                                 )}
 
+                                                {/* Image for nonstandard/construction */}
+                                                {(req.type === "nonstandard" || req.type === "construction") && (req as any).imageUrl && (
+                                                  <a href={(req as any).imageUrl} target="_blank" rel="noopener noreferrer" className="mt-2 block">
+                                                    <img
+                                                      src={(req as any).imageUrl}
+                                                      alt="Снимка"
+                                                      className="rounded-xl max-h-36 w-full object-cover border border-gray-200 hover:opacity-90 transition-opacity"
+                                                    />
+                                                  </a>
+                                                )}
+
                                                 {/* Contact */}
                                                 <div className="flex items-center gap-3 mt-2">
                                                   {req.contactPhone && (
@@ -276,16 +314,34 @@ export default function WorkerRequests() {
                                                 </div>
                                               </div>
 
-                                              {/* Complete single */}
-                                              <Button
-                                                size="sm"
-                                                variant="outline"
-                                                onClick={() => completeMutation.mutate({ id: req.id })}
-                                                disabled={completeMutation.isPending}
-                                                className="rounded-xl text-xs h-7 px-2 flex-shrink-0"
-                                              >
-                                                <CheckCircle2 className="w-3 h-3" />
-                                              </Button>
+                                              {/* Action buttons */}
+                                              <div className="flex flex-col gap-1 flex-shrink-0">
+                                                {/* Complete single */}
+                                                <Button
+                                                  size="sm"
+                                                  variant="outline"
+                                                  onClick={() => completeMutation.mutate({ id: req.id })}
+                                                  disabled={completeMutation.isPending}
+                                                  className="rounded-xl text-xs h-7 px-2"
+                                                >
+                                                  <CheckCircle2 className="w-3 h-3" />
+                                                </Button>
+
+                                                {/* Quote button for nonstandard/construction */}
+                                                {(req.type === "nonstandard" || req.type === "construction") && (
+                                                  <Button
+                                                    size="sm"
+                                                    onClick={() => {
+                                                      setQuoteReq({ id: req.id, type: req.type, district: req.district ?? "" });
+                                                      setQuotePrice(""); setQuoteDate(""); setQuoteNote("");
+                                                    }}
+                                                    className="rounded-xl text-xs h-7 px-2 bg-amber-500 hover:bg-amber-600 text-white"
+                                                    title={isBg ? "Изпрати оферта" : "Send Quote"}
+                                                  >
+                                                    <DollarSign className="w-3 h-3" />
+                                                  </Button>
+                                                )}
+                                              </div>
                                             </div>
                                           </div>
                                         ))}
@@ -306,6 +362,60 @@ export default function WorkerRequests() {
           })}
         </div>
       </div>
+
+      {/* Quote Dialog */}
+      <Dialog open={!!quoteReq} onOpenChange={() => setQuoteReq(null)}>
+        <DialogContent className="rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <DollarSign className="w-5 h-5 text-amber-500" />
+              {isBg ? "Изпрати оферта" : "Send Quote"}
+            </DialogTitle>
+          </DialogHeader>
+          {quoteReq && (
+            <div className="space-y-3">
+              <div className="bg-amber-50 rounded-xl p-3 text-sm text-amber-800">
+                {`Заявка #${quoteReq.id} · ${quoteReq.type === "nonstandard" ? "Нестандартен" : "Строителен"} · ${quoteReq.district}`}
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1 block">Цена (лв.) *</label>
+                <Input type="number" min="1" step="0.01" placeholder="напр. 150.00"
+                  value={quotePrice} onChange={e => setQuotePrice(e.target.value)} className="rounded-xl" />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1 block">Предложена дата/час (по желание)</label>
+                <Input type="datetime-local" value={quoteDate}
+                  onChange={e => setQuoteDate(e.target.value)} className="rounded-xl" />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1 block">Бележка (по желание)</label>
+                <textarea className="w-full border rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-300"
+                  placeholder="Допълнителна информация..." value={quoteNote}
+                  onChange={e => setQuoteNote(e.target.value)} rows={2} />
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" className="rounded-xl" onClick={() => setQuoteReq(null)}>Отказ</Button>
+            <Button className="rounded-xl bg-amber-500 hover:bg-amber-600 text-white"
+              disabled={!quotePrice.trim() || quoteMutation.isPending}
+              onClick={() => {
+                if (!quoteReq) return;
+                quoteMutation.mutate({
+                  deviceToken: getDeviceToken(),
+                  requestId: quoteReq.id,
+                  price: quotePrice,
+                  proposedDate: quoteDate || undefined,
+                  note: quoteNote || undefined,
+                });
+              }}>
+              {quoteMutation.isPending
+                ? <><Send className="w-3 h-3 mr-1 animate-pulse" />Изпраща...</>
+                : <><Send className="w-3 h-3 mr-1" />Изпрати оферта</>}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </MainLayout>
   );
 }

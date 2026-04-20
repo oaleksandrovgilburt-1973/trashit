@@ -8,7 +8,8 @@ import { toast } from "sonner";
 import {
   Trash2, Recycle, Package, HardHat,
   Clock, CheckCircle2, XCircle, Loader2,
-  ChevronLeft, Plus, MapPin
+  ChevronLeft, Plus, MapPin, DollarSign,
+  CalendarDays, CheckCheck, X,
 } from "lucide-react";
 
 const TYPE_LABELS: Record<string, { bg: string; en: string; icon: React.ReactNode; color: string }> = {
@@ -25,6 +26,71 @@ const STATUS_LABELS: Record<string, { bg: string; en: string; icon: React.ReactN
   cancelled: { bg: "Анулирано", en: "Cancelled", icon: <XCircle className="w-4 h-4" />, color: "bg-gray-100 text-gray-500" },
 };
 
+// ─── QuotePanel ───────────────────────────────────────────────────────────────
+function QuotePanel({ requestId, isBg, onAction }: { requestId: number; isBg: boolean; onAction: () => void }) {
+  const { data: quotes = [], isLoading } = trpc.workerQuotes.getForRequest.useQuery({ requestId });
+  const utils = trpc.useUtils();
+
+  const acceptMutation = trpc.workerQuotes.accept.useMutation({
+    onSuccess: () => {
+      toast.success(isBg ? "Офертата е приета! Работникът ще се свърже с вас." : "Quote accepted!");
+      utils.requests.myList.invalidate();
+      onAction();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const rejectMutation = trpc.workerQuotes.reject.useMutation({
+    onSuccess: () => {
+      toast.success(isBg ? "Офертата е отхвърлена. Кредитите са възстановени." : "Quote rejected. Credits refunded.");
+      utils.requests.myList.invalidate();
+      onAction();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  if (isLoading) return <div className="text-xs text-muted-foreground py-1">Зарежда...</div>;
+  const pending = (quotes as any[]).filter((q: any) => q.status === "pending");
+  if (pending.length === 0) return null;
+
+  return (
+    <div className="mt-3 space-y-2">
+      {pending.map((q: any) => (
+        <div key={q.id} className="bg-amber-50 border border-amber-200 rounded-xl p-3 space-y-2">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-800">
+            <DollarSign className="w-3.5 h-3.5" />
+            {isBg ? "Получена оферта от работник" : "Quote received from worker"}
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-lg font-bold text-amber-900">{q.price} лв.</span>
+            <span className="text-xs text-amber-700">{q.workerName}</span>
+          </div>
+          {q.proposedDate && (
+            <div className="flex items-center gap-1 text-xs text-amber-700">
+              <CalendarDays className="w-3 h-3" />
+              {new Date(q.proposedDate).toLocaleString("bg-BG", { dateStyle: "medium", timeStyle: "short" })}
+            </div>
+          )}
+          {q.note && <p className="text-xs text-amber-800 italic">"{q.note}"</p>}
+          <div className="flex gap-2 pt-1">
+            <Button size="sm" className="flex-1 rounded-xl bg-green-600 hover:bg-green-700 text-white text-xs"
+              disabled={acceptMutation.isPending || rejectMutation.isPending}
+              onClick={() => acceptMutation.mutate({ quoteId: q.id })}>
+              <CheckCheck className="w-3 h-3 mr-1" />{isBg ? "Приеми" : "Accept"}
+            </Button>
+            <Button size="sm" variant="outline" className="flex-1 rounded-xl text-red-600 border-red-200 hover:bg-red-50 text-xs"
+              disabled={acceptMutation.isPending || rejectMutation.isPending}
+              onClick={() => rejectMutation.mutate({ quoteId: q.id })}>
+              <X className="w-3 h-3 mr-1" />{isBg ? "Откажи" : "Reject"}
+            </Button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 export default function MyRequests() {
   const [, navigate] = useLocation();
   const { isAuthenticated, loading } = useAuth();
@@ -112,6 +178,7 @@ export default function MyRequests() {
             const date = new Date(req.createdAt).toLocaleDateString(isBg ? "bg-BG" : "en-GB", {
               day: "2-digit", month: "short", year: "numeric"
             });
+            const isQuotable = (req.type === "nonstandard" || req.type === "construction") && req.status === "pending";
 
             return (
               <div key={req.id} className={`rounded-2xl border p-4 shadow-sm ${req.hasProblem ? 'bg-red-50 border-red-300' : 'bg-white border-gray-200'}`}>
@@ -119,7 +186,7 @@ export default function MyRequests() {
                   <div className="flex items-start gap-2 bg-red-100 border border-red-200 rounded-xl px-3 py-2 mb-3">
                     <span className="text-red-500 text-sm mt-0.5">⚠️</span>
                     <div>
-                      <p className="text-sm font-semibold text-red-700">Има проблем с заявката</p>
+                      <p className="text-sm font-semibold text-red-700">{isBg ? "Има проблем с заявката" : "There is a problem with the request"}</p>
                       {req.problemDescription && (
                         <p className="text-xs text-red-600 mt-0.5">{req.problemDescription}</p>
                       )}
@@ -153,6 +220,22 @@ export default function MyRequests() {
                   <p className="mt-1 text-xs text-blue-600">
                     {isBg ? "Прогнозен обем:" : "Est. volume:"} {req.estimatedVolume}
                   </p>
+                )}
+
+                {/* Image for nonstandard/construction */}
+                {(req.type === "nonstandard" || req.type === "construction") && (req as any).imageUrl && (
+                  <a href={(req as any).imageUrl} target="_blank" rel="noopener noreferrer" className="mt-2 block">
+                    <img
+                      src={(req as any).imageUrl}
+                      alt={isBg ? "Снимка на отпадъка" : "Waste photo"}
+                      className="rounded-xl max-h-48 w-full object-cover border border-gray-200 hover:opacity-90 transition-opacity"
+                    />
+                  </a>
+                )}
+
+                {/* Quote panel */}
+                {isQuotable && (
+                  <QuotePanel requestId={req.id} isBg={isBg} onAction={refetch} />
                 )}
 
                 {/* Cancel button for pending requests */}
