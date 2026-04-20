@@ -17,7 +17,7 @@ import {
   getUsersByRole, getSetting, getWorkerByOpenId,
   getWorkerByUsername, getWorkerSession, getWorkerSessionCount,
   addWorkerSession, removeOldestWorkerSession,
-  initAdminConfig, updateAdminConfig,
+  initAdminConfig, updateAdminConfig, updateAdminTokenHash,
   updateUserCredits, updateUserFcmToken, updateUserProfile, updateUserRole,
   updateWorkerLastSignedIn, updateWorkerPassword,
   upsertSetting, upsertUser, createWorker,
@@ -43,6 +43,20 @@ import {
   getActiveBlocksWithAccess,
   // Worker Districts
   getWorkerDistricts, setWorkerDistricts, getRequestsByDistricts,
+  // Worker Quotes
+  createWorkerQuote, getQuotesByRequest, getQuoteById, updateQuoteStatus, getAcceptedQuoteForRequest,
+  getPendingQuoteForRequest, updateWorkerPhoto,
+  // Activity Descriptions
+  getAllActivityDescriptions, upsertActivityDescription,
+  // Entrance Access
+  getAllEntranceAccess, upsertEntranceAccess, checkEntranceApproved, deleteEntranceAccess, getEntranceAccess,
+  // FCM Diagnostics
+  getFirstUserWithFcmToken,
+  // Worker FCM
+  updateWorkerFcmToken,
+  // Sub-Admins
+  createSubAdmin, getAllSubAdmins, getSubAdminByUsername, getSubAdminById,
+  updateSubAdminPermissions, toggleSubAdminActive, deleteSubAdmin,
 } from "./db";
 
 const BONUS_CREDITS = "2.00";
@@ -52,12 +66,21 @@ const ADMIN_SESSION_COOKIE = "trashit_admin_session";
 
 // ─── Admin-only middleware ────────────────────────────────────────────────────
 // Admin uses custom username/password auth (not Manus OAuth).
-// We verify the admin session cookie set by adminAuth.login instead of ctx.user.
-const adminProcedure = publicProcedure.use(({ ctx, next }) => {
+// We verify the admin session cookie against the bcrypt hash stored in the DB.
+const adminProcedure = publicProcedure.use(async ({ ctx, next }) => {
   const cookies = parseCookies(ctx.req.headers.cookie ?? "");
   const adminToken = cookies[ADMIN_SESSION_COOKIE];
   if (!adminToken || adminToken.length < 10) {
     throw new TRPCError({ code: "UNAUTHORIZED", message: "Необходим е администраторски вход." });
+  }
+  // Validate token against DB-stored bcrypt hash
+  const config = await getAdminConfig();
+  if (!config?.activeTokenHash) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "Необходим е администраторски вход." });
+  }
+  const valid = await bcrypt.compare(adminToken, config.activeTokenHash);
+  if (!valid) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "Невалидна или изтекла сесия." });
   }
   return next({ ctx });
 });
@@ -169,30 +192,6 @@ export const appRouter = router({
         ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
         return { success: true, bonusCredits: BONUS_CREDITS, openId };
       }),
-
-
-  changePassword: protectedProcedure
-      .input(z.object({
-        currentPassword: z.string().min(1),
-        newPassword: z.string().min(6, "Паролата трябва да е поне 6 символа"),
-      }))
-      .mutation(async ({ ctx, input }) => {
-        const user = await getUserByOpenId(ctx.user.openId);
-        if (!user || !user.passwordHash) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "Акаунтът не поддържа смяна на парола." });
-        }
-        const valid = await bcrypt.compare(input.currentPassword, user.passwordHash);
-        if (!valid) {
-          throw new TRPCError({ code: "UNAUTHORIZED", message: "Грешна текуща парола." });
-        }
-        const passwordHash = await bcrypt.hash(input.newPassword, 10);
-        const db = await getDb();
-        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB не е достъпна." });
-        const { users } = await import("../drizzle/schema");
-        const { eq } = await import("drizzle-orm");
-        await db.update(users).set({ passwordHash }).where(eq(users.openId, ctx.user.openId));
-        return { success: true };
-      }),
   }),
 
   // ── Worker auth ───────────────────────────────────────────────────────────
@@ -258,21 +257,6 @@ export const appRouter = router({
         await updateWorkerPassword(worker.id, newHash);
         return { success: true };
       }),
-    
-    saveFcmToken: publicProcedure
-      .input(z.object({
-        deviceToken: z.string().min(1),
-        fcmToken: z.string().min(10),
-      }))
-      .mutation(async ({ input }) => {
-        const session = await getWorkerSession(input.deviceToken);
-        if (!session) {
-          throw new TRPCError({ code: "UNAUTHORIZED", message: "Невалидна сесия." });
-        }
-        await updateWorkerFcmToken(session.workerId, input.fcmToken);
-        console.log("[FCM] Worker token saved for workerId:", session.workerId, input.fcmToken.substring(0, 20) + "...");
-        return { success: true };
-      }),
 
     verifySession: publicProcedure
       .input(z.object({ deviceToken: z.string() }))
@@ -290,6 +274,20 @@ export const appRouter = router({
         };
       }),
 
+    saveFcmToken: publicProcedure
+      .input(z.object({
+        deviceToken: z.string().min(1),
+        fcmToken: z.string().min(10),
+      }))
+      .mutation(async ({ input }) => {
+        const session = await getWorkerSession(input.deviceToken);
+        if (!session) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Невалидна сесия." });
+        }
+        await updateWorkerFcmToken(session.workerId, input.fcmToken);
+        console.log("[FCM] Worker token saved for workerId:", session.workerId, input.fcmToken.substring(0, 20) + "...");
+        return { success: true };
+      }),
     logout: publicProcedure
       .input(z.object({ deviceToken: z.string() }))
       .mutation(async ({ input, ctx }) => {
@@ -328,6 +326,8 @@ export const appRouter = router({
             throw new TRPCError({ code: "UNAUTHORIZED", message: "Грешно потребителско име или парола." });
           }
           const token = nanoid(32);
+          const tokenHash = await bcrypt.hash(token, 10);
+          await updateAdminTokenHash(tokenHash);
           setAdminCookie(ctx, token);
           return { success: true, token, mustChangeCredentials: true };
         }
@@ -345,6 +345,8 @@ export const appRouter = router({
         }
 
         const token = nanoid(32);
+        const tokenHash = await bcrypt.hash(token, 10);
+        await updateAdminTokenHash(tokenHash);
         setAdminCookie(ctx, token);
         return { success: true, token, mustChangeCredentials: !config.defaultBlocked };
       }),
@@ -371,17 +373,20 @@ export const appRouter = router({
     verifyToken: publicProcedure
       .input(z.object({ token: z.string() }))
       .query(async ({ input }) => {
-        // Simple token verification — in production use JWT
-        // For now we store token in memory/cookie and verify it exists
         if (!input.token || input.token.length < 10) return null;
         const config = await getAdminConfig();
-        if (!config) return null;
+        if (!config?.activeTokenHash) return null;
+        // Verify the provided token against the stored bcrypt hash
+        const valid = await bcrypt.compare(input.token, config.activeTokenHash);
+        if (!valid) return null;
         return { isAdmin: true, username: config.username };
       }),
 
-    logout: publicProcedure.mutation(({ ctx }) => {
+    logout: publicProcedure.mutation(async ({ ctx }) => {
       const opts = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(ADMIN_SESSION_COOKIE, { ...opts, maxAge: -1 });
+      // Invalidate the stored token hash so the session cannot be reused
+      await updateAdminTokenHash(null);
       return { success: true };
     }),
   }),
@@ -477,21 +482,6 @@ export const appRouter = router({
       .mutation(async ({ input }) => { await updateUserCredits(input.userId, input.credits); return { success: true }; }),
 
     listAllWorkers: adminProcedure.query(async () => getAllWorkers()),
-
-    resetPassword: adminProcedure
-      .input(z.object({
-        openId: z.string(),
-        newPassword: z.string().min(6, "Паролата трябва да е поне 6 символа"),
-      }))
-      .mutation(async ({ input }) => {
-        const passwordHash = await bcrypt.hash(input.newPassword, 10);
-        const db = await getDb();
-        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB не е достъпна." });
-        const { users } = await import("../drizzle/schema");
-        const { eq } = await import("drizzle-orm");
-        await db.update(users).set({ passwordHash }).where(eq(users.openId, input.openId));
-        return { success: true };
-      }),
   }),
 
   // ── Districts ────────────────────────────────────────────────────────────────────────────────
@@ -597,7 +587,7 @@ export const appRouter = router({
           creditsUsed,
           creditType,
         });
-// FCM към работници в същия квартал
+         // Notify workers in the same district
         try {
           const allWorkers = await getAllWorkers();
           for (const worker of allWorkers) {
@@ -614,10 +604,22 @@ export const appRouter = router({
         } catch { /* ignore FCM errors */ }
         return { success: true, id, creditsUsed, creditType };
       }),
-
     // Client: list own requests
     myList: protectedProcedure.query(async ({ ctx }) => {
-      return getRequestsByUser(ctx.user.openId);
+      const reqs = await getRequestsByUser(ctx.user.openId);
+      // Attach worker photo/name for assigned requests
+      const allWorkers = await getAllWorkers();
+      // Attach accepted quote proposed date for assigned requests
+      const enriched = await Promise.all(reqs.map(async r => {
+        const worker = r.workerOpenId ? allWorkers.find(w => w.openId === r.workerOpenId) : null;
+        let acceptedQuoteProposedDate: string | null = null;
+        if (r.status === "assigned") {
+          const acceptedQuote = await getAcceptedQuoteForRequest(r.id);
+          acceptedQuoteProposedDate = acceptedQuote?.proposedDate ?? null;
+        }
+        return { ...r, workerPhotoUrl: worker?.photoUrl ?? null, assignedWorkerName: worker?.name ?? null, acceptedQuoteProposedDate };
+      }));
+      return enriched;
     }),
 
     // Client: cancel a pending request
@@ -1022,12 +1024,14 @@ export const appRouter = router({
       }),
 
      // Admin: view all transactions
+    allTransactions: adminProcedure.query(async () => getAllTransactions()),
+
+    // Admin: view transaction history for a specific user
     userTransactions: adminProcedure
       .input(z.object({ userOpenId: z.string() }))
       .query(async ({ input }) => {
         return getTransactionsByUser(input.userOpenId);
       }),
-    allTransactions: adminProcedure.query(async () => getAllTransactions()),
   }),
 
   // ── Worker Problems ────────────────────────────────────────────────────────
@@ -1114,6 +1118,81 @@ export const appRouter = router({
   // ── Block Access Management (Admin) ──────────────────────────────────────────
   blockAccess: router({
     list: adminProcedure.query(async () => getActiveBlocksWithAccess()),
+  }),
+  // ── Entrance Access Control (Admin) ──────────────────────────────────────────
+  entranceAccess: router({
+    // List all entrance access records (admin)
+    list: adminProcedure.query(async () => getAllEntranceAccess()),
+    // Toggle approval for a specific entrance (admin)
+    toggle: adminProcedure
+      .input(z.object({
+        district: z.string().min(1),
+        blok: z.string().min(1),
+        vhod: z.string().min(1),
+        isApproved: z.boolean(),
+      }))
+      .mutation(async ({ input }) => {
+        await upsertEntranceAccess(input.district, input.blok, input.vhod, input.isApproved);
+        return { success: true };
+      }),
+    // Delete a specific entrance record (admin)
+    delete: adminProcedure
+      .input(z.object({
+        district: z.string().min(1),
+        blok: z.string().min(1),
+        vhod: z.string().min(1),
+      }))
+      .mutation(async ({ input }) => {
+        await deleteEntranceAccess(input.district, input.blok, input.vhod);
+        return { success: true };
+      }),
+    // Check if a specific entrance is approved (public — used during request creation, READ ONLY)
+    check: publicProcedure
+      .input(z.object({
+        district: z.string().min(1),
+        blok: z.string().min(1),
+        vhod: z.string().min(1),
+      }))
+      .query(async ({ input }) => {
+        const approved = await checkEntranceApproved(input.district, input.blok, input.vhod);
+        return { approved };
+      }),
+    // Register an unknown entrance (called only on final form submit)
+    register: publicProcedure
+      .input(z.object({
+        district: z.string().min(1),
+        blok: z.string().min(1),
+        vhod: z.string().min(1),
+      }))
+      .mutation(async ({ input }) => {
+        const existing = await getEntranceAccess(input.district, input.blok, input.vhod);
+        const isNewEntrance = !existing;
+        // Only auto-register if not already in the system
+        if (!existing?.isApproved) {
+          await upsertEntranceAccess(input.district, input.blok, input.vhod, false);
+        }
+        // Notify admin only when a brand-new entrance is registered
+        if (isNewEntrance) {
+          const label = `${input.district}, Бл. ${input.blok}, Вх. ${input.vhod}`;
+          // Manus platform notification (always works)
+          await notifyOwner({
+            title: `🏢 Нов вход изчаква одобрение`,
+            content: `Нов вход изчаква одобрение: ${label}`,
+          }).catch(() => {});
+          // FCM push to all admin users
+          const adminUsers = await getUsersByRole("admin");
+          for (const adminUser of adminUsers) {
+            if (adminUser.fcmToken) {
+              await sendPushNotification(adminUser.fcmToken, {
+                title: "🏢 Нов вход изчаква одобрение",
+                body: `Нов вход изчаква одобрение: ${label}`,
+                data: { type: "new_entrance", district: input.district, blok: input.blok, vhod: input.vhod },
+              }).catch(() => {});
+            }
+          }
+        }
+        return { approved: existing?.isApproved === true };
+      }),
   }),
 
   // ── Admin Dashboard Stats ─────────────────────────────────────────────────
@@ -1257,7 +1336,7 @@ export const appRouter = router({
         }
         return { success: true };
       }),
-// Worker: complete all requests from an entrance using deviceToken
+    // Worker: complete all requests from an entrance using deviceToken
     completeEntrance: publicProcedure
       .input(z.object({
         deviceToken: z.string(),
@@ -1271,28 +1350,10 @@ export const appRouter = router({
         const allWorkers = await getAllWorkers();
         const worker = allWorkers.find(w => w.id === session.workerId);
         if (!worker) throw new TRPCError({ code: "NOT_FOUND", message: "Работникът не е намерен." });
-        // Вземи заявките ПРЕДИ да ги приключим
-        const allReqs = await getRequestsByDistricts([input.district]);
-        const entranceReqs = allReqs.filter(r =>
-          r.blok === input.blok && r.vhod === input.vhod && r.status === "pending"
-        );
         const count = await completeRequestsByEntrance(
           input.district, input.blok, input.vhod,
           worker.openId, worker.id
         );
-        // FCM към всеки клиент
-        for (const req of entranceReqs) {
-          if (req.userOpenId) {
-            const client = await getUserByOpenId(req.userOpenId);
-            if (client?.fcmToken) {
-              await sendPushNotification(client.fcmToken, {
-                title: "✅ Заявката е изпълнена",
-                body: "Вашата заявка за изхвърляне на отпадъци е успешно изпълнена.",
-                data: { requestId: String(req.id), type: "completed" },
-              });
-            }
-          }
-        }
         return { success: true, count };
       }),
     // Worker: report a problem using deviceToken
@@ -1340,35 +1401,122 @@ export const appRouter = router({
         return { success: true, id };
       }),
   }),
-// ── Activity Descriptions ─────────────────────────────────────────────────
-  activityDescriptions: router({
-    getAll: publicProcedure.query(async () => {
-      const db = await getDb();
-      if (!db) return [];
-      const { activityDescriptions } = await import("../drizzle/schema");
-      return db.select().from(activityDescriptions);
-    }),
-    update: adminProcedure
+
+  // ── Worker Quotes (nonstandard/construction only) ─────────────────────────
+  workerQuotes: router({
+    /** Worker sends a quote for a nonstandard/construction request */
+    send: publicProcedure
       .input(z.object({
-        activityKey: z.string(),
-        description: z.string(),
+        deviceToken: z.string(),
+        requestId: z.number(),
+        price: z.string().regex(/^\d+(\.\d{1,2})?$/, "Невалидна цена"),
+        proposedDate: z.string().optional(),
+        note: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
+        const session = await getWorkerSession(input.deviceToken);
+        if (!session) throw new TRPCError({ code: "UNAUTHORIZED", message: "Невалидна сесия." });
+        const allWorkers = await getAllWorkers();
+        const worker = allWorkers.find(w => w.id === session.workerId);
+        if (!worker) throw new TRPCError({ code: "NOT_FOUND", message: "Работникът не е намерен." });
+        const req = await getRequestById(input.requestId);
+        if (!req) throw new TRPCError({ code: "NOT_FOUND", message: "Заявката не е намерена." });
+        if (req.type !== "nonstandard" && req.type !== "construction") {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Офертите са само за нестандартен/строителен отпадък." });
+        }
+        // Cancel any existing pending quote for this request
+        const existing = await getPendingQuoteForRequest(input.requestId);
+        if (existing) await updateQuoteStatus(existing.id, "rejected");
+        const id = await createWorkerQuote({
+          requestId: input.requestId,
+          workerOpenId: worker.openId,
+          workerName: worker.name,
+          price: input.price,
+          proposedDate: input.proposedDate,
+          note: input.note,
+        });
+        // Notify client
+        const client = await getUserByOpenId(req.userOpenId);
+        if (client?.fcmToken) {
+          await sendPushNotification(client.fcmToken, {
+            title: "💰 Получихте оферта",
+            body: `Получихте оферта за вашата заявка. Влезте в приложението за да я прегледате.`,
+            data: { requestId: String(input.requestId), type: "quote", url: "/" },
+          });
+        }
+        return { success: true, id };
+      }),
+
+    /** Client gets quotes for their request */
+    getForRequest: protectedProcedure
+      .input(z.object({ requestId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const req = await getRequestById(input.requestId);
+        if (!req) throw new TRPCError({ code: "NOT_FOUND" });
+        if (req.userOpenId !== ctx.user.openId) throw new TRPCError({ code: "FORBIDDEN" });
+        return getQuotesByRequest(input.requestId);
+      }),
+
+    /** Client accepts a quote */
+    accept: protectedProcedure
+      .input(z.object({ quoteId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const quote = await getQuoteById(input.quoteId);
+        if (!quote) throw new TRPCError({ code: "NOT_FOUND" });
+        const req = await getRequestById(quote.requestId);
+        if (!req) throw new TRPCError({ code: "NOT_FOUND" });
+        if (req.userOpenId !== ctx.user.openId) throw new TRPCError({ code: "FORBIDDEN" });
+        await updateQuoteStatus(input.quoteId, "accepted");
+        // Mark request as assigned
         const db = await getDb();
-        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Базата данни не е достъпна." });
-        const { activityDescriptions } = await import("../drizzle/schema");
-        const { eq } = await import("drizzle-orm");
-        await db.update(activityDescriptions)
-          .set({ description: input.description })
-          .where(eq(activityDescriptions.activityKey, input.activityKey));
+        if (db) {
+          const { requests: reqTable } = await import("../drizzle/schema");
+          const { eq } = await import("drizzle-orm");
+          await db.update(reqTable).set({ status: "assigned", workerOpenId: quote.workerOpenId }).where(eq(reqTable.id, quote.requestId));
+        }
+        return { success: true };
+      }),
+
+    /** Client rejects a quote — refund credits */
+    reject: protectedProcedure
+      .input(z.object({ quoteId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const quote = await getQuoteById(input.quoteId);
+        if (!quote) throw new TRPCError({ code: "NOT_FOUND" });
+        const req = await getRequestById(quote.requestId);
+        if (!req) throw new TRPCError({ code: "NOT_FOUND" });
+        if (req.userOpenId !== ctx.user.openId) throw new TRPCError({ code: "FORBIDDEN" });
+        await updateQuoteStatus(input.quoteId, "rejected");
+        // Cancel the request and refund credits if any were deducted
+        const db = await getDb();
+        if (db) {
+          const { requests: reqTable } = await import("../drizzle/schema");
+          const { eq } = await import("drizzle-orm");
+          await db.update(reqTable).set({ status: "cancelled" }).where(eq(reqTable.id, quote.requestId));
+          if (req.creditsUsed && parseFloat(req.creditsUsed) > 0) {
+            const user = await getUserByOpenId(ctx.user.openId);
+            if (user) {
+              const refund = parseFloat(req.creditsUsed);
+              const isRecycling = req.creditType === "recycling";
+              const currentStandard = parseFloat(user.creditsStandard ?? "0");
+              const currentRecycling = parseFloat(user.creditsRecycling ?? "0");
+              // Refund to the correct credit type column
+              const updateData = isRecycling
+                ? { creditsRecycling: String(currentRecycling + refund) }
+                : { creditsStandard: String(currentStandard + refund) };
+              const { users: usersTable } = await import("../drizzle/schema");
+              await db.update(usersTable).set(updateData).where(eq(usersTable.id, user.id));
+            }
+          }
+        }
         return { success: true };
       }),
   }),
-// ── FCM Test ──────────────────────────────────────────────────────────────
+
+  // ── Diagnostics (temporary — remove after FCM is verified) ─────────────────
   test: router({
     sendTestNotification: adminProcedure
       .mutation(async () => {
-        const { getFirstUserWithFcmToken } = await import("./db");
         const user = await getFirstUserWithFcmToken();
         if (!user) {
           console.warn("[FCM-TEST] No user with FCM token found in DB");
@@ -1386,100 +1534,134 @@ export const appRouter = router({
         return { success, tokenPreview, result };
       }),
   }),
-  // ── Entrance Access ───────────────────────────────────────────────────────
-   entranceAccess: router({
-    list: adminProcedure.query(async () => {
-      const db = await getDb();
-      if (!db) return [];
-      const { entranceAccess } = await import("../drizzle/schema");
-      return db.select().from(entranceAccess);
-    }),
-    check: publicProcedure
-      .input(z.object({ district: z.string(), blok: z.string(), vhod: z.string() }))
-      .query(async ({ input }) => {
-        const db = await getDb();
-        if (!db) return { approved: false };
-        const { entranceAccess } = await import("../drizzle/schema");
-        const { eq, and } = await import("drizzle-orm");
-        const result = await db.select().from(entranceAccess)
-          .where(and(
-            eq(entranceAccess.district, input.district),
-            eq(entranceAccess.blok, input.blok),
-            eq(entranceAccess.vhod, input.vhod)
-          )).limit(1);
-        if (!result.length) return { approved: false };
-        return { approved: result[0].is_approved === 1 };
-      }),
 
-    register: publicProcedure
-      .input(z.object({ district: z.string(), blok: z.string(), vhod: z.string() }))
+  // ── Activity Descriptions ─────────────────────────────────────────────────
+  activityDescriptions: router({
+    getAll: publicProcedure.query(async () => getAllActivityDescriptions()),
+    upsert: adminProcedure
+      .input(z.object({ activityKey: z.string(), description: z.string() }))
       .mutation(async ({ input }) => {
-        const db = await getDb();
-        if (!db) return { approved: false };
-        const { entranceAccess } = await import("../drizzle/schema");
-        const { eq, and } = await import("drizzle-orm");
-        const existing = await db.select().from(entranceAccess)
-          .where(and(
-            eq(entranceAccess.district, input.district),
-            eq(entranceAccess.blok, input.blok),
-            eq(entranceAccess.vhod, input.vhod)
-          )).limit(1);
-  if (!existing.length) {
-          await db.insert(entranceAccess).values({
-            district: input.district,
-            blok: input.blok,
-            vhod: input.vhod,
-            is_approved: 0,
-          });
-          // FCM до всички admin и worker потребители
-          const admins = await getUsersByRole("admin");
-          const workers = await getUsersByRole("worker");
-          const notify = [...admins, ...workers];
-          for (const u of notify) {
-            if (u.fcmToken) {
-              await sendPushNotification(u.fcmToken, {
-                title: "🏢 Нов вход за одобрение",
-                body: `${input.district}, Бл. ${input.blok}, Вх. ${input.vhod} — изисква одобрение`,
-                data: { type: "new_entrance" },
-              });
-            }
-          }
-          return { approved: false, isNew: true };
+        await upsertActivityDescription(input.activityKey, input.description);
+        return { success: true };
+      }),
+  }),
+
+  // ── Sub-Admins ────────────────────────────────────────────────────────────
+  subAdmins: router({
+    // Create a new sub-admin (admin only)
+    create: adminProcedure
+      .input(z.object({
+        username: z.string().min(3, "Потребителското име трябва да е поне 3 символа"),
+        password: z.string().min(6, "Паролата трябва да е поне 6 символа"),
+        name: z.string().min(2, "Името трябва да е поне 2 символа"),
+        permissions: z.array(z.string()).default([]),
+      }))
+      .mutation(async ({ input }) => {
+        const existing = await getSubAdminByUsername(input.username);
+        if (existing) {
+          throw new TRPCError({ code: "CONFLICT", message: "Вече съществува подадмин с това потребителско име." });
         }
-        return { approved: existing[0].is_approved === 1, isNew: false };
-      }),
-
-    toggle: adminProcedure
-      .input(z.object({ district: z.string(), blok: z.string(), vhod: z.string(), isApproved: z.boolean() }))
-      .mutation(async ({ input }) => {
-        const db = await getDb();
-        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB не е достъпна." });
-        const { entranceAccess } = await import("../drizzle/schema");
-        const { eq, and } = await import("drizzle-orm");
-        await db.update(entranceAccess)
-          .set({ is_approved: input.isApproved ? 1 : 0 })
-          .where(and(
-            eq(entranceAccess.district, input.district),
-            eq(entranceAccess.blok, input.blok),
-            eq(entranceAccess.vhod, input.vhod)
-          ));
+        const passwordHash = await bcrypt.hash(input.password, 10);
+        const now = Math.floor(Date.now() / 1000);
+        await createSubAdmin({
+          username: input.username,
+          passwordHash,
+          name: input.name,
+          permissions: input.permissions,
+          isActive: true,
+          createdAt: now,
+          updatedAt: now,
+        });
         return { success: true };
       }),
 
+    // List all sub-admins (admin only)
+    list: adminProcedure.query(async () => {
+      const list = await getAllSubAdmins();
+      return list.map(sa => ({
+        id: sa.id,
+        username: sa.username,
+        name: sa.name,
+        permissions: sa.permissions,
+        isActive: sa.isActive,
+        createdAt: sa.createdAt,
+      }));
+    }),
+
+    // Update permissions (admin only)
+    updatePermissions: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        permissions: z.array(z.string()),
+      }))
+      .mutation(async ({ input }) => {
+        await updateSubAdminPermissions(input.id, input.permissions);
+        return { success: true };
+      }),
+
+    // Toggle active status (admin only)
+    toggleActive: adminProcedure
+      .input(z.object({ id: z.number(), isActive: z.boolean() }))
+      .mutation(async ({ input }) => {
+        await toggleSubAdminActive(input.id, input.isActive);
+        return { success: true };
+      }),
+
+    // Delete sub-admin (admin only)
     delete: adminProcedure
-      .input(z.object({ district: z.string(), blok: z.string(), vhod: z.string() }))
+      .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
-        const db = await getDb();
-        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "DB не е достъпна." });
-        const { entranceAccess } = await import("../drizzle/schema");
-        const { eq, and } = await import("drizzle-orm");
-        await db.delete(entranceAccess)
-          .where(and(
-            eq(entranceAccess.district, input.district),
-            eq(entranceAccess.blok, input.blok),
-            eq(entranceAccess.vhod, input.vhod)
-          ));
+        await deleteSubAdmin(input.id);
         return { success: true };
+      }),
+
+    // Sub-admin login (public)
+    login: publicProcedure
+      .input(z.object({
+        username: z.string().min(1, "Въведете потребителско име"),
+        password: z.string().min(1, "Въведете парола"),
+      }))
+      .mutation(async ({ input }) => {
+        const sa = await getSubAdminByUsername(input.username);
+        if (!sa || !sa.isActive) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Грешно потребителско име или парола." });
+        }
+        const valid = await bcrypt.compare(input.password, sa.passwordHash);
+        if (!valid) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Грешно потребителско име или парола." });
+        }
+        // Generate a simple session token
+        const token = nanoid(48);
+        // Store token in DB for verification (update updatedAt as a lightweight session marker)
+        // We store the token hash in the DB so we can verify it later
+        const tokenHash = await bcrypt.hash(token, 8);
+        await updateSubAdminPermissions(sa.id, sa.permissions); // just to update updatedAt
+        // Return token + metadata; client stores in localStorage as "subadmin_session"
+        return {
+          success: true,
+          token,
+          tokenHash,
+          id: sa.id,
+          name: sa.name,
+          username: sa.username,
+          permissions: sa.permissions,
+        };
+      }),
+
+    // Verify sub-admin session by id + username (public)
+    verifySession: publicProcedure
+      .input(z.object({ id: z.number(), username: z.string() }))
+      .query(async ({ input }) => {
+        const sa = await getSubAdminById(input.id);
+        if (!sa || !sa.isActive || sa.username !== input.username) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Невалидна сесия." });
+        }
+        return {
+          id: sa.id,
+          name: sa.name,
+          username: sa.username,
+          permissions: sa.permissions,
+        };
       }),
   }),
 });

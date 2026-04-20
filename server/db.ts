@@ -12,6 +12,10 @@ import {
   transactions, InsertTransaction,
   workerProblems, InsertWorkerProblem,
   workerDistricts,
+  workerQuotes, InsertWorkerQuote, WorkerQuote,
+  activityDescriptions,
+  entranceAccess, EntranceAccess,
+  subAdmins, SubAdmin, InsertSubAdmin,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -214,6 +218,12 @@ export async function updateAdminConfig(username: string, passwordHash: string) 
   await db.update(adminConfig).set({ username, passwordHash, defaultBlocked: true });
 }
 
+export async function updateAdminTokenHash(tokenHash: string | null) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(adminConfig).set({ activeTokenHash: tokenHash });
+}
+
 // ─── Settings ─────────────────────────────────────────────────────────────────
 
 export async function getSetting(key: string): Promise<string | null> {
@@ -235,19 +245,7 @@ export async function upsertSetting(key: string, value: string): Promise<void> {
   if (!db) return;
   await db.insert(settings).values({ key, value }).onDuplicateKeyUpdate({ set: { value } });
 }
-// ─── FCM Diagnostics ──────────────────────────────────────────────────────────
-export async function getFirstUserWithFcmToken(): Promise<{ id: number; name: string | null; fcmToken: string } | null> {
-  const db = await getDb();
-  if (!db) return null;
-  const rows = await db
-    .select({ id: users.id, name: users.name, fcmToken: users.fcmToken })
-    .from(users)
-    .where(eq(users.role, "user"))
-    .limit(50);
-  const found = rows.find((r) => r.fcmToken && r.fcmToken.length > 10);
-  if (!found || !found.fcmToken) return null;
-  return { id: found.id, name: found.name ?? null, fcmToken: found.fcmToken };
-}
+
 // ─── Districts ────────────────────────────────────────────────────────────────
 
 export async function getAllDistricts() {
@@ -341,16 +339,17 @@ export async function completeRequestsByEntrance(
 ): Promise<number> {
   const db = await getDb();
   if (!db) return 0;
-  // Get all pending requests for this entrance
-  const pending = await db.select().from(requests).where(
+  const { or } = await import("drizzle-orm");
+  // Get all pending + assigned requests for this entrance
+  const active = await db.select().from(requests).where(
     and(
       eq(requests.district, district),
       eq(requests.blok, blok),
       eq(requests.vhod, vhod),
-      eq(requests.status, "pending")
+      or(eq(requests.status, "pending"), eq(requests.status, "assigned"))
     )
   );
-  if (pending.length === 0) return 0;
+  if (active.length === 0) return 0;
   await db.update(requests).set({
     status: "completed",
     workerOpenId,
@@ -361,10 +360,10 @@ export async function completeRequestsByEntrance(
       eq(requests.district, district),
       eq(requests.blok, blok),
       eq(requests.vhod, vhod),
-      eq(requests.status, "pending")
+      or(eq(requests.status, "pending"), eq(requests.status, "assigned"))
     )
   );
-  return pending.length;
+  return active.length;
 }
 
 export async function cancelRequest(id: number, userOpenId: string): Promise<void> {
@@ -532,9 +531,8 @@ export async function activateWorker(id: number): Promise<void> {
 export async function getActiveBlocksWithAccess() {
   const db = await getDb();
   if (!db) return [];
-  // Get unique district+blok+vhod combos from pending requests
+  // Get unique district+blok+vhod combos from ALL submitted requests (not just pending)
   const pendingReqs = await db.select().from(requests)
-    .where(eq(requests.status, "pending"))
     .orderBy(asc(requests.district), asc(requests.blok), asc(requests.vhod));
 
   // Group unique combinations
@@ -583,14 +581,208 @@ export async function getRequestsByDistricts(districtNames: string[]): Promise<t
   const db = await getDb();
   if (!db) return [];
   if (districtNames.length === 0) return [];
-  const allPending = await db.select().from(requests)
-    .where(eq(requests.status, "pending"))
+  const { or } = await import("drizzle-orm");
+  const activeReqs = await db.select().from(requests)
+    .where(or(eq(requests.status, "pending"), eq(requests.status, "assigned")))
     .orderBy(requests.district, requests.blok, requests.vhod, requests.etaj, requests.apartament);
-  return allPending.filter(r => districtNames.includes(r.district));
+  return activeReqs.filter(r => districtNames.includes(r.district));
 }
-// ─── Worker FCM ───────────────────────────────────────────────────────────────
+
+// ─── Worker Quotes ────────────────────────────────────────────────────────────
+
+export async function createWorkerQuote(data: InsertWorkerQuote): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(workerQuotes).values(data);
+  return (result as any)[0]?.insertId ?? 0;
+}
+
+export async function getQuotesByRequest(requestId: number): Promise<WorkerQuote[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(workerQuotes).where(eq(workerQuotes.requestId, requestId));
+}
+
+export async function getQuoteById(id: number): Promise<WorkerQuote | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(workerQuotes).where(eq(workerQuotes.id, id)).limit(1);
+  return result[0];
+}
+
+export async function updateQuoteStatus(id: number, status: "pending" | "accepted" | "rejected"): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(workerQuotes).set({ status }).where(eq(workerQuotes.id, id));
+}
+
+export async function getPendingQuoteForRequest(requestId: number): Promise<WorkerQuote | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(workerQuotes)
+    .where(and(eq(workerQuotes.requestId, requestId), eq(workerQuotes.status, "pending")))
+    .limit(1);
+  return result[0];
+}
+
+export async function getAcceptedQuoteForRequest(requestId: number): Promise<WorkerQuote | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(workerQuotes)
+    .where(and(eq(workerQuotes.requestId, requestId), eq(workerQuotes.status, "accepted")))
+    .limit(1);
+  return result[0];
+}
+
+export async function updateWorkerPhoto(workerOpenId: string, photoUrl: string | null): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(workers).set({ photoUrl }).where(eq(workers.openId, workerOpenId));
+}
+
+// ─── Activity Descriptions ────────────────────────────────────────────────────
+
+export async function getAllActivityDescriptions(): Promise<Record<string, string>> {
+  const db = await getDb();
+  if (!db) return {};
+  const rows = await db.select().from(activityDescriptions);
+  return Object.fromEntries(rows.map(r => [r.activityKey, r.description ?? ""]));
+}
+
+export async function upsertActivityDescription(activityKey: string, description: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.insert(activityDescriptions).values({ activityKey, description })
+    .onDuplicateKeyUpdate({ set: { description } });
+}
+
+// ─── Entrance Access ──────────────────────────────────────────────────────────
+
+export async function getAllEntranceAccess(): Promise<EntranceAccess[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(entranceAccess)
+    .orderBy(asc(entranceAccess.district), asc(entranceAccess.blok), asc(entranceAccess.vhod));
+}
+
+export async function getEntranceAccess(district: string, blok: string, vhod: string): Promise<EntranceAccess | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(entranceAccess)
+    .where(and(
+      eq(entranceAccess.district, district),
+      eq(entranceAccess.blok, blok),
+      eq(entranceAccess.vhod, vhod)
+    ))
+    .limit(1);
+  return result[0];
+}
+
+export async function upsertEntranceAccess(district: string, blok: string, vhod: string, isApproved: boolean): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  // Check if record already exists
+  const existing = await getEntranceAccess(district, blok, vhod);
+  if (existing) {
+    // Update the existing record's isApproved value
+    await db.update(entranceAccess)
+      .set({ isApproved })
+      .where(and(
+        eq(entranceAccess.district, district),
+        eq(entranceAccess.blok, blok),
+        eq(entranceAccess.vhod, vhod)
+      ));
+  } else {
+    // Insert new record (unique index prevents duplicates)
+    await db.insert(entranceAccess)
+      .values({ district, blok, vhod, isApproved })
+      .onDuplicateKeyUpdate({ set: { isApproved } });
+  }
+}
+
+export async function checkEntranceApproved(district: string, blok: string, vhod: string): Promise<boolean> {
+  const record = await getEntranceAccess(district, blok, vhod);
+  // If no record exists, entrance is NOT approved by default
+  return record?.isApproved === true;
+}
+
+export async function deleteEntranceAccess(district: string, blok: string, vhod: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(entranceAccess)
+    .where(and(
+      eq(entranceAccess.district, district),
+      eq(entranceAccess.blok, blok),
+      eq(entranceAccess.vhod, vhod)
+    ));
+}
+
+/** Returns the first user (role='user') that has a non-null FCM token — used for FCM diagnostics */
+export async function getFirstUserWithFcmToken(): Promise<{ id: number; name: string | null; fcmToken: string } | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db
+    .select({ id: users.id, name: users.name, fcmToken: users.fcmToken })
+    .from(users)
+    .where(eq(users.role, "user"))
+    .limit(50);
+  // Filter in JS to find first with non-null/non-empty token
+  const found = rows.find((r) => r.fcmToken && r.fcmToken.length > 10);
+  if (!found || !found.fcmToken) return null;
+  return { id: found.id, name: found.name ?? null, fcmToken: found.fcmToken };
+}
+
+/** Updates the FCM token for a worker by workerId */
 export async function updateWorkerFcmToken(workerId: number, fcmToken: string): Promise<void> {
   const db = await getDb();
   if (!db) return;
   await db.update(workers).set({ fcmToken }).where(eq(workers.id, workerId));
+}
+
+// ─── Sub-Admins ───────────────────────────────────────────────────────────────
+
+export async function createSubAdmin(data: InsertSubAdmin): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.insert(subAdmins).values(data);
+}
+
+export async function getAllSubAdmins(): Promise<SubAdmin[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(subAdmins).orderBy(asc(subAdmins.createdAt));
+}
+
+export async function getSubAdminByUsername(username: string): Promise<SubAdmin | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(subAdmins).where(eq(subAdmins.username, username)).limit(1);
+  return result[0];
+}
+
+export async function getSubAdminById(id: number): Promise<SubAdmin | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(subAdmins).where(eq(subAdmins.id, id)).limit(1);
+  return result[0];
+}
+
+export async function updateSubAdminPermissions(id: number, permissions: string[]): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  const now = Math.floor(Date.now() / 1000);
+  await db.update(subAdmins).set({ permissions, updatedAt: now }).where(eq(subAdmins.id, id));
+}
+
+export async function toggleSubAdminActive(id: number, isActive: boolean): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  const now = Math.floor(Date.now() / 1000);
+  await db.update(subAdmins).set({ isActive, updatedAt: now }).where(eq(subAdmins.id, id));
+}
+
+export async function deleteSubAdmin(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(subAdmins).where(eq(subAdmins.id, id));
 }

@@ -66,6 +66,9 @@ export const workers = mysqlTable("workers", {
   /** JSON array of device token strings (max 4) */
   deviceTokens: json("deviceTokens").$type<string[]>().default([]),
   createdByAdmin: boolean("createdByAdmin").default(true).notNull(),
+  /** Profile photo URL (stored in S3) */
+  photoUrl: text("photoUrl"),
+  /** FCM push notification token */
   fcmToken: varchar("fcmToken", { length: 512 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -82,6 +85,8 @@ export const adminConfig = mysqlTable("admin_config", {
   passwordHash: varchar("passwordHash", { length: 256 }).notNull(),
   /** Once credentials are changed, default admin/admin is blocked */
   defaultBlocked: boolean("defaultBlocked").default(false).notNull(),
+  /** Bcrypt hash of the currently active session token (set on login, cleared on logout) */
+  activeTokenHash: varchar("activeTokenHash", { length: 256 }),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
@@ -270,23 +275,65 @@ export const workerDistricts = mysqlTable("worker_districts", {
 });
 
 export type WorkerDistrict = typeof workerDistricts.$inferSelect;
-// ── Activity Descriptions ─────────────────────────────────────────────────
-export const activityDescriptions = mysqlTable("activity_descriptions", {
-  id: int("id").autoincrement().primaryKey(),
-  activityKey: varchar("activityKey", { length: 64 }).notNull().unique(),
-  description: text("description"),
-  updatedAt: timestamp("updatedAt").notNull().defaultNow().onUpdateNow(),
-});
 export type InsertWorkerDistrict = typeof workerDistricts.$inferInsert;
 
-// ── Entrance Access ───────────────────────────────────────────────────────────
+// ─── Worker Quotes (for nonstandard/construction requests) ───────────────────
+export const workerQuotes = mysqlTable("worker_quotes", {
+  id: int("id").autoincrement().primaryKey(),
+  requestId: int("requestId").notNull(),
+  workerOpenId: varchar("workerOpenId", { length: 64 }).notNull(),
+  workerName: varchar("workerName", { length: 128 }),
+  /** Quoted price in BGN */
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  /** Proposed date/time as ISO string */
+  proposedDate: varchar("proposedDate", { length: 64 }),
+  note: text("note"),
+  status: mysqlEnum("status", ["pending", "accepted", "rejected"]).default("pending").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type WorkerQuote = typeof workerQuotes.$inferSelect;
+export type InsertWorkerQuote = typeof workerQuotes.$inferInsert;
+
+// ─── Entrance Access Control (admin-managed per district/blok/vhod) ─────────
 export const entranceAccess = mysqlTable("entrance_access", {
   id: int("id").autoincrement().primaryKey(),
   district: varchar("district", { length: 128 }).notNull(),
   blok: varchar("blok", { length: 64 }).notNull(),
   vhod: varchar("vhod", { length: 32 }).notNull(),
-  is_approved: int("is_approved").default(0).notNull(),
+  isApproved: boolean("is_approved").notNull().default(false),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
-export type EntranceAccess = typeof entranceAccess.$inferSelect;
 
+export type EntranceAccess = typeof entranceAccess.$inferSelect;
+export type InsertEntranceAccess = typeof entranceAccess.$inferInsert;
+
+// ─── Activity Descriptions (admin-managed per activity key) ──────────────────
+export const activityDescriptions = mysqlTable("activity_descriptions", {
+  id: int("id").autoincrement().primaryKey(),
+  activityKey: varchar("activityKey", { length: 64 }).notNull().unique(),
+  description: text("description"),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ActivityDescription = typeof activityDescriptions.$inferSelect;
+export type InsertActivityDescription = typeof activityDescriptions.$inferInsert;
+
+// ─── Worker Profile Photos ────────────────────────────────────────────────────
+// Stored as photoUrl on the workers table (added via migration)
+
+// ─── Sub-Admins ───────────────────────────────────────────────────────────────
+export const subAdmins = mysqlTable("sub_admins", {
+  id: int("id").autoincrement().primaryKey(),
+  username: varchar("username", { length: 100 }).notNull().unique(),
+  passwordHash: varchar("passwordHash", { length: 255 }).notNull(),
+  name: varchar("name", { length: 150 }).notNull(),
+  permissions: json("permissions").$type<string[]>().notNull(),
+  isActive: boolean("isActive").notNull().default(true),
+  createdAt: int("createdAt", { unsigned: true }).notNull(),
+  updatedAt: int("updatedAt", { unsigned: true }).notNull(),
+});
+
+export type SubAdmin = typeof subAdmins.$inferSelect;
+export type InsertSubAdmin = typeof subAdmins.$inferInsert;
