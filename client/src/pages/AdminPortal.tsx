@@ -1562,6 +1562,7 @@ function SubAdminsTab() {
       )}
     </div>
   );
+}
 // ─── AdminQuotePanel ──────────────────────────────────────────────────────────
 function AdminQuotePanel({ requestId }: { requestId: number }) {
   const utils = trpc.useUtils();
