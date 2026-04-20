@@ -352,19 +352,6 @@ function RequestCard({
     </Button>
   </div>
 </div>
-          <CheckCircle className="w-3 h-3 mr-1" />
-          {isBg ? "Приключи" : "Complete"}
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          className="rounded-xl text-xs border-orange-300 text-orange-600 hover:bg-orange-50"
-          onClick={() => onProblem(req)}
-        >
-          <AlertTriangle className="w-3 h-3 mr-1" />
-          {isBg ? "Проблем" : "Problem"}
-        </Button>
-      </div>
     </div>
   );
 }
