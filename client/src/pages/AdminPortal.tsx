@@ -692,7 +692,7 @@ function RequestsTab() {
                             {/* Image for nonstandard/construction */}
                             {(r.type === "nonstandard" || r.type === "construction") && (r as any).imageUrl && (
                               <a href={(r as any).imageUrl} target="_blank" rel="noopener noreferrer" className="mt-1.5 block">
-                                <img src={(r as any).imageUrl} alt="Снимка" className="rounded-lg max-h-32 w-full object-cover border border-gray-200 hover:opacity-90 transition-opacity" />
+                                <img src={(r as any).imageUrl} alt="Снимка" className="rounded-lg max-h-24 w-auto object-contain border border-gray-200 hover:opacity-90 transition-opacity" />
                               </a>
                             )}
                             {/* Admin quote panel */}
