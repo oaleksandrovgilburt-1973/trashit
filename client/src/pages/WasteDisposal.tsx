@@ -254,9 +254,11 @@ export default function WasteDisposal() {
         <div className="flex items-center gap-3 mb-6">
           {step === "select" ? (
             <button
-              onClick={() => navigate("/")}
-              className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-              title={isBg ? "Назад към начало" : "Back to home"}
+             onClick={() => {
+  if (showWarning) { setShowWarning(false); return; }
+  if (typeFromUrl) { navigate("/"); return; }
+  if (step === "form") { setStep("select"); setSelectedType(null); }
+}}
             >
               <ChevronLeft className="w-5 h-5 text-gray-600" />
             </button>
@@ -264,8 +266,7 @@ export default function WasteDisposal() {
             <button
               onClick={() => {
                 if (showWarning) { setShowWarning(false); return; }
-                if (step === "form") setStep("select");
-                else setStep("select");
+                if (step === "form") { setStep("select"); setSelectedType(null); }
               }}
               className="p-2 rounded-full hover:bg-gray-100 transition-colors"
             >
