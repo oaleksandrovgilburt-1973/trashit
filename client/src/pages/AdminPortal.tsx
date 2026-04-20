@@ -617,7 +617,7 @@ function RequestsTab() {
   const [view, setView] = useState<"active" | "completed">("active");
   const { data: allRequests } = trpc.requests.listAll.useQuery();
 
-  const active = allRequests?.filter(r => r.status === "pending") ?? [];
+  const active = allRequests?.filter(r => r.status === "pending" || r.status === "assigned") ?? [];
   const completed = allRequests?.filter(r => r.status === "completed") ?? [];
 
   const grouped: Record<string, Record<string, Record<string, typeof active>>> = {};

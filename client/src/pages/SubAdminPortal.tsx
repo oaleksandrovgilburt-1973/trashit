@@ -550,7 +550,7 @@ function CreditsTab() {
 // ─── RequestsTab ──────────────────────────────────────────────────────────────
 function RequestsTab() {
   const { data: allRequests = [] } = trpc.requests.listAll.useQuery();
-  const active = (allRequests as any[]).filter((r: any) => r.status === "pending");
+  const active = (allRequests as any[]).filter((r: any) => r.status === "pending" || r.status === "assigned");
   const completed = (allRequests as any[]).filter((r: any) => r.status === "completed");
   const [view, setView] = useState<"active" | "completed">("active");
   const typeLabel: Record<string, string> = {
