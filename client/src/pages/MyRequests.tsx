@@ -200,6 +200,9 @@ export default function MyRequests() {
                       {req.problemDescription && (
                         <p className="text-xs text-red-600 mt-0.5">{req.problemDescription}</p>
                       )}
+                    {(req as any).adminNotes && (
+                        <p className="text-xs text-red-700 mt-1 font-medium">📋 {(req as any).adminNotes}</p>
+                      )}
                     </div>
                   </div>
                 )}
