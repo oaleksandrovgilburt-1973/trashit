@@ -60,8 +60,8 @@ export default function Home() {
   const creditsRecycling = profile?.creditsRecycling ?? "0.00";
 
   const services = [
-    { href: "/waste-disposal?type=standard", icon: <Trash2 className="w-6 h-6 text-primary" />, label: "Стандартен битов отпадък" },
-    { href: "/waste-disposal?type=recycling", icon: <Recycle className="w-6 h-6 text-primary" />, label: "Разделно изхвърляне" },
+    { href: "/waste-disposal?type=standard", icon: <Trash2 className="w-6 h-6 text-primary" />, label: "Стандартен смесен битов отпадък" },
+    { href: "/waste-disposal?type=recycling", icon: <Recycle className="w-6 h-6 text-primary" />, label: "Разделно събиране на отпадъци" },
     { href: "/waste-disposal?type=nonstandard", icon: <Package className="w-6 h-6 text-primary" />, label: "Нестандартен отпадък" },
     { href: "/waste-disposal?type=construction", icon: <HardHat className="w-6 h-6 text-primary" />, label: "Строителен отпадък" },
     { href: "/cleaning?type=entrance", icon: <Building2 className="w-6 h-6 text-primary" />, label: "Почистване на вход" },
