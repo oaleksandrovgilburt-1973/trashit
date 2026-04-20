@@ -204,7 +204,7 @@ function WorkerQuotePanel({ requestId, deviceToken, isBg }: { requestId: number;
       <p className="text-xs font-semibold text-amber-800">{isBg ? "Изпрати оферта" : "Send quote"}</p>
       <input
         type="number"
-        placeholder={isBg ? "Цена в лв." : "Price in BGN"}
+        placeholder={isBg ? "Цена в евро" : "Price in EUR"}
         value={price}
         onChange={e => setPrice(e.target.value)}
         className="w-full border border-amber-200 rounded-lg px-2 py-1.5 text-sm"
