@@ -1088,6 +1088,8 @@ function SubAdminChangePassword({ sessionId, onClose }: { sessionId: number; onC
       </div>
     </div>
   );
+} 
+
 // ─── SubAdminQuotePanel ───────────────────────────────────────────────────────
 function SubAdminQuotePanel({ requestId }: { requestId: number }) {
   const utils = trpc.useUtils();
