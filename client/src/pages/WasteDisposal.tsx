@@ -193,7 +193,7 @@ export default function WasteDisposal() {
     reader.onloadend = () => {
       const result = reader.result as string;
       setImagePreview(result);
-      setImageUrl("data:image/placeholder");
+      setImageUrl(result);
     };
     reader.readAsDataURL(file);
   };
