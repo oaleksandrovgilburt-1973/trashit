@@ -181,7 +181,7 @@ export default function MyRequests() {
         )}
 
         {/* Requests list */}
-        <div className="space-y-3">
+        <div className="space-y-2">
           {requests?.map((req) => {
             const typeInfo = TYPE_LABELS[req.type] ?? TYPE_LABELS.standard;
             const statusInfo = STATUS_LABELS[req.status] ?? STATUS_LABELS.pending;
@@ -191,7 +191,7 @@ export default function MyRequests() {
             const isQuotable = (req.type === "nonstandard" || req.type === "construction") && req.status === "pending";
 
             return (
-              <div key={req.id} className={`rounded-2xl border p-4 shadow-sm ${req.hasProblem ? 'bg-red-50 border-red-300' : 'bg-white border-gray-200'}`}>
+              <div key={req.id} className={`rounded-xl border p-3 shadow-sm ${req.hasProblem ? 'bg-red-50 border-red-300' : 'bg-white border-gray-200'}`}>
                 {req.hasProblem && (
                   <div className="flex items-start gap-2 bg-red-100 border border-red-200 rounded-xl px-3 py-2 mb-3">
                     <span className="text-red-500 text-sm mt-0.5">⚠️</span>
