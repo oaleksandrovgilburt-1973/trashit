@@ -462,7 +462,7 @@ export default function WasteDisposal() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => estimateVolumeMutation.mutate({ imageUrl: "https://example.com/placeholder.jpg" })}
+                    onClick={() => estimateVolumeMutation.mutate({ imageUrl: imageUrl })}
                     disabled={estimateVolumeMutation.isPending}
                     className="w-full"
                   >
