@@ -749,6 +749,7 @@ export const appRouter = router({
       console.warn("[estimateVolume] ANTHROPIC_API_KEY not set, returning fallback");
       return fallback;
     }
+    console.log("[estimateVolume] imageUrl type:", input.imageUrl.startsWith("data:") ? "base64" : "url", "length:", input.imageUrl.length);
     try {
       const anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
