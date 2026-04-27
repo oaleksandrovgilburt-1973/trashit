@@ -724,24 +724,86 @@ export const appRouter = router({
     // Admin: list all requests
     listAll: adminProcedure.query(async () => getAllRequests()),
 
-    // Placeholder: estimate volume from image using LLM vision
     estimateVolume: protectedProcedure
-      .input(z.object({ imageUrl: z.string().url("Невалиден URL на снимка") }))
-      .mutation(async ({ input }) => {
-        const estimates = [
-          { volume: "~50 литра", description: "Малък обем — подходящ за 1 стандартна извозка" },
-          { volume: "~150 литра", description: "Среден обем — необходими 2-3 извозки" },
-          { volume: "~300 литра", description: "Голям обем — необходима специална возилка" },
-          { volume: "~500+ литра", description: "Много голям обем — необходима камионетна возилка" },
-        ];
-        const estimate = estimates[Math.floor(Math.random() * estimates.length)];
-        return {
-          volume: estimate.volume,
-          description: estimate.description,
-          note: "Това е приблизителна оценка. Окончателната цена ще бъде уточнена от работника.",
-        };
-      }),
+  .input(z.object({ imageUrl: z.string().min(1, "Снимката е задължителна") }))
+  .mutation(async ({ input }) => {
+    const fallback = {
+      volume: "~150 литра",
+      description: "Не можахме да анализираме снимката автоматично.",
+      note: "Окончателната цена ще бъде уточнена от работника.",
+      object: "Неизвестен обект",
+      serviceType: "nonstandard" as const,
+    };
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      console.warn("[estimateVolume] ANTHROPIC_API_KEY not set, returning fallback");
+      return fallback;
+    }
+    try {
+      const anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-5",
+          max_tokens: 512,
+          messages: [
+            {
+              role: "user",
+              content: [
+                {
+                  type: "image",
+                  source: input.imageUrl.startsWith("data:")
+  ? { type: "base64", media_type: "image/jpeg", data: input.imageUrl.split(",")[1] }
+  : { type: "url", url: input.imageUrl },
+                },
+                {
+                  type: "text",
+                  text: `Анализирай тази снимка и идентифицирай главния обект за изхвърляне. Върни САМО валиден JSON обект (без markdown, без обяснения ) с точно тези полета:\n{\n  "object": "какво е предметът",\n  "volume": "обем в литри като стринг, например '~150 литра'",\n  "description": "кратко описание на Bulgarian (1-2 изречения)",\n  "serviceType": "standard или nonstandard или construction"\n}`,
+                },
+              ],
+            },
+          ],
+        }),
+      });
+      if (!anthropicRes.ok) {
+        const errText = await anthropicRes.text();
+        console.error("[estimateVolume] Anthropic API error:", anthropicRes.status, errText);
+        return fallback;
+      }
+      const anthropicData = await anthropicRes.json() as {
+        content?: Array<{ type: string; text?: string }>;
+      };
+      const raw = anthropicData?.content?.find(c => c.type === "text")?.text;
+      if (!raw) return fallback;
+      // Strip markdown code fences if present
+      const cleaned = (typeof raw === "string" ? raw : JSON.stringify(raw))
+        .replace(/```json\s*/gi, "")
+        .replace(/```\s*/gi, "")
+        .trim();
+      const parsed = JSON.parse(cleaned) as {
+        object?: string;
+        volume?: string;
+        description?: string;
+        serviceType?: string;
+      };
+      return {
+        volume: parsed.volume ?? fallback.volume,
+        description: parsed.description ?? fallback.description,
+        note: "Това е AI оценка. Окончателната цена ще бъде уточнена от работника.",
+        object: parsed.object ?? fallback.object,
+        serviceType: (parsed.serviceType as "standard" | "nonstandard" | "construction") ?? fallback.serviceType,
+      };
+    } catch (err) {
+      console.error("[estimateVolume] Claude Vision error:", err);
+      return fallback;
+    }
   }),
+
+}),
 
   // ── Cleaning Requests ──────────────────────────────────────────────────────
   cleaning: router({
