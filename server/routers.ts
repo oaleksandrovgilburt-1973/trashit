@@ -482,6 +482,16 @@ export const appRouter = router({
     updateCredits: adminProcedure
       .input(z.object({ userId: z.number(), credits: z.string() }))
       .mutation(async ({ input }) => { await updateUserCredits(input.userId, input.credits); return { success: true }; }),
+       resetClientPassword: adminProcedure
+  .input(z.object({ userOpenId: z.string(), newPassword: z.string().min(6, "Паролата трябва да е поне 6 символа") }))
+  .mutation(async ({ input }) => {
+    const user = await getUserByOpenId(input.userOpenId);
+    if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "Потребителят не е намерен." });
+    const passwordHash = await bcrypt.hash(input.newPassword, 10);
+    await upsertUser({ openId: input.userOpenId, passwordHash });
+    return { success: true };
+  }),
+
 
     listAllWorkers: adminProcedure.query(async () => getAllWorkers()),
   }),

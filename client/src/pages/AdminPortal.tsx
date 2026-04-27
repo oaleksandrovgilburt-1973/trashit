@@ -11,7 +11,8 @@ import {
   PowerOff, CheckCircle, Phone, Mail, ChevronRight,
   RefreshCw, Eye, Send, ShieldAlert, Pencil, Save, LayoutDashboard,
   FileText, UserCheck, Search, ChevronDown, ChevronUp, Coins, History,
-  Shield, Lock, DollarSign, CalendarDays, CheckCheck, X
+  Shield, Lock, DollarSign, CalendarDays, CheckCheck, X, KeyRound
+
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import AdminDashboard from "@/components/AdminDashboard";
@@ -1125,6 +1126,15 @@ function ClientsTab() {
   const [search, setSearch] = useState("");
   const [expandedClient, setExpandedClient] = useState<string | null>(null);
   const [creditAmounts, setCreditAmounts] = useState<Record<string, string>>({});
+  const [newPasswords, setNewPasswords] = useState<Record<string, string>>({});
+
+  const resetPassword = trpc.users.resetClientPassword.useMutation({
+  onSuccess: (_, vars) => {
+    toast.success("Паролата е сменена успешно");
+    setNewPasswords(prev => ({ ...prev, [vars.userOpenId]: "" }));
+  },
+  onError: (e) => toast.error(e.message),
+});
   const [creditTypes, setCreditTypes] = useState<Record<string, "standard" | "recycling">>({});
   const [creditOps, setCreditOps] = useState<Record<string, "add" | "deduct">>({});
 
@@ -1351,6 +1361,39 @@ function ClientsTab() {
                       </div>
                     </div>
                   </div>
+                  {/* Password reset */}
+<div>
+  <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+    <KeyRound className="w-3.5 h-3.5 text-green-600" />Смяна на парола
+  </h4>
+  <div className="bg-white rounded-xl border border-gray-200 p-3">
+    <div className="flex gap-2">
+      <Input
+        type="password"
+        placeholder="Нова парола (мин. 6 символа)"
+        value={newPasswords[client.openId] ?? ""}
+        onChange={e => setNewPasswords(prev => ({ ...prev, [client.openId]: e.target.value }))}
+        className="flex-1 rounded-lg text-sm"
+      />
+      <Button
+        size="sm"
+        className="rounded-xl bg-amber-500 hover:bg-amber-600 text-white"
+        disabled={
+          !newPasswords[client.openId] ||
+          (newPasswords[client.openId] ?? "").length < 6 ||
+          resetPassword.isPending
+        }
+        onClick={() => {
+          const pwd = newPasswords[client.openId];
+          if (!pwd || pwd.length < 6) return;
+          resetPassword.mutate({ userOpenId: client.openId, newPassword: pwd });
+        }}
+      >
+        {resetPassword.isPending ? "..." : "Смени парола"}
+      </Button>
+    </div>
+  </div>
+</div>
 
                   {/* Request history */}
                   <div>
