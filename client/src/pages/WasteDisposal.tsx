@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import {
   Trash2, Recycle, Package, HardHat,
   MapPin, Camera, ChevronLeft, AlertTriangle,
-  CheckCircle2, Loader2, Navigation
+  CheckCircle2, Loader2, Navigation, X
 } from "lucide-react";
 import { normalizeEntrance } from "../../../shared/bgAlphabet";
 
@@ -40,8 +40,8 @@ const WASTE_TYPES: WasteTypeCard[] = [
     titleEn: "Standard Household Waste",
     descBg: "1 плик до ~4кг = 1 стандартен кредит",
     descEn: "1 bag up to ~4kg = 1 standard credit",
-    warningBg: "Пликът трябва да е здрав и да е ~3кг.",
-    warningEn: "The bag must be sturdy and up to ~3kg.",
+    warningBg: "Пликът трябва да е здрав и да е до ~4кг.",
+    warningEn: "The bag must be sturdy and up to ~4kg.",
     creditInfo: "1 стандартен кредит",
     color: "from-green-500 to-green-600",
   },
@@ -79,18 +79,32 @@ const WASTE_TYPES: WasteTypeCard[] = [
 
 export default function WasteDisposal() {
   const [, navigate] = useLocation();
-  const search = new URLSearchParams(window.location.search);
-  const typeFromUrl = search.get("type") as WasteType | null;
+  const search = useSearch();
   const { isAuthenticated } = useAuth();
   const { language } = useLanguage();
   const isBg = language === "bg";
 
-  const urlWasteType = WASTE_TYPES.find(w => w.id === typeFromUrl);
-  const hasWarning = !!urlWasteType?.warningBg;
-  const [step, setStep] = useState<"select" | "form" | "success">(typeFromUrl ? "form" : "select");
+  const [step, setStep] = useState<"select" | "form" | "success">("select");
   const [showSaveAddress, setShowSaveAddress] = useState(false);
-  const [selectedType, setSelectedType] = useState<WasteType | null>(typeFromUrl);
-  const [showWarning, setShowWarning] = useState(hasWarning);
+  const [selectedType, setSelectedType] = useState<WasteType | null>(null);
+  const [showWarning, setShowWarning] = useState(false);
+  const [animating, setAnimating] = useState(false);
+
+  // Pre-select type from URL param (e.g. ?type=standard)
+  useEffect(() => {
+    const params = new URLSearchParams(search);
+    const typeParam = params.get("type") as WasteType | null;
+    if (typeParam && WASTE_TYPES.find(w => w.id === typeParam)) {
+      const wt = WASTE_TYPES.find(w => w.id === typeParam)!;
+      setSelectedType(typeParam);
+      if (wt.warningBg) {
+        setShowWarning(true);
+      } else {
+        setStep("form");
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Form state
   const [description, setDescription] = useState("");
@@ -117,11 +131,11 @@ export default function WasteDisposal() {
 
   // Load districts
   const { data: districtsData } = trpc.districts.list.useQuery();
-
-  // Entrance access check
-  const entranceCheck = trpc.entranceAccess.check.useQuery(
-    { district, blok, vhod },
-    { enabled: !!district && !!blok && !!vhod, refetchInterval: 10000 }
+  // Entrance access check (only when district, blok, vhod are filled)
+  const normalizedVhod = vhod ? normalizeEntrance(vhod) : "";
+  const { data: entranceCheck } = trpc.entranceAccess.check.useQuery(
+    { district, blok, vhod: normalizedVhod },
+    { enabled: !!(district && blok && normalizedVhod), refetchInterval: 10000 }
   );
 
   // Auto-fill from profile
@@ -138,15 +152,17 @@ export default function WasteDisposal() {
   }, [profile]);
 
   const updateProfile = trpc.users.updateProfile.useMutation();
-  const registerEntrance = trpc.entranceAccess.register.useMutation();
 
   const createRequest = trpc.requests.create.useMutation({
     onSuccess: () => {
       setStep("success");
+      // Show save-address prompt only for authenticated users
       if (isAuthenticated) setShowSaveAddress(true);
     },
     onError: (err) => toast.error(err.message),
   });
+
+  const registerEntrance = trpc.entranceAccess.register.useMutation();
 
   const estimateVolumeMutation = trpc.requests.estimateVolume.useMutation({
     onSuccess: (data) => {
@@ -162,8 +178,20 @@ export default function WasteDisposal() {
     if (wt?.warningBg) {
       setShowWarning(true);
     } else {
-      setStep("form");
+      setAnimating(true);
+      setTimeout(() => {
+        setStep("form");
+        setAnimating(false);
+      }, 300);
     }
+  };
+
+  const handleBackToSelect = () => {
+    setAnimating(true);
+    setTimeout(() => {
+      setStep("select");
+      setAnimating(false);
+    }, 300);
   };
 
   const handleGetGPS = () => {
@@ -198,7 +226,7 @@ export default function WasteDisposal() {
     reader.readAsDataURL(file);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedType) return;
     if (!isAuthenticated) {
@@ -222,9 +250,17 @@ export default function WasteDisposal() {
       toast.error(isBg ? "Снимката е задължителна за този вид отпадък" : "Photo is required");
       return;
     }
-    const regResult = await registerEntrance.mutateAsync({ district, blok, vhod });
-    if (!regResult.approved) {
-      toast.error(isBg ? "За този вход все още нямаме осигурен достъп. Свържете се с нас на trashit.bg@gmail.com за да го уредим." : "Access for this entrance is not yet approved.");
+    // Register entrance in DB on submit (only writes to DB here, not on every keystroke)
+    if (district && blok && normalizedVhod) {
+      registerEntrance.mutate({ district, blok, vhod: normalizedVhod });
+    }
+    // Check entrance access — block submission if not approved
+    if (district && blok && normalizedVhod && entranceCheck !== undefined && !entranceCheck.approved) {
+      toast.error(isBg
+        ? "За този вход все още нямаме осигурен достъп. Свържете се с нас на trashit.bg@gmail.com за да го осигурим."
+        : "We do not yet have access to this entrance. Contact us at trashit.bg@gmail.com to arrange it.",
+        { duration: 8000 }
+      );
       return;
     }
     createRequest.mutate({
@@ -249,16 +285,14 @@ export default function WasteDisposal() {
 
   return (
     <MainLayout showFooter>
-      <div className="max-w-2xl mx-auto px-4 py-6">
+      <div className="max-w-2xl mx-auto px-4 py-6 overflow-hidden">
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
           {step === "select" ? (
             <button
-             onClick={() => {
-  if (showWarning) { setShowWarning(false); return; }
-  if (typeFromUrl) { navigate("/"); return; }
-  if (step === "form") { setStep("select"); setSelectedType(null); }
-}}
+              onClick={() => navigate("/")}
+              className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+              title={isBg ? "Назад към начало" : "Back to home"}
             >
               <ChevronLeft className="w-5 h-5 text-gray-600" />
             </button>
@@ -266,7 +300,8 @@ export default function WasteDisposal() {
             <button
               onClick={() => {
                 if (showWarning) { setShowWarning(false); return; }
-                if (step === "form") { setStep("select"); setSelectedType(null); }
+                if (step === "form") handleBackToSelect();
+                else setStep("select");
               }}
               className="p-2 rounded-full hover:bg-gray-100 transition-colors"
             >
@@ -287,7 +322,14 @@ export default function WasteDisposal() {
 
         {/* Step: Select waste type */}
         {step === "select" && !showWarning && (
-          <div className="space-y-3">
+          <div
+            className="space-y-3"
+            style={{
+              transform: animating ? "translateX(-100%)" : "translateX(0)",
+              opacity: animating ? 0 : 1,
+              transition: "transform 300ms ease-in-out, opacity 300ms ease-in-out",
+            }}
+          >
             <p className="text-gray-600 mb-4">
               {isBg ? "Изберете вид отпадък:" : "Select waste type:"}
             </p>
@@ -340,6 +382,24 @@ export default function WasteDisposal() {
 
         {/* Step: Form */}
         {step === "form" && !showWarning && (
+          <div
+            style={{
+              transform: animating ? "translateX(100%)" : "translateX(0)",
+              opacity: animating ? 0 : 1,
+              transition: "transform 300ms ease-in-out, opacity 300ms ease-in-out",
+            }}
+          >
+          {/* X close button */}
+          <div className="flex justify-end mb-2">
+            <button
+              type="button"
+              onClick={handleBackToSelect}
+              className="p-1.5 rounded-full hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-700"
+              title={isBg ? "Назад към услугите" : "Back to services"}
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Credit info banner */}
             {(selectedType === "standard" || selectedType === "recycling") && (
@@ -456,12 +516,18 @@ export default function WasteDisposal() {
                     onChange={e => setVhod(normalizeEntrance(e.target.value))}
                     placeholder={isBg ? "В (или 1=А, 2=Б...)" : "B (or 1=A, 2=B...)"}
                     required
-                    className={`rounded-xl mt-1 ${district && blok && vhod && entranceCheck.data !== undefined && !entranceCheck.data.approved ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                    className={`rounded-xl mt-1 ${district && blok && normalizedVhod && entranceCheck !== undefined ? (entranceCheck.approved ? "border-green-400" : "border-red-400") : ""}`}
                   />
-                  {district && blok && vhod && entranceCheck.data !== undefined && !entranceCheck.data.approved && (
-                    <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
-                      <AlertTriangle className="w-3 h-3" />
-                      {isBg ? "За този вход все още нямаме осигурен достъп." : "Access for this entrance is not yet approved."}
+                  {district && blok && normalizedVhod && entranceCheck !== undefined && !entranceCheck.approved && (
+                    <p className="text-xs text-red-600 mt-1 flex items-start gap-1">
+                      <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />
+                      {isBg ? "За този вход все още нямаме осигурен достъп." : "We do not yet have access to this entrance."}
+                    </p>
+                  )}
+                  {district && blok && normalizedVhod && entranceCheck?.approved && (
+                    <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" />
+                      {isBg ? "Достъпът е осигурен" : "Access confirmed"}
                     </p>
                   )}
                 </div>
@@ -515,6 +581,7 @@ export default function WasteDisposal() {
                 : (isBg ? "Подай заявка" : "Submit Request")}
             </Button>
           </form>
+          </div>
         )}
 
         {/* Step: Success */}
@@ -537,9 +604,13 @@ export default function WasteDisposal() {
                   {isBg ? "Запазване на адрес" : "Save address"}
                 </p>
                 <p className="text-sm text-green-700 mb-3">
-                  {isBg
-                    ? "Искате ли да запазите този адрес за следващ път?"
-                    : "Would you like to save this address for next time?"}
+                  {profile?.addressBlok
+                    ? (isBg
+                      ? "Искате ли да замените стария адрес с новия?"
+                      : "Would you like to replace your saved address with the new one?")
+                    : (isBg
+                      ? "Искате ли да запазите този адрес за следващ път?"
+                      : "Would you like to save this address for next time?")}
                 </p>
                 <div className="flex gap-2">
                   <Button
