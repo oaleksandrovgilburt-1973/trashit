@@ -772,7 +772,7 @@ export const appRouter = router({
                 },
                 {
                   type: "text",
-                  text: Анализирай тази снимка. Фокусирай се САМО върху главния обект за изхвърляне в центъра на снимката - игнорирай пода, стените, мебелите и фона. Върни САМО валиден JSON обект (без markdown, без обяснения) с точно тези полета:\n{\n  "object": "какво е предметът (само самия обект, не фона)",\n  "volume": "обем само на обекта в литри като стринг, например '~50 литра'",\n  "description": "кратко описание на Bulgarian (1-2 изречения) само за обекта",\n  "serviceType": "standard или nonstandard или construction"\n},
+                  text: "Analyze this image. Focus ONLY on the main waste object in the center - ignore the floor, walls, furniture and background. Return ONLY a valid JSON object (no markdown, no explanations) with exactly these fields:\n{\n  \"object\": \"what the item is\",\n  \"volume\": \"volume of the object only in liters as string, e.g. '~50 litres'\",\n  \"description\": \"brief description in Bulgarian (1-2 sentences) about the object only\",\n  \"serviceType\": \"standard or nonstandard or construction\"\n}",
                 },
               ],
             },
