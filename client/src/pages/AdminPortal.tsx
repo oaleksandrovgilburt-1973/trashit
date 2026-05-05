@@ -11,13 +11,12 @@ import {
   PowerOff, CheckCircle, Phone, Mail, ChevronRight,
   RefreshCw, Eye, Send, ShieldAlert, Pencil, Save, LayoutDashboard,
   FileText, UserCheck, Search, ChevronDown, ChevronUp, Coins, History,
-  Shield, Lock, DollarSign, CalendarDays, CheckCheck, X, KeyRound
-
+  Shield, Lock, DollarSign, CalendarDays, CheckCheck, X, KeyRound, BarChart2
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import AdminDashboard from "@/components/AdminDashboard";
 
-type Tab = "dashboard" | "workers" | "districts" | "blocks" | "credits" | "requests" | "content" | "problems" | "descriptions" | "clients" | "subadmins";
+type Tab = "dashboard" | "workers" | "districts" | "blocks" | "credits" | "requests" | "content" | "problems" | "descriptions" | "clients" | "subadmins" | "reports";
 
 export default function AdminPortal() {
   const [, navigate] = useLocation();
@@ -44,6 +43,7 @@ export default function AdminPortal() {
     { id: "descriptions", icon: FileText, label: "Описания" },
     { id: "problems", icon: AlertTriangle, label: "Проблеми" },
     { id: "subadmins", icon: Shield, label: "Подадмини" },
+    { id: "reports", icon: BarChart2, label: "Отчети" },
   ];
 
   return (
@@ -108,6 +108,7 @@ export default function AdminPortal() {
         {activeTab === "descriptions" && <DescriptionsTab />}
         {activeTab === "problems" && <ProblemsTab />}
         {activeTab === "subadmins" && <SubAdminsTab />}
+        {activeTab === "reports" && <ReportsTab />}
       </div>
     </div>
   );
@@ -618,7 +619,7 @@ function RequestsTab() {
   const [view, setView] = useState<"active" | "completed">("active");
   const { data: allRequests } = trpc.requests.listAll.useQuery();
 
-  const active = allRequests?.filter(r => r.status === "pending" || r.status === "assigned") ?? [];
+  const active = allRequests?.filter(r => r.status === "pending") ?? [];
   const completed = allRequests?.filter(r => r.status === "completed") ?? [];
 
   const grouped: Record<string, Record<string, Record<string, typeof active>>> = {};
@@ -693,7 +694,7 @@ function RequestsTab() {
                             {/* Image for nonstandard/construction */}
                             {(r.type === "nonstandard" || r.type === "construction") && (r as any).imageUrl && (
                               <a href={(r as any).imageUrl} target="_blank" rel="noopener noreferrer" className="mt-1.5 block">
-                                <img src={(r as any).imageUrl} alt="Снимка" className="rounded-lg max-h-24 w-auto object-contain border border-gray-200 hover:opacity-90 transition-opacity" />
+                                <img src={(r as any).imageUrl} alt="Снимка" className="rounded-lg max-h-32 w-full object-cover border border-gray-200 hover:opacity-90 transition-opacity" />
                               </a>
                             )}
                             {/* Admin quote panel */}
@@ -1126,19 +1127,19 @@ function ClientsTab() {
   const [search, setSearch] = useState("");
   const [expandedClient, setExpandedClient] = useState<string | null>(null);
   const [creditAmounts, setCreditAmounts] = useState<Record<string, string>>({});
-  const [newPasswords, setNewPasswords] = useState<Record<string, string>>({});
-
-  const resetPassword = trpc.users.resetClientPassword.useMutation({
-  onSuccess: (_, vars) => {
-    toast.success("Паролата е сменена успешно");
-    setNewPasswords(prev => ({ ...prev, [vars.userOpenId]: "" }));
-  },
-  onError: (e) => toast.error(e.message),
-});
   const [creditTypes, setCreditTypes] = useState<Record<string, "standard" | "recycling">>({});
   const [creditOps, setCreditOps] = useState<Record<string, "add" | "deduct">>({});
+  const [newPasswords, setNewPasswords] = useState<Record<string, string>>({});
 
   const utils = trpc.useUtils();
+
+  const resetPassword = trpc.users.resetClientPassword.useMutation({
+    onSuccess: (_, vars) => {
+      toast.success("Паролата е сменена успешно");
+      setNewPasswords(prev => ({ ...prev, [vars.userOpenId]: "" }));
+    },
+    onError: (e) => toast.error(e.message),
+  });
 
   const adminAdd = trpc.credits.adminAdd.useMutation({
     onSuccess: () => {
@@ -1361,39 +1362,40 @@ function ClientsTab() {
                       </div>
                     </div>
                   </div>
+
                   {/* Password reset */}
-<div>
-  <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
-    <KeyRound className="w-3.5 h-3.5 text-green-600" />Смяна на парола
-  </h4>
-  <div className="bg-white rounded-xl border border-gray-200 p-3">
-    <div className="flex gap-2">
-      <Input
-        type="password"
-        placeholder="Нова парола (мин. 6 символа)"
-        value={newPasswords[client.openId] ?? ""}
-        onChange={e => setNewPasswords(prev => ({ ...prev, [client.openId]: e.target.value }))}
-        className="flex-1 rounded-lg text-sm"
-      />
-      <Button
-        size="sm"
-        className="rounded-xl bg-amber-500 hover:bg-amber-600 text-white"
-        disabled={
-          !newPasswords[client.openId] ||
-          (newPasswords[client.openId] ?? "").length < 6 ||
-          resetPassword.isPending
-        }
-        onClick={() => {
-          const pwd = newPasswords[client.openId];
-          if (!pwd || pwd.length < 6) return;
-          resetPassword.mutate({ userOpenId: client.openId, newPassword: pwd });
-        }}
-      >
-        {resetPassword.isPending ? "..." : "Смени парола"}
-      </Button>
-    </div>
-  </div>
-</div>
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+                      <KeyRound className="w-3.5 h-3.5 text-green-600" />Смяна на парола
+                    </h4>
+                    <div className="bg-white rounded-xl border border-gray-200 p-3">
+                      <div className="flex gap-2">
+                        <Input
+                          type="password"
+                          placeholder="Нова парола (мин. 6 символа)"
+                          value={newPasswords[client.openId] ?? ""}
+                          onChange={e => setNewPasswords(prev => ({ ...prev, [client.openId]: e.target.value }))}
+                          className="flex-1 rounded-lg text-sm"
+                        />
+                        <Button
+                          size="sm"
+                          className="rounded-xl bg-amber-500 hover:bg-amber-600 text-white"
+                          disabled={
+                            !newPasswords[client.openId] ||
+                            (newPasswords[client.openId] ?? "").length < 6 ||
+                            resetPassword.isPending
+                          }
+                          onClick={() => {
+                            const pwd = newPasswords[client.openId];
+                            if (!pwd || pwd.length < 6) return;
+                            resetPassword.mutate({ userOpenId: client.openId, newPassword: pwd });
+                          }}
+                        >
+                          {resetPassword.isPending ? "..." : "Смени парола"}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
 
                   {/* Request history */}
                   <div>
@@ -1676,6 +1678,213 @@ function SubAdminsTab() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Tab: Отчети ────────────────────────────────────────────────────────────
+function ReportsTab() {
+  const { data: allRequests } = trpc.requests.listAll.useQuery();
+
+  // Build list of available months from the data
+  const availableMonths = (() => {
+    if (!allRequests) return [];
+    const set = new Set<string>();
+    for (const r of allRequests) {
+      const d = new Date(r.createdAt);
+      set.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+    }
+    return Array.from(set).sort().reverse();
+  })();
+
+  const [selectedMonth, setSelectedMonth] = useState<string>(availableMonths[0] ?? "");
+
+  // Update selectedMonth when data loads
+  if (!selectedMonth && availableMonths.length > 0) {
+    // handled via initial state — will re-render once data arrives
+  }
+
+  const filtered = (allRequests ?? []).filter(r => {
+    if (!selectedMonth) return true;
+    const d = new Date(r.createdAt);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    return key === selectedMonth;
+  });
+
+  // Group: district → blok → vhod → requests[]
+  type VhodMap = Record<string, typeof filtered>;
+  type BlokMap = Record<string, VhodMap>;
+  type DistrictMap = Record<string, BlokMap>;
+
+  const grouped = filtered.reduce<DistrictMap>((acc, r) => {
+    if (!acc[r.district]) acc[r.district] = {};
+    if (!acc[r.district][r.blok]) acc[r.district][r.blok] = {};
+    if (!acc[r.district][r.blok][r.vhod]) acc[r.district][r.blok][r.vhod] = [];
+    acc[r.district][r.blok][r.vhod].push(r);
+    return acc;
+  }, {});
+
+  const [expandedDistricts, setExpandedDistricts] = useState<Set<string>>(new Set());
+  const [expandedBloks, setExpandedBloks] = useState<Set<string>>(new Set());
+
+  const toggleDistrict = (d: string) =>
+    setExpandedDistricts(prev => { const s = new Set(prev); s.has(d) ? s.delete(d) : s.add(d); return s; });
+  const toggleBlok = (key: string) =>
+    setExpandedBloks(prev => { const s = new Set(prev); s.has(key) ? s.delete(key) : s.add(key); return s; });
+
+  const loadColor = (count: number) => {
+    if (count <= 2) return "bg-green-100 text-green-800 border-green-200";
+    if (count <= 5) return "bg-yellow-100 text-yellow-800 border-yellow-200";
+    return "bg-red-100 text-red-800 border-red-200";
+  };
+  const loadDot = (count: number) => {
+    if (count <= 2) return "🟢";
+    if (count <= 5) return "🟡";
+    return "🔴";
+  };
+
+  const formatMonthLabel = (key: string) => {
+    const [year, month] = key.split("-");
+    const d = new Date(parseInt(year), parseInt(month) - 1);
+    return d.toLocaleString("bg-BG", { month: "long", year: "numeric" });
+  };
+
+  const formatReqType = (t: string) => {
+    const map: Record<string, string> = { standard: "Стандартен", recycling: "Рециклиране", nonstandard: "Нестандартен", construction: "Строителен" };
+    return map[t] ?? t;
+  };
+  const formatStatus = (s: string) => {
+    const map: Record<string, string> = { pending: "Чакащ", assigned: "Назначен", completed: "Завършен", cancelled: "Отказан" };
+    return map[s] ?? s;
+  };
+
+  const districts = Object.keys(grouped).sort();
+
+  return (
+    <div className="space-y-5 p-4">
+      {/* Header + filter */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <BarChart2 className="w-5 h-5 text-green-600" />Отчети по квартали
+          </h2>
+          <p className="text-sm text-gray-500 mt-0.5">
+            {filtered.length} заявки · {districts.length} квартала
+          </p>
+        </div>
+        <select
+          value={selectedMonth}
+          onChange={e => setSelectedMonth(e.target.value)}
+          className="text-sm border border-gray-200 rounded-xl px-3 py-2 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+        >
+          <option value="">Всички месеци</option>
+          {availableMonths.map(m => (
+            <option key={m} value={m}>{formatMonthLabel(m)}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Districts */}
+      {districts.length === 0 ? (
+        <div className="text-center py-12 text-gray-400">Няма заявки за избрания период</div>
+      ) : (
+        <div className="space-y-3">
+          {districts.map(district => {
+            const districtReqs = filtered.filter(r => r.district === district);
+            const isDistrictOpen = expandedDistricts.has(district);
+            const bloks = Object.keys(grouped[district]).sort();
+
+            return (
+              <div key={district} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                {/* District row */}
+                <button
+                  onClick={() => toggleDistrict(district)}
+                  className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-gray-50 transition-colors text-left"
+                >
+                  <div className="flex items-center gap-3">
+                    <MapPin className="w-4 h-4 text-green-600 flex-shrink-0" />
+                    <span className="font-semibold text-gray-900">{district}</span>
+                    <span className="text-xs text-gray-500">{bloks.length} блока</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${loadColor(districtReqs.length)}`}>
+                      {loadDot(districtReqs.length)} {districtReqs.length} заявки
+                    </span>
+                    {isDistrictOpen ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+                  </div>
+                </button>
+
+                {/* Blocks */}
+                {isDistrictOpen && (
+                  <div className="border-t border-gray-100 divide-y divide-gray-100">
+                    {bloks.map(blok => {
+                      const blokKey = `${district}::${blok}`;
+                      const isBlokOpen = expandedBloks.has(blokKey);
+                      const blokReqs = filtered.filter(r => r.district === district && r.blok === blok);
+                      const vhods = Object.keys(grouped[district][blok]).sort();
+
+                      return (
+                        <div key={blok} className="bg-gray-50/50">
+                          <button
+                            onClick={() => toggleBlok(blokKey)}
+                            className="w-full flex items-center justify-between px-6 py-3 hover:bg-gray-100/60 transition-colors text-left"
+                          >
+                            <div className="flex items-center gap-2">
+                              <Building2 className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                              <span className="text-sm font-medium text-gray-800">Бл. {blok}</span>
+                              <span className="text-xs text-gray-400">{vhods.length} входа</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${loadColor(blokReqs.length)}`}>
+                                {loadDot(blokReqs.length)} {blokReqs.length}
+                              </span>
+                              {isBlokOpen ? <ChevronUp className="w-3.5 h-3.5 text-gray-400" /> : <ChevronDown className="w-3.5 h-3.5 text-gray-400" />}
+                            </div>
+                          </button>
+
+                          {/* Entrances */}
+                          {isBlokOpen && (
+                            <div className="px-6 pb-3 space-y-2">
+                              {vhods.map(vhod => {
+                                const vhodReqs = grouped[district][blok][vhod];
+                                return (
+                                  <div key={vhod} className="bg-white rounded-xl border border-gray-200 p-3">
+                                    <div className="flex items-center justify-between mb-2">
+                                      <span className="text-sm font-medium text-gray-700">Вх. {vhod}</span>
+                                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${loadColor(vhodReqs.length)}`}>
+                                        {loadDot(vhodReqs.length)} {vhodReqs.length} заявки
+                                      </span>
+                                    </div>
+                                    <div className="space-y-1">
+                                      {vhodReqs.map(r => (
+                                        <div key={r.id} className="flex items-center justify-between text-xs text-gray-600 py-1 border-t border-gray-100 first:border-0">
+                                          <span className="text-gray-400">{new Date(r.createdAt).toLocaleDateString("bg-BG")}</span>
+                                          <span>{formatReqType(r.type)}</span>
+                                          <span className="text-gray-400">Ет.{r.etaj} Ап.{r.apartament}</span>
+                                          <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${
+                                            r.status === "completed" ? "bg-green-100 text-green-700" :
+                                            r.status === "cancelled" ? "bg-red-100 text-red-700" :
+                                            r.status === "assigned" ? "bg-blue-100 text-blue-700" :
+                                            "bg-yellow-100 text-yellow-700"
+                                          }`}>{formatStatus(r.status)}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
