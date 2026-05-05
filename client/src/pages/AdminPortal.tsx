@@ -11,7 +11,7 @@ import {
   PowerOff, CheckCircle, Phone, Mail, ChevronRight,
   RefreshCw, Eye, Send, ShieldAlert, Pencil, Save, LayoutDashboard,
   FileText, UserCheck, Search, ChevronDown, ChevronUp, Coins, History,
-  Shield, Lock, DollarSign, CalendarDays, CheckCheck, X, KeyRound, BarChart2
+  Shield, Lock, DollarSign, CalendarDays, CheckCheck, X, KeyRound, BarChart2, XCircle
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import AdminDashboard from "@/components/AdminDashboard";
@@ -1019,12 +1019,12 @@ function ProblemsTab() {
 
   const { data: problems, refetch } = trpc.problems.list.useQuery();
   const resolve = trpc.problems.resolve.useMutation({ onSuccess: () => { toast.success("Проблемът е разрешен"); refetch(); setSelectedProblem(null); setAdminNotes(""); }, onError: (e: any) => toast.error(e.message) });
-  const forward = trpc.problems.forwardToClient.useMutation({ onSuccess: () => { toast.success("Препратено към клиента"); refetch(); setSelectedProblem(null); setAdminNotes(""); }, onError: (e: any) => toast.error(e.message) });
-
+ const forward = trpc.problems.forwardToClient.useMutation({ onSuccess: () => { toast.success("Препратено към клиента"); refetch(); setSelectedProblem(null); setAdminNotes(""); }, onError: (e: any) => toast.error(e.message) });
+  const reject = trpc.problems.reject.useMutation({ onSuccess: () => { toast.success("Проблемът е отказан"); refetch(); setSelectedProblem(null); setAdminNotes(""); }, onError: (e: any) => toast.error(e.message) });
   const open = problems?.filter(p => p.status === "open") ?? [];
 
   const statusLabel: Record<string, string> = {
-    open: "Отворен", resolved: "Разрешен", forwarded: "Препратен",
+    open: "Отворен", resolved: "Разрешен", forwarded: "Препратен", rejected: "Отказан",
   };
 
   return (
@@ -1100,9 +1100,12 @@ function ProblemsTab() {
                           className="rounded-xl text-blue-600 border-blue-200 hover:bg-blue-50">
                           <Send className="w-3.5 h-3.5 mr-1" />Препрати към клиента
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => { setSelectedProblem(null); setAdminNotes(""); }} className="rounded-xl">
-                          Отказ
-                        </Button>
+                        <Button size="sm" variant="ghost"
+  onClick={() => reject.mutate({ id: problem.id })}
+  disabled={reject.isPending}
+  className="rounded-xl text-red-600 hover:bg-red-50">
+  <XCircle className="w-3.5 h-3.5 mr-1" />Откажи спора
+</Button>
                       </div>
                     </>
                   ) : (

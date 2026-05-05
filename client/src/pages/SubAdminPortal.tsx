@@ -10,7 +10,7 @@ import {
   Settings, AlertTriangle, LogOut, Plus, Trash2, Power,
   PowerOff, CheckCircle, ChevronDown, ChevronUp, LayoutDashboard,
   FileText, UserCheck, Shield, RefreshCw, Send, Pencil, Save,
-  Phone, DollarSign, CalendarDays, CheckCheck, X, ChevronRight
+  Phone, DollarSign, CalendarDays, CheckCheck, X, ChevronRight, XCircle
 } from "lucide-react";
 import AdminDashboard from "@/components/AdminDashboard";
 
@@ -860,8 +860,9 @@ function ProblemsTab() {
     onSuccess: () => { toast.success("Препратено към клиента"); refetch(); setSelectedProblem(null); setAdminNotes(""); },
     onError: (e: any) => toast.error(e.message),
   });
+  const reject = trpc.problems.reject.useMutation({ onSuccess: () => { toast.success("Проблемът е отказан"); refetch(); setSelectedProblem(null); setAdminNotes(""); }, onError: (e: any) => toast.error(e.message) });
   const open = (problems as any[]).filter((p: any) => p.status === "open");
-  const statusLabel: Record<string, string> = { open: "Отворен", resolved: "Решен", forwarded: "Препратен" };
+  const statusLabel: Record<string, string> = { open: "Отворен", resolved: "Решен", forwarded: "Препратен", rejected: "Отказан" };
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -926,8 +927,11 @@ function ProblemsTab() {
                           className="rounded-xl text-blue-600 border-blue-200 hover:bg-blue-50">
                           <Send className="w-3.5 h-3.5 mr-1" />Препрати към клиента
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => { setSelectedProblem(null); setAdminNotes(""); }} className="rounded-xl">
-                          Отказ
+                        <Button size="sm" variant="ghost"
+                          onClick={() => reject.mutate({ id: problem.id })}
+                          disabled={reject.isPending}
+                          className="rounded-xl text-red-600 hover:bg-red-50">
+                          <XCircle className="w-3.5 h-3.5 mr-1" />Откажи спора
                         </Button>
                       </div>
                     </>

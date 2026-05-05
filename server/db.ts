@@ -481,7 +481,7 @@ export async function getOpenWorkerProblems() {
     .orderBy(desc(workerProblems.createdAt));
 }
 
-export async function updateWorkerProblem(id: number, data: Partial<{ status: "open" | "resolved" | "forwarded"; adminNotes: string; resolvedAt: Date; forwardedToClientAt: Date }>) {
+export async function updateWorkerProblem(id: number, data: Partial<{ status: "open" | "resolved" | "forwarded" | "rejected"; adminNotes: string; resolvedAt: Date; forwardedToClientAt: Date; rejectedAt: Date }>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.update(workerProblems).set(data).where(eq(workerProblems.id, id));

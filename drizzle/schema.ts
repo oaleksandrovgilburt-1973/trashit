@@ -254,10 +254,11 @@ export const workerProblems = mysqlTable("worker_problems", {
   requestId: int("requestId"),
   imageUrl: text("imageUrl"),
   description: text("description").notNull(),
-  status: mysqlEnum("status", ["open", "resolved", "forwarded"]).default("open").notNull(),
+  status: mysqlEnum("status", ["open", "resolved", "forwarded", "rejected"]).default("open").notNull(),
   adminNotes: text("adminNotes"),
   forwardedToClientAt: timestamp("forwardedToClientAt"),
   resolvedAt: timestamp("resolvedAt"),
+  rejectedAt: timestamp("rejectedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

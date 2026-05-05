@@ -1166,6 +1166,17 @@ export const appRouter = router({
         });
         return { success: true };
       }),
+
+    // Admin: reject a problem (dispute)
+    reject: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await updateWorkerProblem(input.id, {
+          status: "rejected",
+          rejectedAt: new Date(),
+        });
+        return { success: true };
+      }),
   }),
 
   // ── Workers Management (Admin) ─────────────────────────────────────────────
