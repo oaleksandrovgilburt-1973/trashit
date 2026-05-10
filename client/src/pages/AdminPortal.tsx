@@ -361,6 +361,7 @@ function DistrictsTab() {
 
 // ─── Tab 3: Blocks/Access ─────────────────────────────────────────────────────
 function BlocksTab() {
+  const [blocksSubTab, setBlocksSubTab] = useState<"approved" | "pending">("pending");
   const { data: accessRecords, isLoading, refetch } = trpc.entranceAccess.list.useQuery();
   const { data: activeBlocks, refetch: refetchActiveBlocks } = trpc.blockAccess.list.useQuery();
   const toggleMutation = trpc.entranceAccess.toggle.useMutation({
@@ -398,7 +399,26 @@ function BlocksTab() {
     }
   });
 
-  const districts = Array.from(districtMap.keys()).sort();
+  const approvedRecords = (accessRecords ?? []).filter(r => r.isApproved);
+  const pendingRecords = (accessRecords ?? []).filter(r => !r.isApproved);
+
+  const buildDistrictMap = (records: typeof accessRecords) => {
+    const map = new Map<string, Map<string, { district: string; blok: string; vhod: string; requestCount: number }[]>>();
+    (records ?? []).forEach(r => {
+      if (!map.has(r.district)) map.set(r.district, new Map());
+      const blokMap = map.get(r.district)!;
+      if (!blokMap.has(r.blok)) blokMap.set(r.blok, []);
+      const existing = blokMap.get(r.blok)!.find(e => e.vhod === r.vhod);
+      if (!existing) {
+        const key = `${r.district}|${r.blok}|${r.vhod}`;
+        blokMap.get(r.blok)!.push({ district: r.district, blok: r.blok, vhod: r.vhod, requestCount: requestCountMap.get(key) ?? 0 });
+      }
+    });
+    return map;
+  };
+
+  const activeMap = buildDistrictMap(blocksSubTab === "approved" ? approvedRecords : pendingRecords);
+  const activeDistricts = Array.from(activeMap.keys()).sort();
 
   return (
     <div className="space-y-6">
@@ -406,26 +426,51 @@ function BlocksTab() {
         <h2 className="text-xl font-bold text-gray-900">Достъп до входове</h2>
         <p className="text-sm text-gray-500 mt-0.5">Одобрете или забранете достъп до всеки вход — зелено = одобрен, червено = без достъп</p>
       </div>
+      {/* Sub-tabs */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => setBlocksSubTab("pending")}
+          className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+            blocksSubTab === "pending"
+              ? "bg-yellow-100 text-yellow-800 border border-yellow-300"
+              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+          }`}
+        >
+          ⏳ <span>Чакащи одобрение</span>
+          <span className="ml-1 bg-yellow-200 text-yellow-800 rounded-full px-1.5 py-0.5 text-xs font-bold">{pendingRecords.length}</span>
+        </button>
+        <button
+          onClick={() => setBlocksSubTab("approved")}
+          className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+            blocksSubTab === "approved"
+              ? "bg-green-100 text-green-800 border border-green-300"
+              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+          }`}
+        >
+          ✅ <span>Одобрени</span>
+          <span className="ml-1 bg-green-200 text-green-800 rounded-full px-1.5 py-0.5 text-xs font-bold">{approvedRecords.length}</span>
+        </button>
+      </div>
       {isLoading && (
         <div className="space-y-3">
           {[1,2,3].map(i => <div key={i} className="h-16 rounded-2xl bg-gray-100 animate-pulse" />)}
         </div>
       )}
-      {!isLoading && districts.length === 0 && (
+      {!isLoading && activeDistricts.length === 0 && (
         <div className="text-center py-12 text-gray-400">
           <Building2 className="w-12 h-12 mx-auto mb-3 opacity-30" />
-          <p>Няма записи за входове. Входовете се появяват автоматично когато клиент подаде заявка.</p>
+          <p>{blocksSubTab === "pending" ? "Няма чакащи входове за одобрение." : "Няма одобрени входове."}</p>
         </div>
       )}
       <div className="space-y-4">
-        {districts.map(district => (
+        {activeDistricts.map(district => (
           <div key={district} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="px-4 py-3 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
               <MapPin className="w-4 h-4 text-green-600" />
               <span className="font-semibold text-gray-900">{district}</span>
             </div>
             <div className="divide-y divide-gray-50">
-              {Array.from(districtMap.get(district)!.entries()).sort(([a],[b]) => a.localeCompare(b)).map(([blok, entrances]) => (
+              {Array.from(activeMap.get(district)!.entries()).sort(([a],[b]) => a.localeCompare(b)).map(([blok, entrances]) => (
                 <div key={blok} className="px-4 py-3">
                   <div className="flex items-center gap-2 mb-2">
                     <Building2 className="w-3.5 h-3.5 text-gray-400" />
@@ -437,9 +482,9 @@ function BlocksTab() {
                       const isApproved = accessMap.get(key) ?? false;
                       const isPending = toggleMutation.isPending;
                       return (
-                        <div key={entrance.vhod} className={`flex items-center justify-between rounded-xl px-3 py-2 transition-colors ${isApproved ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"}`}>
+                        <div key={entrance.vhod} className={`flex items-center justify-between rounded-xl px-3 py-2 transition-colors ${isApproved ? "bg-green-50 border border-green-200" : "bg-yellow-50 border border-yellow-200"}`}>
                           <div className="flex items-center gap-2">
-                            <span className={`w-2 h-2 rounded-full ${isApproved ? "bg-green-500" : "bg-red-500"}`} />
+                            <span className={`w-2 h-2 rounded-full ${isApproved ? "bg-green-500" : "bg-yellow-500"}`} />
                             <span className="text-sm font-medium text-gray-800">Вх. {entrance.vhod}</span>
                             {entrance.requestCount > 0 && (
                               <span className="text-xs text-gray-400">({entrance.requestCount} заявки)</span>
@@ -449,7 +494,7 @@ function BlocksTab() {
                             <button
                               disabled={isPending}
                               onClick={() => toggleMutation.mutate({ district: entrance.district, blok: entrance.blok, vhod: entrance.vhod, isApproved: !isApproved })}
-                              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${isApproved ? "bg-green-500" : "bg-red-400"} ${isPending ? "opacity-50" : ""}`}
+                              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${isApproved ? "bg-green-500" : "bg-yellow-400"} ${isPending ? "opacity-50" : ""}`}
                             >
                               <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${isApproved ? "translate-x-6" : "translate-x-1"}`} />
                             </button>
