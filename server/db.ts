@@ -824,7 +824,11 @@ export async function getActiveSubscriptionByUser(userOpenId: string): Promise<S
   return result[0];
 }
 
-export async function getSubscriptionById(id: number): Promise<Subscription | undefined> {
+export async function getAllSubscriptions(): Promise<Subscription[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(subscriptions).orderBy(desc(subscriptions.createdAt));
+}
   const db = await getDb();
   if (!db) return undefined;
   const result = await db.select().from(subscriptions).where(eq(subscriptions.id, id)).limit(1);
