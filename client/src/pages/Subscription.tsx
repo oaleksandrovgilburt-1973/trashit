@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
-  CalendarDays, CheckCircle, ChevronRight, LogIn, Loader2,
+  CalendarDays, CheckCircle, ChevronRight, ChevronLeft, LogIn, Loader2,
   Sun, Moon, Trash2, Recycle, AlertCircle, X
 } from "lucide-react";
 import { Link } from "wouter";
@@ -153,6 +153,9 @@ export default function Subscription() {
       <div className="container py-6 max-w-lg mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center gap-3">
+          <button onClick={() => navigate("/")} className="p-2 rounded-full hover:bg-gray-100 transition-colors">
+            <ChevronLeft className="w-5 h-5 text-gray-600" />
+          </button>
           <div className="w-10 h-10 rounded-2xl bg-blue-100 flex items-center justify-center">
             <CalendarDays className="w-5 h-5 text-blue-700" />
           </div>
