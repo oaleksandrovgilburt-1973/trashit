@@ -16,7 +16,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import AdminDashboard from "@/components/AdminDashboard";
 
-type Tab = "dashboard" | "workers" | "districts" | "blocks" | "credits" | "requests" | "content" | "problems" | "descriptions" | "clients" | "subadmins" | "reports";
+type Tab = "dashboard" | "workers" | "districts" | "blocks" | "credits" | "requests" | "content" | "problems" | "descriptions" | "clients" | "subadmins" | "reports" | "subscriptions";
 
 export default function AdminPortal() {
   const [, navigate] = useLocation();
@@ -44,6 +44,7 @@ export default function AdminPortal() {
     { id: "problems", icon: AlertTriangle, label: "Проблеми" },
     { id: "subadmins", icon: Shield, label: "Подадмини" },
     { id: "reports", icon: BarChart2, label: "Отчети" },
+    { id: "subscriptions", icon: CalendarDays, label: "Абонаменти" },
   ];
 
   return (
@@ -109,6 +110,7 @@ export default function AdminPortal() {
         {activeTab === "problems" && <ProblemsTab />}
         {activeTab === "subadmins" && <SubAdminsTab />}
         {activeTab === "reports" && <ReportsTab />}
+        {activeTab === "subscriptions" && <SubscriptionsTab />}
       </div>
     </div>
   );
@@ -1888,6 +1890,101 @@ function ReportsTab() {
               </div>
             );
           })}
+        </div>
+      )}
+    </div>
+  );
+}
+function SubscriptionsTab() {
+  const { data: subs, refetch } = trpc.subscriptions.adminList.useQuery();
+  const adminCancel = trpc.subscriptions.adminCancel.useMutation({
+    onSuccess: () => { toast.success("Абонаментът е отказан"); refetch(); },
+    onError: (e: any) => toast.error(e.message),
+  });
+  const active = subs?.filter(s => s.status === "active") ?? [];
+  const cancelled = subs?.filter(s => s.status !== "active") ?? [];
+  const typeLabel = (t: string) => t === "standard" ? "Стандартен" : "Рециклиращ";
+  const slotLabel = (s: string) => s === "morning" ? "08:00–12:00" : "20:00–00:00";
+  const statusColor = (s: string) => s === "active" ? "bg-green-100 text-green-700" : s === "cancelled" ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-600";
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-bold text-gray-900">Абонаменти</h2>
+        <p className="text-sm text-gray-500 mt-0.5">Активни: {active.length} | Неактивни: {cancelled.length}</p>
+      </div>
+      <div>
+        <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+          <CheckCircle className="w-4 h-4 text-green-600" />
+          Активни абонаменти ({active.length})
+        </h3>
+        {active.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Няма активни абонаменти.</p>
+        ) : (
+          <div className="grid gap-3">
+            {active.map(sub => (
+              <div key={sub.id} className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge className={statusColor(sub.status)}>{sub.status === "active" ? "Активен" : "Неактивен"}</Badge>
+                      <span className="text-sm font-semibold">{typeLabel(sub.type)} — {sub.visits} посещения/мес.</span>
+                      <Badge variant="outline" className="text-xs">{slotLabel(sub.timeSlot)}</Badge>
+                    </div>
+                    <p className="text-sm text-gray-600">
+                      {sub.district}, Бл. {sub.blok}, Вх. {sub.vhod}
+                      {sub.etaj ? `, Ет. ${sub.etaj}` : ""}
+                      {sub.apartament ? `, Ап. ${sub.apartament}` : ""}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      Потребител: {sub.userOpenId} | Създаден: {new Date(sub.createdAt).toLocaleDateString("bg-BG")}
+                      {sub.currentPeriodEnd ? ` | До: ${new Date(sub.currentPeriodEnd).toLocaleDateString("bg-BG")}` : ""}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="rounded-xl text-red-600 border-red-200 hover:bg-red-50 shrink-0"
+                    disabled={adminCancel.isPending}
+                    onClick={() => {
+                      if (confirm("Сигурни ли сте, че искате да откажете този абонамент?")) {
+                        adminCancel.mutate({ id: sub.id, note: "Отказан от администратор" });
+                      }
+                    }}
+                  >
+                    <X className="w-3.5 h-3.5 mr-1" />Откажи
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      {cancelled.length > 0 && (
+        <div>
+          <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+            <X className="w-4 h-4 text-red-500" />
+            Неактивни / Отказани ({cancelled.length})
+          </h3>
+          <div className="grid gap-3">
+            {cancelled.map(sub => (
+              <div key={sub.id} className="bg-gray-50 rounded-2xl border border-gray-200 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="space-y-1 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge className={statusColor(sub.status)}>{sub.status === "cancelled" ? "Отказан" : "Изтекъл"}</Badge>
+                      <span className="text-sm font-semibold">{typeLabel(sub.type)} — {sub.visits} посещения/мес.</span>
+                    </div>
+                    <p className="text-sm text-gray-600">{sub.district}, Бл. {sub.blok}, Вх. {sub.vhod}</p>
+                    <p className="text-xs text-gray-400">
+                      Потребител: {sub.userOpenId}
+                      {sub.cancellationNote ? ` | Причина: ${sub.cancellationNote}` : ""}
+                      {sub.cancelledAt ? ` | Отказан: ${new Date(sub.cancelledAt).toLocaleDateString("bg-BG")}` : ""}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

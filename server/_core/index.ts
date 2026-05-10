@@ -1,3 +1,4 @@
+import { startCronJobs } from "../cron";
 import "dotenv/config";
 import express from "express";
 import { createServer } from "http";
@@ -59,6 +60,7 @@ async function startServer() {
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
+    startCronJobs();
   });
 }
 

@@ -1,7 +1,7 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
 import MainLayout from "@/components/MainLayout";
-import { Trash2, Sparkles, LogIn, UserPlus, ChevronRight, Leaf, User, CreditCard, Recycle, LogOut, Bell, BellOff, Package, HardHat, Building2, Home as HomeIcon, MoreHorizontal } from "lucide-react";
+import { Trash2, Sparkles, LogIn, UserPlus, ChevronRight, Leaf, User, CreditCard, Recycle, LogOut, Bell, BellOff, Package, HardHat, Building2, Home as HomeIcon, MoreHorizontal, CalendarDays } from "lucide-react";
 import { StandardCoin, RecyclingCoin } from "@/components/CreditCoin";
 import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -66,6 +66,7 @@ export default function Home() {
     { href: "/cleaning?type=entrance", icon: <Building2 className="w-6 h-6 text-gray-400" />, label: "Почистване на вход", active: false },
     { href: "/cleaning?type=residence", icon: <HomeIcon className="w-6 h-6 text-gray-400" />, label: "Жилища", active: false },
     { href: "/cleaning?type=other", icon: <MoreHorizontal className="w-6 h-6 text-gray-400" />, label: "Друго", active: false },
+{ href: "/subscription", icon: <CalendarDays className="w-6 h-6 text-primary" />, label: "Абонамент", active: true },
   ];
 
   return (

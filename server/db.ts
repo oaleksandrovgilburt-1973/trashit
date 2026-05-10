@@ -16,6 +16,8 @@ import {
   activityDescriptions,
   entranceAccess, EntranceAccess,
   subAdmins, SubAdmin, InsertSubAdmin,
+  subscriptions, subscriptionVisits, workerSubscriptionPrefs,
+  Subscription, InsertSubscription, SubscriptionVisit,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -796,4 +798,102 @@ export async function deleteSubAdmin(id: number): Promise<void> {
   const db = await getDb();
   if (!db) return;
   await db.delete(subAdmins).where(eq(subAdmins.id, id));
+}
+
+// ─── Subscriptions ────────────────────────────────────────────────────────────
+
+export async function createSubscription(data: InsertSubscription): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(subscriptions).values(data);
+  return (result[0] as any).insertId ?? 0;
+}
+
+export async function getSubscriptionsByUser(userOpenId: string): Promise<Subscription[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(subscriptions).where(eq(subscriptions.userOpenId, userOpenId)).orderBy(desc(subscriptions.createdAt));
+}
+
+export async function getActiveSubscriptionByUser(userOpenId: string): Promise<Subscription | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(subscriptions)
+    .where(and(eq(subscriptions.userOpenId, userOpenId), eq(subscriptions.status, "active")))
+    .limit(1);
+  return result[0];
+}
+
+export async function getSubscriptionById(id: number): Promise<Subscription | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(subscriptions).where(eq(subscriptions.id, id)).limit(1);
+  return result[0];
+}
+
+export async function updateSubscriptionStripe(id: number, data: { stripeSubscriptionId?: string; stripeCustomerId?: string; currentPeriodEnd?: Date; status?: "active" | "cancelled" | "expired" }): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(subscriptions).set(data).where(eq(subscriptions.id, id));
+}
+
+export async function cancelSubscription(id: number, note?: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(subscriptions).set({ status: "cancelled", cancelledAt: new Date(), cancellationNote: note ?? null }).where(eq(subscriptions.id, id));
+}
+
+export async function getSubscriptionByStripeId(stripeSubscriptionId: string): Promise<Subscription | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(subscriptions).where(eq(subscriptions.stripeSubscriptionId, stripeSubscriptionId)).limit(1);
+  return result[0];
+}
+
+// ─── Subscription Visits ──────────────────────────────────────────────────────
+
+export async function getTodayVisitsBySlot(today: string, timeSlot: "morning" | "evening"): Promise<(SubscriptionVisit & { subscription: Subscription })[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const visits = await db.select().from(subscriptionVisits)
+    .where(and(eq(subscriptionVisits.visitDate, today), eq(subscriptionVisits.timeSlot, timeSlot), eq(subscriptionVisits.status, "pending")));
+  const result = [];
+  for (const v of visits) {
+    const sub = await getSubscriptionById(v.subscriptionId);
+    if (sub && sub.status === "active") result.push({ ...v, subscription: sub });
+  }
+  return result;
+}
+
+export async function markVisitCompleted(visitId: number, workerId: number, workerOpenId: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(subscriptionVisits).set({ status: "completed", workerId, workerOpenId, completedAt: new Date() }).where(eq(subscriptionVisits.id, visitId));
+}
+
+export async function createDailyVisitsForSubscription(subscriptionId: number, today: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  const sub = await getSubscriptionById(subscriptionId);
+  if (!sub || sub.status !== "active") return;
+  const existing = await db.select().from(subscriptionVisits)
+    .where(and(eq(subscriptionVisits.subscriptionId, subscriptionId), eq(subscriptionVisits.visitDate, today)));
+  if (existing.length > 0) return;
+  await db.insert(subscriptionVisits).values({ subscriptionId, visitDate: today, timeSlot: sub.timeSlot });
+}
+
+// ─── Worker Subscription Preferences ─────────────────────────────────────────
+
+export async function getWorkerSubscriptionPref(workerId: number): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  const result = await db.select().from(workerSubscriptionPrefs).where(eq(workerSubscriptionPrefs.workerId, workerId)).limit(1);
+  return result[0]?.acceptsSubscriptions ?? false;
+}
+
+export async function setWorkerSubscriptionPref(workerId: number, acceptsSubscriptions: boolean): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.insert(workerSubscriptionPrefs).values({ workerId, acceptsSubscriptions })
+    .onDuplicateKeyUpdate({ set: { acceptsSubscriptions } });
 }

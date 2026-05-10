@@ -57,6 +57,12 @@ import {
   // Sub-Admins
   createSubAdmin, getAllSubAdmins, getSubAdminByUsername, getSubAdminById,
   updateSubAdminPermissions, toggleSubAdminActive, deleteSubAdmin,
+  // Subscriptions
+  createSubscription, getSubscriptionsByUser, getActiveSubscriptionByUser,
+  getAllSubscriptions, updateSubscriptionStripe, cancelSubscription,
+  getSubscriptionByStripeId, getTodayVisitsBySlot, markVisitCompleted,
+  createDailyVisitsForSubscription, getWorkerSubscriptionPref, setWorkerSubscriptionPref,
+  getSubscriptionById,
 } from "./db";
 
 const BONUS_CREDITS = "2.00";
@@ -1909,6 +1915,186 @@ export const appRouter = router({
               await db.update(usersTable).set(updateData).where(eq(usersTable.id, user.id));
             }
           }
+        }
+        return { success: true };
+      }),
+  }),
+
+  subscriptions: router({
+    myList: protectedProcedure.query(async ({ ctx }) => {
+      return getSubscriptionsByUser(ctx.user.openId);
+    }),
+    myActive: protectedProcedure.query(async ({ ctx }) => {
+      return getActiveSubscriptionByUser(ctx.user.openId) ?? null;
+    }),
+    createCheckout: protectedProcedure
+      .input(z.object({
+        type: z.enum(["standard", "recycling"]),
+        visits: z.enum(["15", "30"]),
+        timeSlot: z.enum(["morning", "evening"]),
+        visitDays: z.enum(["even", "odd", "all"]).default("all"),
+        district: z.string().min(1),
+        blok: z.string().min(1),
+        vhod: z.string().min(1),
+        etaj: z.string().optional(),
+        apartament: z.string().optional(),
+        origin: z.string(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const stripeKey = process.env.STRIPE_SECRET_KEY;
+        if (!stripeKey) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Stripe не е конфигуриран." });
+        const existing = await getActiveSubscriptionByUser(ctx.user.openId);
+        if (existing) throw new TRPCError({ code: "BAD_REQUEST", message: "Вече имате активен абонамент." });
+        const priceMap: Record<string, Record<string, number>> = {
+          standard: { "15": 899, "30": 1799 },
+          recycling: { "15": 1199, "30": 2199 },
+        };
+        const unitAmount = priceMap[input.type][input.visits];
+        const labelMap: Record<string, Record<string, string>> = {
+          standard: { "15": "Стандартен — 15 посещения/месец", "30": "Стандартен — 30 посещения/месец" },
+          recycling: { "15": "Рециклиращ — 15 посещения/месец", "30": "Рециклиращ — 30 посещения/месец" },
+        };
+        const stripe = new Stripe(stripeKey, { apiVersion: "2026-02-25.clover" });
+        let customerId: string | undefined;
+        const existingSubs = await getSubscriptionsByUser(ctx.user.openId);
+        const withCustomer = existingSubs.find(s => s.stripeCustomerId);
+        if (withCustomer?.stripeCustomerId) {
+          customerId = withCustomer.stripeCustomerId;
+        } else {
+          const customer = await stripe.customers.create({
+            email: ctx.user.email ?? undefined,
+            name: ctx.user.name ?? undefined,
+            metadata: { user_open_id: ctx.user.openId, user_id: ctx.user.id.toString() },
+          });
+          customerId = customer.id;
+        }
+        const subId = await createSubscription({
+          userOpenId: ctx.user.openId,
+          userId: ctx.user.id,
+          type: input.type,
+          visits: input.visits,
+          timeSlot: input.timeSlot,
+          visitDays: input.visitDays,
+          district: input.district,
+          blok: input.blok,
+          vhod: input.vhod,
+          etaj: input.etaj,
+          apartament: input.apartament,
+          status: "active",
+          stripeCustomerId: customerId,
+        });
+        const session = await stripe.checkout.sessions.create({
+          mode: "subscription",
+          customer: customerId,
+          line_items: [{
+            price_data: {
+              currency: "eur",
+              product_data: { name: `TRASHit — ${labelMap[input.type][input.visits]}` },
+              unit_amount: unitAmount,
+              recurring: { interval: "month" },
+            },
+            quantity: 1,
+          }],
+          client_reference_id: ctx.user.id.toString(),
+          metadata: {
+            user_id: ctx.user.id.toString(),
+            user_open_id: ctx.user.openId,
+            subscription_id: subId.toString(),
+            payment_type: "subscription",
+          },
+          success_url: `${input.origin}/subscription?sub_success=1&sub_id=${subId}`,
+          cancel_url: `${input.origin}/subscription`,
+          allow_promotion_codes: true,
+        });
+        await updateSubscriptionStripe(subId, { stripeCustomerId: customerId });
+        return { url: session.url, subscriptionId: subId };
+      }),
+    cancel: protectedProcedure
+      .input(z.object({ id: z.number(), note: z.string().optional() }))
+      .mutation(async ({ ctx, input }) => {
+        const sub = await getSubscriptionById(input.id);
+        if (!sub) throw new TRPCError({ code: "NOT_FOUND", message: "Абонаментът не е намерен." });
+        if (sub.userOpenId !== ctx.user.openId) throw new TRPCError({ code: "FORBIDDEN", message: "Нямате достъп." });
+        if (sub.status !== "active") throw new TRPCError({ code: "BAD_REQUEST", message: "Абонаментът не е активен." });
+        if (sub.stripeSubscriptionId) {
+          const stripeKey = process.env.STRIPE_SECRET_KEY;
+          if (stripeKey) {
+            const stripe = new Stripe(stripeKey, { apiVersion: "2026-02-25.clover" });
+            await stripe.subscriptions.cancel(sub.stripeSubscriptionId);
+          }
+        }
+        await cancelSubscription(input.id, input.note);
+        return { success: true };
+      }),
+    adminList: adminProcedure.query(async () => {
+      return getAllSubscriptions();
+    }),
+    adminCancel: adminProcedure
+      .input(z.object({ id: z.number(), note: z.string().optional() }))
+      .mutation(async ({ input }) => {
+        const sub = await getSubscriptionById(input.id);
+        if (!sub) throw new TRPCError({ code: "NOT_FOUND", message: "Абонаментът не е намерен." });
+        if (sub.stripeSubscriptionId) {
+          const stripeKey = process.env.STRIPE_SECRET_KEY;
+          if (stripeKey) {
+            const stripe = new Stripe(stripeKey, { apiVersion: "2026-02-25.clover" });
+            await stripe.subscriptions.cancel(sub.stripeSubscriptionId);
+          }
+        }
+        await cancelSubscription(input.id, input.note);
+        return { success: true };
+      }),
+    todayVisits: publicProcedure
+      .input(z.object({ deviceToken: z.string() }))
+      .query(async ({ input }) => {
+        const session = await getWorkerSession(input.deviceToken);
+        if (!session) throw new TRPCError({ code: "UNAUTHORIZED", message: "Невалидна сесия." });
+        const today = new Date().toISOString().split("T")[0];
+        const morning = await getTodayVisitsBySlot(today, "morning");
+        const evening = await getTodayVisitsBySlot(today, "evening");
+        return { morning, evening };
+      }),
+    markVisited: publicProcedure
+      .input(z.object({ deviceToken: z.string(), visitId: z.number() }))
+      .mutation(async ({ input }) => {
+        const session = await getWorkerSession(input.deviceToken);
+        if (!session) throw new TRPCError({ code: "UNAUTHORIZED", message: "Невалидна сесия." });
+        const allWorkers = await getAllWorkers();
+        const worker = allWorkers.find(w => w.id === session.workerId);
+        if (!worker) throw new TRPCError({ code: "NOT_FOUND", message: "Работникът не е намерен." });
+        await markVisitCompleted(input.visitId, worker.id, worker.openId);
+        return { success: true };
+      }),
+    getWorkerPref: publicProcedure
+      .input(z.object({ deviceToken: z.string() }))
+      .query(async ({ input }) => {
+        const session = await getWorkerSession(input.deviceToken);
+        if (!session) throw new TRPCError({ code: "UNAUTHORIZED", message: "Невалидна сесия." });
+        const accepts = await getWorkerSubscriptionPref(session.workerId);
+        return { acceptsSubscriptions: accepts };
+      }),
+    setWorkerPref: publicProcedure
+      .input(z.object({ deviceToken: z.string(), acceptsSubscriptions: z.boolean() }))
+      .mutation(async ({ input }) => {
+        const session = await getWorkerSession(input.deviceToken);
+        if (!session) throw new TRPCError({ code: "UNAUTHORIZED", message: "Невалидна сесия." });
+        await setWorkerSubscriptionPref(session.workerId, input.acceptsSubscriptions);
+        return { success: true };
+      }),
+    stripeWebhook: publicProcedure
+      .input(z.object({ stripeSubscriptionId: z.string(), status: z.string(), currentPeriodEnd: z.number().optional() }))
+      .mutation(async ({ input }) => {
+        const sub = await getSubscriptionByStripeId(input.stripeSubscriptionId);
+        if (!sub) return { success: false };
+        if (input.status === "active") {
+          await updateSubscriptionStripe(sub.id, {
+            status: "active",
+            currentPeriodEnd: input.currentPeriodEnd ? new Date(input.currentPeriodEnd * 1000) : undefined,
+          });
+        } else if (input.status === "canceled" || input.status === "cancelled") {
+          await cancelSubscription(sub.id, "Отказан от Stripe");
+        } else if (input.status === "past_due" || input.status === "unpaid") {
+          await updateSubscriptionStripe(sub.id, { status: "expired" });
         }
         return { success: true };
       }),

@@ -216,7 +216,7 @@ export default function Credits() {
               {creditTypeTab === "standard" ? (
                 <>
                   <p className="font-bold text-green-800">🗑️ Стандартни кредити</p>
-                  <p className="text-green-700 mt-1">Използват се за изхвърляне на стандартен битов отпадък. 1 кредит = 1 плик до ~4кг.</p>
+                  <p className="text-green-700 mt-1">Използват се за изхвърляне на стандартен битов отпадък. 1 кредит = 1 плик до ~3кг. или до 60л.</p>
                 </>
               ) : (
                 <>
@@ -288,7 +288,7 @@ export default function Credits() {
             </div>
 
             <div className="bg-gray-50 rounded-2xl p-4 text-xs text-gray-500 text-center">
-              🔒 Плащанията се обработват сигурно чрез Stripe. Тествайте с карта: 4242 4242 4242 4242
+              🔒 Плащанията се обработват сигурно чрез Stripe.
             </div>
           </div>
         )}

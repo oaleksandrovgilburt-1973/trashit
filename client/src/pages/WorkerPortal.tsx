@@ -10,7 +10,8 @@ import {
   MapPin, Navigation, Phone, Mail, AlertTriangle,
   CheckCircle, ChevronDown, ChevronRight, LogOut,
   Trash2, Recycle, Package, HardHat, Camera, Map,
-  Settings, List, X, ArrowLeft, Send, Upload
+  Settings, List, X, ArrowLeft, Send, Upload,
+  CalendarDays, Sun, Moon, Loader2
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
@@ -656,6 +657,129 @@ function GroupedRequestsView({ deviceToken }: { deviceToken: string }) {
   );
 }
 
+function WorkerSubscriptionsTab({ deviceToken, isBg }: { deviceToken: string; isBg: boolean }) {
+  const prefQ = trpc.subscriptions.getWorkerPref.useQuery(
+    { deviceToken },
+    { enabled: !!deviceToken }
+  );
+  const todayQ = trpc.subscriptions.todayVisits.useQuery(
+    { deviceToken },
+    { enabled: !!deviceToken }
+  );
+  const toggleAccept = trpc.subscriptions.setWorkerPref.useMutation({
+    onSuccess: () => { prefQ.refetch(); toast.success(isBg ? "Настройката е запазена!" : "Setting saved!"); },
+    onError: (e: { message: string }) => toast.error(e.message),
+  });
+  const markVisited = trpc.subscriptions.markVisited.useMutation({
+    onSuccess: () => { todayQ.refetch(); toast.success(isBg ? "Посещението е отбелязано!" : "Visit marked!"); },
+    onError: (e: { message: string }) => toast.error(e.message),
+  });
+  const accepting = prefQ.data?.acceptsSubscriptions ?? false;
+  const morning = todayQ.data?.morning ?? [];
+  const evening = todayQ.data?.evening ?? [];
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-bold">{isBg ? "Абонаменти" : "Subscriptions"}</h2>
+        <button
+          onClick={() => toggleAccept.mutate({ deviceToken, acceptsSubscriptions: !accepting })}
+          disabled={toggleAccept.isPending}
+          className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-semibold transition-all border-2 ${
+            accepting ? "bg-green-50 border-green-400 text-green-700" : "bg-gray-50 border-gray-300 text-gray-500"
+          }`}
+        >
+          {toggleAccept.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CalendarDays className="w-4 h-4" />}
+          {accepting ? (isBg ? "Приемам абонаменти" : "Accepting subs") : (isBg ? "Не приемам" : "Not accepting")}
+        </button>
+      </div>
+      {!accepting && (
+        <div className="rounded-2xl bg-gray-50 border border-gray-200 p-4 text-sm text-muted-foreground text-center">
+          {isBg ? "Включете превключвателя, за да виждате и изпълнявате абонаментни посещения." : "Enable the toggle to see and complete subscription visits."}
+        </div>
+      )}
+      {accepting && todayQ.isLoading && (
+        <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
+      )}
+      {accepting && !todayQ.isLoading && (
+        <>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Sun className="w-4 h-4 text-yellow-500" />
+              <span className="font-semibold text-sm">08:00 – 12:00</span>
+              <Badge variant="secondary" className="text-xs">{morning.length}</Badge>
+            </div>
+            {morning.length === 0 ? (
+              <p className="text-sm text-muted-foreground pl-6">{isBg ? "Няма адреси за днес" : "No addresses today"}</p>
+            ) : (
+              morning.map((visit) => {
+                const sub = (visit as any).subscription;
+                const isCompleted = (visit as any).status === "completed";
+                return (
+                  <div key={visit.id} className={`flex items-center justify-between p-3 rounded-2xl border ${isCompleted ? "bg-green-50 border-green-200" : "bg-white border-border"}`}>
+                    <div>
+                      <p className="text-sm font-medium">{sub?.district}, Бл. {sub?.blok}, Вх. {sub?.vhod}</p>
+                      {(sub?.etaj || sub?.apartament) && (
+                        <p className="text-xs text-muted-foreground">
+                          {sub?.etaj ? `Ет. ${sub.etaj}` : ""}{sub?.etaj && sub?.apartament ? ", " : ""}{sub?.apartament ? `Ап. ${sub.apartament}` : ""}
+                        </p>
+                      )}
+                    </div>
+                    {isCompleted ? (
+                      <Badge className="bg-green-100 text-green-700 border-0 text-xs"><CheckCircle className="w-3 h-3 mr-1" />{isBg ? "Посетен" : "Visited"}</Badge>
+                    ) : (
+                      <Button size="sm" className="rounded-xl bg-green-600 hover:bg-green-700 text-white text-xs h-8"
+                        disabled={markVisited.isPending}
+                        onClick={() => markVisited.mutate({ deviceToken, visitId: visit.id })}>
+                        <CheckCircle className="w-3 h-3 mr-1" />{isBg ? "Посетен" : "Visited"}
+                      </Button>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Moon className="w-4 h-4 text-blue-500" />
+              <span className="font-semibold text-sm">20:00 – 00:00</span>
+              <Badge variant="secondary" className="text-xs">{evening.length}</Badge>
+            </div>
+            {evening.length === 0 ? (
+              <p className="text-sm text-muted-foreground pl-6">{isBg ? "Няма адреси за днес" : "No addresses today"}</p>
+            ) : (
+              evening.map((visit) => {
+                const sub = (visit as any).subscription;
+                const isCompleted = (visit as any).status === "completed";
+                return (
+                  <div key={visit.id} className={`flex items-center justify-between p-3 rounded-2xl border ${isCompleted ? "bg-green-50 border-green-200" : "bg-white border-border"}`}>
+                    <div>
+                      <p className="text-sm font-medium">{sub?.district}, Бл. {sub?.blok}, Вх. {sub?.vhod}</p>
+                      {(sub?.etaj || sub?.apartament) && (
+                        <p className="text-xs text-muted-foreground">
+                          {sub?.etaj ? `Ет. ${sub.etaj}` : ""}{sub?.etaj && sub?.apartament ? ", " : ""}{sub?.apartament ? `Ап. ${sub.apartament}` : ""}
+                        </p>
+                      )}
+                    </div>
+                    {isCompleted ? (
+                      <Badge className="bg-green-100 text-green-700 border-0 text-xs"><CheckCircle className="w-3 h-3 mr-1" />{isBg ? "Посетен" : "Visited"}</Badge>
+                    ) : (
+                      <Button size="sm" className="rounded-xl bg-green-600 hover:bg-green-700 text-white text-xs h-8"
+                        disabled={markVisited.isPending}
+                        onClick={() => markVisited.mutate({ deviceToken, visitId: visit.id })}>
+                        <CheckCircle className="w-3 h-3 mr-1" />{isBg ? "Посетен" : "Visited"}
+                      </Button>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ─── Main WorkerPortal ────────────────────────────────────────────────────────
 export default function WorkerPortal() {
   const { language } = useLanguage();
@@ -663,7 +787,7 @@ export default function WorkerPortal() {
   const [, setLocation] = useLocation();
 
   const [session, setSession] = useState<WorkerSession | null>(null);
-  const [activeTab, setActiveTab] = useState<"requests" | "districts" | "profile">("requests");
+  const [activeTab, setActiveTab] = useState<"requests" | "districts" | "subscriptions" | "profile">("requests");
 
   useEffect(() => {
     const stored = localStorage.getItem("trashit_worker_session");
@@ -752,6 +876,7 @@ export default function WorkerPortal() {
             {[
               { id: "requests", label: isBg ? "Заявки" : "Requests", icon: <List className="w-4 h-4" /> },
               { id: "districts", label: isBg ? "Квартали" : "Districts", icon: <MapPin className="w-4 h-4" /> },
+              { id: "subscriptions", label: isBg ? "Абон." : "Subs", icon: <CalendarDays className="w-4 h-4" /> },
               { id: "profile", label: isBg ? "Профил" : "Profile", icon: <Settings className="w-4 h-4" /> },
             ].map(tab => (
               <button
@@ -787,11 +912,14 @@ export default function WorkerPortal() {
           </div>
         )}
 
-        {activeTab === "districts" && (
-          <DistrictSelector deviceToken={session.deviceToken} />
-        )}
-
-        {activeTab === "profile" && (
+        
+         {activeTab === "districts" && (
+  <DistrictSelector deviceToken={session.deviceToken} />
+)}
+{activeTab === "subscriptions" && (
+  <WorkerSubscriptionsTab deviceToken={session.deviceToken} isBg={isBg} />
+)}
+{activeTab === "profile" && (
           <div className="space-y-4">
             <h2 className="text-lg font-bold">{isBg ? "Профил" : "Profile"}</h2>
             <Card className="rounded-2xl">

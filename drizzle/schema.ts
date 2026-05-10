@@ -336,5 +336,55 @@ export const subAdmins = mysqlTable("sub_admins", {
   updatedAt: int("updatedAt", { unsigned: true }).notNull(),
 });
 
+// ─── Subscriptions ────────────────────────────────────────────────────────────
+export const subscriptions = mysqlTable("subscriptions", {
+  id: int("id").autoincrement().primaryKey(),
+  userOpenId: varchar("userOpenId", { length: 64 }).notNull(),
+  userId: int("userId").notNull(),
+  type: mysqlEnum("type", ["standard", "recycling"]).notNull(),
+  visits: mysqlEnum("visits", ["15", "30"]).notNull(),
+  timeSlot: mysqlEnum("timeSlot", ["morning", "evening"]).notNull(),
+  visitDays: mysqlEnum("visitDays", ["even", "odd", "all"]).default("all").notNull(),
+  district: varchar("district", { length: 128 }).notNull(),
+  blok: varchar("blok", { length: 64 }).notNull(),
+  vhod: varchar("vhod", { length: 32 }).notNull(),
+  etaj: varchar("etaj", { length: 16 }),
+  apartament: varchar("apartament", { length: 16 }),
+  status: mysqlEnum("status", ["active", "cancelled", "expired"]).default("active").notNull(),
+  stripeSubscriptionId: varchar("stripeSubscriptionId", { length: 256 }),
+  stripeCustomerId: varchar("stripeCustomerId", { length: 256 }),
+  cancelledAt: timestamp("cancelledAt"),
+  cancellationNote: text("cancellationNote"),
+  currentPeriodEnd: timestamp("currentPeriodEnd"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type Subscription = typeof subscriptions.$inferSelect;
+export type InsertSubscription = typeof subscriptions.$inferInsert;
+
+// ─── Subscription Visits ──────────────────────────────────────────────────────
+export const subscriptionVisits = mysqlTable("subscription_visits", {
+  id: int("id").autoincrement().primaryKey(),
+  subscriptionId: int("subscriptionId").notNull(),
+  workerId: int("workerId"),
+  workerOpenId: varchar("workerOpenId", { length: 64 }),
+  visitDate: varchar("visitDate", { length: 10 }).notNull(),
+  timeSlot: mysqlEnum("timeSlot", ["morning", "evening"]).notNull(),
+  status: mysqlEnum("status", ["pending", "completed"]).default("pending").notNull(),
+  completedAt: timestamp("completedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type SubscriptionVisit = typeof subscriptionVisits.$inferSelect;
+export type InsertSubscriptionVisit = typeof subscriptionVisits.$inferInsert;
+
+// ─── Worker Subscription Preferences ─────────────────────────────────────────
+export const workerSubscriptionPrefs = mysqlTable("worker_subscription_prefs", {
+  id: int("id").autoincrement().primaryKey(),
+  workerId: int("workerId").notNull().unique(),
+  acceptsSubscriptions: boolean("acceptsSubscriptions").default(false).notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type WorkerSubscriptionPref = typeof workerSubscriptionPrefs.$inferSelect;
+
 export type SubAdmin = typeof subAdmins.$inferSelect;
 export type InsertSubAdmin = typeof subAdmins.$inferInsert;

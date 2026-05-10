@@ -21,7 +21,7 @@ type SubAdminSession = {
   name: string;
   permissions: string[];
 };
-type Tab = "dashboard" | "clients" | "workers" | "districts" | "blocks" | "credits" | "requests" | "content" | "descriptions" | "problems";
+type Tab = "dashboard" | "clients" | "workers" | "districts" | "blocks" | "credits" | "requests" | "content" | "descriptions" | "problems | "subscriptions"";
 
 const ALL_TABS: { id: Tab; icon: any; label: string }[] = [
   { id: "dashboard", icon: LayoutDashboard, label: "Табло" },
@@ -34,6 +34,7 @@ const ALL_TABS: { id: Tab; icon: any; label: string }[] = [
   { id: "content", icon: Settings, label: "Съдържание" },
   { id: "descriptions", icon: FileText, label: "Описания" },
   { id: "problems", icon: AlertTriangle, label: "Проблеми" },
+  { id: "subscriptions", icon: CalendarDays, label: "Абонаменти" },
 ];
 
 function formatDate(val: any) {
@@ -142,6 +143,7 @@ export default function SubAdminPortal() {
         {currentTab === "content" && session.permissions.includes("content") && <ContentTab />}
         {currentTab === "descriptions" && session.permissions.includes("descriptions") && <DescriptionsTab />}
         {currentTab === "problems" && session.permissions.includes("problems") && <ProblemsTab />}
+        {currentTab === "subscriptions" && session.permissions.includes("subscriptions") && <SubscriptionsViewTab />}
       </div>
     </div>
   );
@@ -1103,6 +1105,69 @@ function ClientsTab() {
               <p>Няма намерени клиенти</p>
             </div>
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+function SubscriptionsViewTab() {
+  const { data: subs, isLoading } = trpc.subscriptions.adminList.useQuery();
+  const active = subs?.filter(s => s.status === "active") ?? [];
+  const inactive = subs?.filter(s => s.status !== "active") ?? [];
+  const typeLabel = (t: string) => t === "standard" ? "Стандартен" : "Рециклиращ";
+  const slotLabel = (s: string) => s === "morning" ? "08:00–12:00" : "20:00–00:00";
+  const statusColor = (s: string) =>
+    s === "active" ? "bg-green-100 text-green-700" :
+    s === "cancelled" ? "bg-red-100 text-red-700" :
+    "bg-gray-100 text-gray-600";
+  if (isLoading) return <div className="flex items-center justify-center py-16 text-gray-400">Зареждане...</div>;
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-bold text-gray-900">Абонаменти</h2>
+        <p className="text-sm text-gray-500 mt-0.5">Активни: {active.length} | Неактивни: {inactive.length}</p>
+      </div>
+      <div>
+        <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+          <CheckCircle className="w-4 h-4 text-green-600" />Активни ({active.length})
+        </h3>
+        {active.length === 0 ? <p className="text-sm text-gray-400">Няма активни абонаменти.</p> : (
+          <div className="grid gap-3">
+            {active.map(sub => (
+              <div key={sub.id} className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge className={statusColor(sub.status)}>Активен</Badge>
+                    <span className="text-sm font-semibold">{typeLabel(sub.type)} — {sub.visits} посещения/мес.</span>
+                    <Badge variant="outline" className="text-xs">{slotLabel(sub.timeSlot)}</Badge>
+                  </div>
+                  <p className="text-sm text-gray-600">{sub.district}, Бл. {sub.blok}, Вх. {sub.vhod}{sub.etaj ? `, Ет. ${sub.etaj}` : ""}{sub.apartament ? `, Ап. ${sub.apartament}` : ""}</p>
+                  <p className="text-xs text-gray-400">Потребител: {sub.userOpenId} | Създаден: {new Date(sub.createdAt).toLocaleDateString("bg-BG")}{sub.currentPeriodEnd ? ` | До: ${new Date(sub.currentPeriodEnd).toLocaleDateString("bg-BG")}` : ""}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      {inactive.length > 0 && (
+        <div>
+          <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+            <X className="w-4 h-4 text-red-500" />Неактивни / Отказани ({inactive.length})
+          </h3>
+          <div className="grid gap-3">
+            {inactive.map(sub => (
+              <div key={sub.id} className="bg-gray-50 rounded-2xl border border-gray-200 p-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge className={statusColor(sub.status)}>{sub.status === "cancelled" ? "Отказан" : "Изтекъл"}</Badge>
+                    <span className="text-sm font-semibold">{typeLabel(sub.type)} — {sub.visits} посещения/мес.</span>
+                  </div>
+                  <p className="text-sm text-gray-600">{sub.district}, Бл. {sub.blok}, Вх. {sub.vhod}</p>
+                  <p className="text-xs text-gray-400">Потребител: {sub.userOpenId}{sub.cancellationNote ? ` | Причина: ${sub.cancellationNote}` : ""}{sub.cancelledAt ? ` | Отказан: ${new Date(sub.cancelledAt).toLocaleDateString("bg-BG")}` : ""}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
