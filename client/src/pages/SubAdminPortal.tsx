@@ -21,7 +21,7 @@ type SubAdminSession = {
   name: string;
   permissions: string[];
 };
-type Tab = "dashboard" | "clients" | "workers" | "districts" | "blocks" | "credits" | "requests" | "content" | "descriptions" | "problems | "subscriptions"";
+type Tab = "dashboard" | "clients" | "workers" | "districts" | "blocks" | "credits" | "requests" | "content" | "descriptions" | "problems" | "subscriptions";
 
 const ALL_TABS: { id: Tab; icon: any; label: string }[] = [
   { id: "dashboard", icon: LayoutDashboard, label: "Табло" },
