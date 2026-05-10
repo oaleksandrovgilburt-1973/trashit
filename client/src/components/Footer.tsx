@@ -8,11 +8,11 @@ export default function Footer() {
   const { data: settings } = trpc.settings.getAll.useQuery();
 
   const phone = settings?.["contact_phone"] ?? "+359 88 888 8888";
-  const email = settings?.["contact_email"] ?? "trashit.bg@gmail.com";
+  const email = settings?.["contact_email"] ?? "support@trashit.bg";
 
   return (
     <footer className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-t border-border shadow-[0_-2px_12px_rgba(0,0,0,0.06)]">
-      <div className="container flex items-center justify-between h-16">
+      <div className="container flex items-center justify-center h-16">
 
         {/* Contact Info — Center */}
         <div className="flex flex-col items-center gap-0.5 text-center">
