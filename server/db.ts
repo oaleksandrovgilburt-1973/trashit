@@ -333,6 +333,17 @@ export async function completeRequest(id: number, workerOpenId: string, workerId
   }).where(eq(requests.id, id));
 }
 
+export async function completeRequestPendingPayment(id: number, workerOpenId: string, workerId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(requests).set({
+    status: "pending_payment",
+    workerOpenId,
+    workerId,
+    completedAt: new Date(),
+  }).where(eq(requests.id, id));
+}
+
 export async function completeRequestsByEntrance(
   district: string, blok: string, vhod: string,
   workerOpenId: string, workerId: number

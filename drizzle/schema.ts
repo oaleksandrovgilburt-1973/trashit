@@ -134,7 +134,7 @@ export const requests = mysqlTable("requests", {
   /** Type of waste */
   type: mysqlEnum("type", ["standard", "recycling", "nonstandard", "construction"]).notNull(),
   /** Status of request */
-  status: mysqlEnum("status", ["pending", "assigned", "completed", "cancelled"]).default("pending").notNull(),
+  status: mysqlEnum("status", ["pending", "assigned", "completed", "cancelled", "pending_payment", "paid"]).default("pending").notNull(),
   /** User who created the request */
   userId: int("userId").notNull(),
   userOpenId: varchar("userOpenId", { length: 64 }).notNull(),

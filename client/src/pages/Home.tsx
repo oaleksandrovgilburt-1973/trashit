@@ -65,7 +65,7 @@ export default function Home() {
     { href: "/waste-disposal?type=construction", icon: <HardHat className="w-6 h-6 text-primary" />, label: "Строителен отпадък", active: true },
     { href: "/cleaning?type=entrance", icon: <Building2 className="w-6 h-6 text-gray-400" />, label: "Почистване на вход", active: false },
     { href: "/cleaning?type=residence", icon: <HomeIcon className="w-6 h-6 text-gray-400" />, label: "Жилища", active: false },
-    { href: "/cleaning?type=other", icon: <MoreHorizontal className="w-6 h-6 text-primary" />, label: "Друго", active: true },
+    { href: "/cleaning?type=other", icon: <MoreHorizontal className="w-6 h-6 text-gray-400" />, label: "Друго", active: false },
   ];
 
   return (

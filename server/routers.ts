@@ -27,7 +27,7 @@ import {
   // Requests
   createRequest, getRequestsByUser, getAllRequests,
   getPendingRequests, getRequestById,
-  completeRequest, completeRequestsByEntrance, cancelRequest, updateRequestProblem,
+  completeRequest, completeRequestPendingPayment, completeRequestsByEntrance, cancelRequest, updateRequestProblem,
   // Cleaning
   createCleaningRequest, getCleaningRequestsByUser, getAllCleaningRequests,
   updateCleaningRequestStatus,
@@ -625,11 +625,13 @@ export const appRouter = router({
       const enriched = await Promise.all(reqs.map(async r => {
         const worker = r.workerOpenId ? allWorkers.find(w => w.openId === r.workerOpenId) : null;
         let acceptedQuoteProposedDate: string | null = null;
-        if (r.status === "assigned") {
+        let acceptedQuotePrice: string | null = null;
+        if (r.status === "assigned" || r.status === "pending_payment") {
           const acceptedQuote = await getAcceptedQuoteForRequest(r.id);
           acceptedQuoteProposedDate = acceptedQuote?.proposedDate ?? null;
+          acceptedQuotePrice = acceptedQuote?.price ?? null;
         }
-        return { ...r, workerPhotoUrl: worker?.photoUrl ?? null, assignedWorkerName: worker?.name ?? null, acceptedQuoteProposedDate };
+        return { ...r, workerPhotoUrl: worker?.photoUrl ?? null, assignedWorkerName: worker?.name ?? null, acceptedQuoteProposedDate, acceptedQuotePrice };
       }));
       return enriched;
     }),
@@ -993,6 +995,86 @@ export const appRouter = router({
           note: `Покупка на ${total} ${creditType === "standard" ? "стандартни" : "рециклиращи"} кредита`,
         });
         return { success: true, creditsAdded: total, creditType };
+      }),
+
+    // Create Stripe checkout for a nonstandard/construction completed request
+    createRequestCheckout: protectedProcedure
+      .input(z.object({ requestId: z.number(), origin: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        const stripeKey = process.env.STRIPE_SECRET_KEY;
+        if (!stripeKey) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Stripe не е конфигуриран." });
+        const req = await getRequestById(input.requestId);
+        if (!req) throw new TRPCError({ code: "NOT_FOUND", message: "Заявката не е намерена." });
+        if (req.userOpenId !== ctx.user.openId) throw new TRPCError({ code: "FORBIDDEN", message: "Нямате достъп до тази заявка." });
+        if (req.status !== "pending_payment") throw new TRPCError({ code: "BAD_REQUEST", message: "Заявката не е в статус за плащане." });
+        const acceptedQuote = await getAcceptedQuoteForRequest(input.requestId);
+        if (!acceptedQuote) throw new TRPCError({ code: "NOT_FOUND", message: "Не е намерена приета оферта за тази заявка." });
+        const priceEur = parseFloat(acceptedQuote.price);
+        if (priceEur < 0.5) throw new TRPCError({ code: "BAD_REQUEST", message: "Сумата е под минималния праг за плащане (0.50 EUR)." });
+        const stripe = new Stripe(stripeKey, { apiVersion: "2026-02-25.clover" });
+        const session = await stripe.checkout.sessions.create({
+          payment_method_types: ["card"],
+          mode: "payment",
+          customer_email: ctx.user.email ?? undefined,
+          client_reference_id: ctx.user.id.toString(),
+          metadata: {
+            user_id: ctx.user.id.toString(),
+            user_open_id: ctx.user.openId,
+            request_id: input.requestId.toString(),
+            payment_type: "request",
+          },
+          line_items: [{
+            price_data: {
+              currency: "eur",
+              product_data: {
+                name: `TRASHit — Плащане за заявка #${input.requestId}`,
+                description: `${req.type === "nonstandard" ? "Нестандартен" : "Строителен"} отпадък — ${req.district}, Бл. ${req.blok}`,
+              },
+              unit_amount: Math.round(priceEur * 100),
+            },
+            quantity: 1,
+          }],
+          success_url: `${input.origin}/my-requests?payment=success&session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${input.origin}/my-requests`,
+        });
+        return { url: session.url, sessionId: session.id };
+      }),
+
+    // Verify payment for a request and mark it as paid
+    verifyRequestPayment: protectedProcedure
+      .input(z.object({ sessionId: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        const stripeKey = process.env.STRIPE_SECRET_KEY;
+        if (!stripeKey) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Stripe не е конфигуриран." });
+        const stripe = new Stripe(stripeKey, { apiVersion: "2026-02-25.clover" });
+        const existing = await getTransactionByStripeSession(input.sessionId);
+        if (existing) return { success: true, alreadyProcessed: true };
+        const session = await stripe.checkout.sessions.retrieve(input.sessionId);
+        if (session.payment_status !== "paid") throw new TRPCError({ code: "BAD_REQUEST", message: "Плащането не е завършено." });
+        const meta = session.metadata ?? {};
+        const requestId = parseInt(meta.request_id ?? "0");
+        if (!requestId) throw new TRPCError({ code: "BAD_REQUEST", message: "Невалидна сесия." });
+        const db = await getDb();
+        if (db) {
+          const { requests } = await import("../drizzle/schema");
+          const { eq } = await import("drizzle-orm");
+          await db.update(requests).set({ status: "paid" }).where(eq(requests.id, requestId));
+        }
+        const pricePaid = (session.amount_total ?? 0) / 100;
+        await createTransaction({
+          userId: ctx.user.id,
+          userOpenId: ctx.user.openId,
+          type: "purchase",
+          creditType: "standard",
+          amount: pricePaid.toFixed(2),
+          bonusAmount: "0.00",
+          totalAmount: pricePaid.toFixed(2),
+          pricePaid: pricePaid.toFixed(2),
+          stripeSessionId: input.sessionId,
+          requestId,
+          note: `Плащане за заявка #${requestId}`,
+        });
+        return { success: true, requestId };
       }),
 
     // Transfer credits to another user
@@ -1408,7 +1490,12 @@ export const appRouter = router({
         const worker = allWorkers.find(w => w.id === session.workerId);
         if (!worker) throw new TRPCError({ code: "NOT_FOUND", message: "Работникът не е намерен." });
         const reqBefore = await getRequestById(input.requestId);
-        await completeRequest(input.requestId, worker.openId, worker.id);
+        const needsPayment = reqBefore?.type === "nonstandard" || reqBefore?.type === "construction";
+        if (needsPayment) {
+          await completeRequestPendingPayment(input.requestId, worker.openId, worker.id);
+        } else {
+          await completeRequest(input.requestId, worker.openId, worker.id);
+        }
         // Push notification to client
         if (reqBefore?.userOpenId) {
           const client = await getUserByOpenId(reqBefore.userOpenId);

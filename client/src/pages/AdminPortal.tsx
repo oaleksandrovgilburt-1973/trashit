@@ -81,14 +81,14 @@ export default function AdminPortal() {
               <button
                 key={id}
                 onClick={() => setActiveTab(id)}
-                className={`flex items-center gap-1.5 px-3 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                className={`flex items-center gap-1.5 px-2 py-3 text-sm font-medium border-b-2 transition-colors ${
                   activeTab === id
                     ? "border-green-600 text-green-700 bg-green-50/50"
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
                 }`}
               >
                 <Icon className="w-4 h-4" />
-                {label}
+                <span className="hidden md:inline">{label}</span>
               </button>
             ))}
           </div>

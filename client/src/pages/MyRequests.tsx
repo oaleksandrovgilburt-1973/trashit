@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
@@ -8,7 +9,7 @@ import { toast } from "sonner";
 import {
   Trash2, Recycle, Package, HardHat,
   Clock, CheckCircle2, XCircle, Loader2,
-  ChevronLeft, Plus, MapPin, DollarSign, CalendarDays, CheckCheck, X
+  ChevronLeft, Plus, MapPin, DollarSign, CalendarDays, CheckCheck, X, CreditCard
 } from "lucide-react";
 
 const TYPE_LABELS: Record<string, { bg: string; en: string; icon: React.ReactNode; color: string }> = {
@@ -23,6 +24,8 @@ const STATUS_LABELS: Record<string, { bg: string; en: string; icon: React.ReactN
   assigned: { bg: "В изпълнение", en: "In progress", icon: <Loader2 className="w-4 h-4 animate-spin" />, color: "bg-blue-100 text-blue-700" },
   completed: { bg: "Завършено", en: "Completed", icon: <CheckCircle2 className="w-4 h-4" />, color: "bg-green-100 text-green-700" },
   cancelled: { bg: "Анулирано", en: "Cancelled", icon: <XCircle className="w-4 h-4" />, color: "bg-gray-100 text-gray-500" },
+  pending_payment: { bg: "Очаква плащане", en: "Awaiting payment", icon: <CreditCard className="w-4 h-4" />, color: "bg-purple-100 text-purple-700" },
+  paid: { bg: "Платено", en: "Paid", icon: <CheckCircle2 className="w-4 h-4" />, color: "bg-emerald-100 text-emerald-700" },
 };
 
 /** Inline quote panel for a single request */
@@ -117,6 +120,28 @@ export default function MyRequests() {
       refetch();
     },
     onError: (err) => toast.error(err.message),
+  });
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("payment") === "success") {
+      const sessionId = params.get("session_id");
+      if (sessionId) verifyRequestPayment.mutate({ sessionId });
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
+
+  const createRequestCheckout = trpc.credits.createRequestCheckout.useMutation({
+    onSuccess: (data) => {
+      if (data.url) window.open(data.url, "_blank");
+      toast.success(isBg ? "Пренасочване към страницата за плащане..." : "Redirecting to payment...");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const verifyRequestPayment = trpc.credits.verifyRequestPayment.useMutation({
+    onSuccess: () => { toast.success(isBg ? "Плащането е успешно!" : "Payment successful!"); refetch(); },
+    onError: (e) => toast.error(e.message),
   });
 
   if (loading || isLoading) {
@@ -281,6 +306,29 @@ export default function MyRequests() {
                 {/* Quote panel for nonstandard/construction pending requests */}
                 {isQuotable && (
                   <QuotePanel requestId={req.id} isBg={isBg} onAction={refetch} />
+                )}
+
+                {/* Pay button for pending_payment requests */}
+                {req.status === "pending_payment" && (
+                  <div className="mt-3 p-3 bg-purple-50 border border-purple-200 rounded-xl">
+                    <p className="text-sm font-semibold text-purple-800 mb-1">
+                      {isBg ? "Задачата е изпълнена — необходимо е плащане" : "Task completed — payment required"}
+                    </p>
+                    {(req as any).acceptedQuotePrice && (
+                      <p className="text-xs text-purple-600 mb-2">
+                        {isBg ? "Сума:" : "Amount:"} <strong>{(req as any).acceptedQuotePrice} EUR</strong>
+                      </p>
+                    )}
+                    <Button
+                      size="sm"
+                      onClick={() => createRequestCheckout.mutate({ requestId: req.id, origin: window.location.origin })}
+                      disabled={createRequestCheckout.isPending}
+                      className="rounded-xl bg-purple-600 hover:bg-purple-700 text-white w-full"
+                    >
+                      <CreditCard className="w-4 h-4 mr-1.5" />
+                      {isBg ? "Плати сега" : "Pay now"}
+                    </Button>
+                  </div>
                 )}
 
                 {/* Cancel button for pending requests */}
