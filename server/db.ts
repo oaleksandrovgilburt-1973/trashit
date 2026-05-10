@@ -829,12 +829,13 @@ export async function getAllSubscriptions(): Promise<Subscription[]> {
   if (!db) return [];
   return db.select().from(subscriptions).orderBy(desc(subscriptions.createdAt));
 }
+
+export async function getSubscriptionById(id: number): Promise<Subscription | undefined> {
   const db = await getDb();
   if (!db) return undefined;
   const result = await db.select().from(subscriptions).where(eq(subscriptions.id, id)).limit(1);
   return result[0];
 }
-
 export async function updateSubscriptionStripe(id: number, data: { stripeSubscriptionId?: string; stripeCustomerId?: string; currentPeriodEnd?: Date; status?: "active" | "cancelled" | "expired" }): Promise<void> {
   const db = await getDb();
   if (!db) return;
