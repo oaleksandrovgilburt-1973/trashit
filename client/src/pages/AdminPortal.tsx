@@ -992,6 +992,8 @@ const ACTIVITY_KEYS = [
   { key: "entrances", label: "Почистване на вход", icon: "🏢" },
   { key: "residence", label: "Жилища", icon: "🏠" },
   { key: "other", label: "Друго", icon: "ℹ️" },
+  { key: "subscription_standard", label: "Абонамент — Стандартен", icon: "📅" },
+  { key: "subscription_recycling", label: "Абонамент — Рециклиращ", icon: "♻️" },
 ];
 function DescriptionsTab() {
   const { data: descriptions, refetch } = trpc.activityDescriptions.getAll.useQuery();
