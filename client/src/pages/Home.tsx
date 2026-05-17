@@ -54,19 +54,24 @@ export default function Home() {
   const profileQuery = trpc.users.getProfile.useQuery(undefined, {
     enabled: !!user,
   });
+  const { data: descriptions } = trpc.activityDescriptions.getAll.useQuery();
+  const descMap: Record<string, string> = {};
+  if (Array.isArray(descriptions)) {
+    descriptions.forEach((d: any) => { descMap[d.activityKey] = d.description; });
+  }
   const profile = profileQuery.data;
 
   const creditsStandard = profile?.creditsStandard ?? "0.00";
   const creditsRecycling = profile?.creditsRecycling ?? "0.00";
   const services = [
-    { href: "/waste-disposal?type=standard", icon: <Trash2 className="w-6 h-6 text-primary" />, label: "Стандартен смесен битов отпадък", active: true },
-    { href: "/waste-disposal?type=recycling", icon: <Recycle className="w-6 h-6 text-primary" />, label: "Разделно събиране на отпадъци", active: true },
-    { href: "/waste-disposal?type=nonstandard", icon: <Package className="w-6 h-6 text-primary" />, label: "Нестандартен отпадък", active: true },
-    { href: "/waste-disposal?type=construction", icon: <HardHat className="w-6 h-6 text-primary" />, label: "Строителен отпадък", active: true },
-    { href: "/cleaning?type=entrance", icon: <Building2 className="w-6 h-6 text-gray-400" />, label: "Почистване на вход", active: false },
-    { href: "/cleaning?type=residence", icon: <HomeIcon className="w-6 h-6 text-gray-400" />, label: "Жилища", active: false },
-    { href: "/cleaning?type=other", icon: <MoreHorizontal className="w-6 h-6 text-gray-400" />, label: "Друго", active: false },
-{ href: "/subscription", icon: <CalendarDays className="w-6 h-6 text-primary" />, label: "Абонамент", active: true },
+    { href: "/waste-disposal?type=standard", key: "standard", icon: <Trash2 className="w-6 h-6 text-primary" />, label: "Стандартен смесен битов отпадък", active: true },
+    { href: "/waste-disposal?type=recycling", key: "recycling", icon: <Recycle className="w-6 h-6 text-primary" />, label: "Разделно събиране на отпадъци", active: true },
+    { href: "/waste-disposal?type=nonstandard", key: "nonstandard", icon: <Package className="w-6 h-6 text-primary" />, label: "Нестандартен отпадък", active: true },
+    { href: "/waste-disposal?type=construction", key: "construction", icon: <HardHat className="w-6 h-6 text-primary" />, label: "Строителен отпадък", active: true },
+    { href: "/cleaning?type=entrance", key: "entrances", icon: <Building2 className="w-6 h-6 text-gray-400" />, label: "Почистване на вход", active: false },
+    { href: "/cleaning?type=residence", key: "residence", icon: <HomeIcon className="w-6 h-6 text-gray-400" />, label: "Жилища", active: false },
+    { href: "/cleaning?type=other", key: "other", icon: <MoreHorizontal className="w-6 h-6 text-gray-400" />, label: "Друго", active: false },
+    { href: "/subscription", key: "subscription_standard", icon: <CalendarDays className="w-6 h-6 text-primary" />, label: "Абонамент", active: true },
   ];
 
   return (
@@ -183,7 +188,12 @@ export default function Home() {
                     <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center group-hover:bg-primary/25 transition-colors flex-shrink-0">
                       {service.icon}
                     </div>
-                    <p className="flex-1 text-sm font-semibold text-foreground">{service.label}</p>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-foreground">{service.label}</p>
+                      {descMap[service.key] && (
+                        <p className="text-xs text-muted-foreground mt-0.5">{descMap[service.key]}</p>
+                      )}
+                    </div>
                     <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
                   </div>
                 </Link>
