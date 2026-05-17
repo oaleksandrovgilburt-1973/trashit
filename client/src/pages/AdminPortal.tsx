@@ -664,10 +664,34 @@ function CreditsTab() {
 // ─── Tab 5: Requests ──────────────────────────────────────────────────────────
 function RequestsTab() {
   const [view, setView] = useState<"active" | "completed">("active");
+  const [openDates, setOpenDates] = useState<Set<string>>(new Set());
   const { data: allRequests } = trpc.requests.listAll.useQuery();
 
   const active = allRequests?.filter(r => r.status === "pending") ?? [];
   const completed = allRequests?.filter(r => r.status === "completed") ?? [];
+
+  const completedByDate: { date: string; label: string; items: typeof completed }[] = (() => {
+    const map: Record<string, typeof completed> = {};
+    for (const r of completed) {
+      const key = new Date(r.createdAt).toLocaleDateString("bg-BG", { year: "numeric", month: "2-digit", day: "2-digit" });
+      if (!map[key]) map[key] = [];
+      map[key].push(r);
+    }
+    return Object.entries(map)
+      .sort(([a], [b]) => {
+        const parse = (s: string) => { const [d, m, y] = s.split("."); return new Date(`${y}-${m}-${d}`).getTime(); };
+        return parse(b) - parse(a);
+      })
+      .map(([date, items]) => ({ date, label: date, items }));
+  })();
+
+  const toggleDate = (date: string) => {
+    setOpenDates(prev => {
+      const next = new Set(prev);
+      next.has(date) ? next.delete(date) : next.add(date);
+      return next;
+    });
+  };
 
   const grouped: Record<string, Record<string, Record<string, typeof active>>> = {};
   for (const r of active) {
@@ -766,17 +790,50 @@ function RequestsTab() {
         </div>
       )}
 
-      {view === "completed" && (
+{view === "completed" && (
         <div className="space-y-2">
-          {completed.map(r => (
-            <div key={r.id} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm flex items-center justify-between">
-              <div>
-                <span className="font-medium text-gray-800">{r.district}, Бл. {r.blok}, Вх. {r.vhod}, Ап. {r.apartament}</span>
-                <p className="text-xs text-gray-500 mt-0.5">{typeLabel[r.type] ?? r.type} · {new Date(r.createdAt).toLocaleDateString("bg-BG")}</p>
+          {completedByDate.map(({ date, label, items }) => {
+            const isOpen = openDates.has(date);
+            return (
+              <div key={date} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                <button
+                  onClick={() => toggleDate(date)}
+                  className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <CalendarDays className="w-4 h-4 text-green-600" />
+                    <span className="font-semibold text-gray-800">{label}</span>
+                    <Badge variant="secondary" className="text-xs">
+                      {items.length} {items.length === 1 ? "заявка" : "заявки"}
+                    </Badge>
+                  </div>
+                  {isOpen
+                    ? <ChevronUp className="w-4 h-4 text-gray-400" />
+                    : <ChevronDown className="w-4 h-4 text-gray-400" />}
+                </button>
+                {isOpen && (
+                  <div className="border-t border-gray-100 divide-y divide-gray-50">
+                    {items.map(r => (
+                      <div key={r.id} className="px-4 py-3 flex items-center justify-between">
+                        <div>
+                          <span className="font-medium text-gray-800 text-sm">
+                            {r.district}, Бл. {r.blok}, Вх. {r.vhod}, Ап. {r.apartament}
+                          </span>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {typeLabel[r.type] ?? r.type}
+                            {r.contactPhone && (
+                              <> · <a href={`tel:${r.contactPhone}`} className="text-green-600 hover:underline">{r.contactPhone}</a></>
+                            )}
+                          </p>
+                        </div>
+                        <Badge className="bg-green-100 text-green-700 shrink-0">Завършена</Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              <Badge className="bg-green-100 text-green-700">Завършена</Badge>
-            </div>
-          ))}
+            );
+          })}
           {!completed.length && (
             <div className="text-center py-12 text-gray-400">
               <CheckCircle className="w-12 h-12 mx-auto mb-3 opacity-30" />
