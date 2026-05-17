@@ -1061,8 +1061,10 @@ function DescriptionsTab() {
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const descMap: Record<string, string> = {};
-  if (Array.isArray(descriptions)) {
-    descriptions.forEach(d => { descMap[d.activityKey] = d.description; });
+  if (descriptions && !Array.isArray(descriptions)) {
+    Object.assign(descMap, descriptions);
+  } else if (Array.isArray(descriptions)) {
+    descriptions.forEach((d: any) => { descMap[d.activityKey] = d.description; });
   }
   return (
     <div className="space-y-4">
