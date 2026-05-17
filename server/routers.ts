@@ -9,6 +9,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { notifyOwner } from "./_core/notification";
 import { sendPushNotification } from "./fcm";
+import { sendTelegramMessage, TELEGRAM_CHATS } from "./telegram";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc"; // protectedProcedure used for worker/user procedures
 import Stripe from "stripe";
 import {
@@ -605,6 +606,10 @@ export const appRouter = router({
           creditsUsed,
           creditType,
         });
+        // Telegram: notify new request channel
+        sendTelegramMessage(TELEGRAM_CHATS.requests,
+          `📦 <b>Нова заявка #${id}</b>\nТип: ${input.type}\nАдрес: ${input.district}, Бл. ${input.blok}, Вх. ${input.vhod}${input.description ? `\nОписание: ${input.description}` : ""}`
+        ).catch(() => {});
          // Notify workers in the same district
         try {
           const allWorkers = await getAllWorkers();
@@ -1080,6 +1085,10 @@ export const appRouter = router({
           requestId,
           note: `Плащане за заявка #${requestId}`,
         });
+        // Telegram: notify payments channel
+        sendTelegramMessage(TELEGRAM_CHATS.payments,
+          `💳 <b>Успешно плащане</b>\nЗаявка: #${requestId}\nПотребител: ${ctx.user.name ?? ctx.user.email ?? ctx.user.openId}\nСума: €${pricePaid.toFixed(2)}`
+        ).catch(() => {});
         return { success: true, requestId };
       }),
 
@@ -1353,6 +1362,10 @@ export const appRouter = router({
             title: `🏢 Нов вход изчаква одобрение`,
             content: `Нов вход изчаква одобрение: ${label}`,
           }).catch(() => {});
+          // Telegram notification for new entrance awaiting approval
+          sendTelegramMessage(TELEGRAM_CHATS.requests,
+            `🏢 <b>Нов вход изчаква одобрение</b>\nКвартал: ${input.district}\nБлок: ${input.blok}\nВход: ${input.vhod}`
+          ).catch(() => {});
           // FCM push to all admin users
           const adminUsers = await getUsersByRole("admin");
           for (const adminUser of adminUsers) {
@@ -1577,10 +1590,13 @@ export const appRouter = router({
           title: `⚠️ Проблем от работник: ${worker.name}`,
           content: `Работник ${worker.name} докладва проблем: ${input.description}${input.requestId ? ` (Заявка #${input.requestId})` : ''}`,
         });
+        // Telegram: notify problems channel
+        sendTelegramMessage(TELEGRAM_CHATS.problems,
+          `⚠️ <b>Нов проблем #${id}</b>\nРаботник: ${worker.name}${input.requestId ? `\nЗаявка: #${input.requestId}` : ""}\nОписание: ${input.description}`
+        ).catch(() => {});
         return { success: true, id };
       }),
   }),
-
   // ── Worker Quotes (nonstandard/construction only) ─────────────────────────
   workerQuotes: router({
     /** Worker sends a quote for a nonstandard/construction request */
@@ -1983,6 +1999,10 @@ export const appRouter = router({
           status: "active",
           stripeCustomerId: customerId,
         });
+        // Telegram: notify subscriptions channel
+        sendTelegramMessage(TELEGRAM_CHATS.subscriptions,
+          `📅 <b>Нов абонамент #${subId}</b>\nПотребител: ${ctx.user.name ?? ctx.user.email ?? ctx.user.openId}\nТип: ${input.type} — ${input.visits} посещения/мес.\nАдрес: ${input.district}, Бл. ${input.blok}, Вх. ${input.vhod}\nСлот: ${input.timeSlot === "morning" ? "08:00–12:00" : "20:00–00:00"}${input.visits === "15" ? `\nДати: ${input.visitDays === "even" ? "Четни" : "Нечетни"}` : ""}`
+        ).catch(() => {});
         const session = await stripe.checkout.sessions.create({
           mode: "subscription",
           customer: customerId,
