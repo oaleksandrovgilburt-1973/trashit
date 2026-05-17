@@ -56,7 +56,9 @@ export default function Home() {
   });
   const { data: descriptions } = trpc.activityDescriptions.getAll.useQuery();
   const descMap: Record<string, string> = {};
-  if (Array.isArray(descriptions)) {
+  if (descriptions && !Array.isArray(descriptions)) {
+    Object.assign(descMap, descriptions);
+  } else if (Array.isArray(descriptions)) {
     descriptions.forEach((d: any) => { descMap[d.activityKey] = d.description; });
   }
   const profile = profileQuery.data;
