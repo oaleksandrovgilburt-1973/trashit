@@ -193,7 +193,7 @@ export default function Home() {
                     <div className="flex-1">
                       <p className="text-sm font-semibold text-foreground">{service.label}</p>
                       {descMap[service.key] && (
-                        <p className="text-xs text-muted-foreground mt-0.5">{descMap[service.key]}</p>
+                        <p className="text-sm text-gray-700 mt-0.5">{descMap[service.key]}</p>
                       )}
                     </div>
                     <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
