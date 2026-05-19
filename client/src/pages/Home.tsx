@@ -259,8 +259,8 @@ export default function Home() {
                     <CreditCard className="w-4 h-4 text-yellow-600" />
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm font-semibold text-foreground">Купи кредити</p>
-                    <p className="text-xs text-muted-foreground">Стандартни и рециклиращи кредити</p>
+                    <p className="text-sm font-semibold text-foreground">{t.buyCredits}</p>
+                    <p className="text-xs text-muted-foreground">{t.buyCreditsDesc}</p>
                   </div>
                   <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
                 </div>
@@ -271,8 +271,8 @@ export default function Home() {
                     <Recycle className="w-4 h-4 text-blue-600" />
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm font-semibold text-foreground">Моите заявки</p>
-                    <p className="text-xs text-muted-foreground">Вижте статуса на заявките си</p>
+                    <p className="text-sm font-semibold text-foreground">{t.myRequests}</p>
+                    <p className="text-xs text-muted-foreground">{t.myRequestsDesc}</p>
                   </div>
                   <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
                 </div>

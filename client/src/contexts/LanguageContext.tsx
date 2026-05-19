@@ -168,6 +168,10 @@ export interface Translations {
   serviceNonstandard: string;
   serviceConstruction: string;
   serviceSubscription: string;
+  buyCredits: string;
+  buyCreditsDesc: string;
+  myRequests: string;
+  myRequestsDesc: string;
 
   // Common
   loading: string;
@@ -342,6 +346,10 @@ const bg: Translations = {
   serviceNonstandard: "Нестандартен отпадък",
   serviceConstruction: "Строителен отпадък",
   serviceSubscription: "Абонамент",
+  buyCredits: "Купи кредити",
+  buyCreditsDesc: "Стандартни и рециклиращи кредити",
+  myRequests: "Моите заявки",
+  myRequestsDesc: "Вижте статуса на заявките си",
 };
 
 const en: Translations = {
@@ -503,6 +511,10 @@ const en: Translations = {
   serviceNonstandard: "Non-standard waste",
   serviceConstruction: "Construction waste",
   serviceSubscription: "Subscription",
+  buyCredits: "Buy Credits",
+  buyCreditsDesc: "Standard and recycling credits",
+  myRequests: "My Requests",
+  myRequestsDesc: "View the status of your requests",
 };
 
 const translations: Record<Language, Translations> = { bg, en };
