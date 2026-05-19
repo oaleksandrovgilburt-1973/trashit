@@ -71,6 +71,36 @@ const MAX_WORKER_DEVICES = 4;
 const WORKER_SESSION_COOKIE = "trashit_worker_session";
 const ADMIN_SESSION_COOKIE = "trashit_admin_session";
 
+// ─── In-memory rate limiters ──────────────────────────────────────────────────
+/** requests.create: max 15 per IP per hour */
+const createRequestRateLimit = new Map<string, { count: number; windowStart: number }>();
+const CREATE_REQUEST_MAX    = 15;
+const CREATE_REQUEST_WINDOW = 60 * 60 * 1000; // 1 hour in ms
+
+/** requests.estimateVolume: max 10 per user per 24 h */
+const estimateVolumeRateLimit = new Map<string, { count: number; windowStart: number }>();
+const ESTIMATE_MAX    = 10;
+const ESTIMATE_WINDOW = 24 * 60 * 60 * 1000; // 24 hours in ms
+
+function checkRateLimit(
+  store: Map<string, { count: number; windowStart: number }>,
+  key: string,
+  max: number,
+  windowMs: number,
+  errorMessage: string,
+): void {
+  const now = Date.now();
+  const entry = store.get(key);
+  if (!entry || now - entry.windowStart > windowMs) {
+    store.set(key, { count: 1, windowStart: now });
+    return;
+  }
+  entry.count += 1;
+  if (entry.count > max) {
+    throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: errorMessage });
+  }
+}
+
 // ─── Admin-only middleware ────────────────────────────────────────────────────
 // Admin uses custom username/password auth (not Manus OAuth).
 // We verify the admin session cookie against the bcrypt hash stored in the DB.
@@ -542,6 +572,17 @@ export const appRouter = router({
         estimatedVolumeDescription: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
+        // Rate limit: max 15 requests per IP per hour
+        const ip = (ctx.req.headers["x-forwarded-for"] as string | undefined)?.split(",")[0].trim()
+          ?? ctx.req.socket?.remoteAddress
+          ?? "unknown";
+        checkRateLimit(
+          createRequestRateLimit,
+          ip,
+          CREATE_REQUEST_MAX,
+          CREATE_REQUEST_WINDOW,
+          "Твърде много заявки. Опитайте след малко.",
+        );
         // Validate contact
         if (!input.contactPhone && !input.contactEmail) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "Трябва да въведете телефон или имейл за обратна връзка." });
@@ -748,9 +789,17 @@ export const appRouter = router({
     listAll: adminProcedure.query(async () => getAllRequests()),
 
     estimateVolume: protectedProcedure
-  .input(z.object({ imageUrl: z.string().min(1, "Снимката е задължителна") }))
-  .mutation(async ({ input }) => {
-    const fallback = {
+      .input(z.object({ imageUrl: z.string().url("Невалиден URL на снимка") }))
+      .mutation(async ({ ctx, input }) => {
+        // Rate limit: max 10 image analyses per user per 24 h
+        checkRateLimit(
+          estimateVolumeRateLimit,
+          ctx.user.openId,
+          ESTIMATE_MAX,
+          ESTIMATE_WINDOW,
+          "Достигнахте дневния лимит за анализ на снимки.",
+        );
+        const fallback = {
       volume: "~150 литра",
       description: "Не можахме да анализираме снимката автоматично.",
       note: "Окончателната цена ще бъде уточнена от работника.",

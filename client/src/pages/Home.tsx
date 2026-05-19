@@ -175,6 +175,15 @@ export default function Home() {
                 <p className="text-white/70 text-sm">{t.appTagline}</p>
               </div>
             )}
+            
+            {!user && !loading && (
+              <div className="mt-4 space-y-1">
+                <p className="text-white/90 text-sm">🗑️ <strong>Ангажиран си, а трябва да се изхвърли боклука.</strong></p>
+                <p className="text-white/80 text-sm">От вратата ти — до кофата. Без лошо време, без спор у дома.</p>
+                <p className="text-white/80 text-sm">С абонамент или когато пожелаеш, използваш — <strong>1 кредит = 0.69€</strong></p>
+                <p className="text-yellow-300 text-sm font-bold mt-1">⭐ Регистрирай се и получи 2 безплатни кредита — ПРОБВАЙ!</p>
+              </div>
+            )}
           </div>
         </section>
 
