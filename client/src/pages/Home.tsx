@@ -66,14 +66,14 @@ export default function Home() {
   const creditsStandard = profile?.creditsStandard ?? "0.00";
   const creditsRecycling = profile?.creditsRecycling ?? "0.00";
   const services = [
-    { href: "/waste-disposal?type=standard", key: "standard", icon: <Trash2 className="w-6 h-6 text-primary" />, label: "Стандартен смесен битов отпадък", active: true },
-    { href: "/waste-disposal?type=recycling", key: "recycling", icon: <Recycle className="w-6 h-6 text-primary" />, label: "Разделно събиране на отпадъци", active: true },
-    { href: "/waste-disposal?type=nonstandard", key: "nonstandard", icon: <Package className="w-6 h-6 text-primary" />, label: "Нестандартен отпадък", active: true },
-    { href: "/waste-disposal?type=construction", key: "construction", icon: <HardHat className="w-6 h-6 text-primary" />, label: "Строителен отпадък", active: true },
+    { href: "/waste-disposal?type=standard", key: "standard", icon: <Trash2 className="w-6 h-6 text-primary" />, label: t.serviceStandard, active: true },
+    { href: "/waste-disposal?type=recycling", key: "recycling", icon: <Recycle className="w-6 h-6 text-primary" />, label: t.serviceRecycling, active: true },
+    { href: "/subscription", key: "subscription_standard", icon: <CalendarDays className="w-6 h-6 text-primary" />, label: t.serviceSubscription, active: true },
+    { href: "/waste-disposal?type=nonstandard", key: "nonstandard", icon: <Package className="w-6 h-6 text-primary" />, label: t.serviceNonstandard, active: true },
+    { href: "/waste-disposal?type=construction", key: "construction", icon: <HardHat className="w-6 h-6 text-primary" />, label: t.serviceConstruction, active: true },
     { href: "/cleaning?type=entrance", key: "entrances", icon: <Building2 className="w-6 h-6 text-gray-400" />, label: "Почистване на вход", active: false },
     { href: "/cleaning?type=residence", key: "residence", icon: <HomeIcon className="w-6 h-6 text-gray-400" />, label: "Жилища", active: false },
     { href: "/cleaning?type=other", key: "other", icon: <MoreHorizontal className="w-6 h-6 text-gray-400" />, label: "Друго", active: false },
-    { href: "/subscription", key: "subscription_standard", icon: <CalendarDays className="w-6 h-6 text-primary" />, label: "Абонамент", active: true },
   ];
 
   return (
@@ -178,10 +178,10 @@ export default function Home() {
             
             {!user && !loading && (
               <div className="mt-4 space-y-1 text-center">
-                <p className="text-white/90 text-sm">🗑️ <strong>Ангажиран си, а трябва да се изхвърли боклука.</strong></p>
-                <p className="text-white/80 text-sm">От вратата ти — до кофата. Без лошо време, без спор у дома.</p>
-                <p className="text-white/80 text-sm">С абонамент или когато пожелаеш, използваш — <strong>1 кредит = 0.69€</strong></p>
-                <p className="text-yellow-300 text-sm font-bold mt-1">⭐ Регистрирай се и получи 2 безплатни кредита — ПРОБВАЙ!</p>
+                <p className="text-white/90 text-sm">🗑️ <strong>{t.heroTitle}</strong></p>
+                <p className="text-white/80 text-sm">{t.heroLine1}</p>
+                <p className="text-white/80 text-sm">{t.heroLine2}</p>
+                <p className="text-yellow-300 text-sm font-bold mt-1">{t.heroPromo}</p>
               </div>
             )}
           </div>

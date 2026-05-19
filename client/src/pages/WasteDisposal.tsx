@@ -528,14 +528,8 @@ if (selectedType !== "nonstandard" && selectedType !== "construction") {
                     onChange={e => setVhod(normalizeEntrance(e.target.value))}
                     placeholder={isBg ? "В (или 1=А, 2=Б...)" : "B (or 1=A, 2=B...)"}
                     required
-                    className={`rounded-xl mt-1 ${district && blok && normalizedVhod && entranceCheck !== undefined ? (entranceCheck.approved ? "border-green-400" : "border-red-400") : ""}`}
+                    className={`rounded-xl mt-1 ${district && blok && normalizedVhod && entranceCheck?.approved ? "border-green-400" : ""}`}
                   />
-                  {district && blok && normalizedVhod && entranceCheck !== undefined && !entranceCheck.approved && (
-                    <p className="text-xs text-red-600 mt-1 flex items-start gap-1">
-                      <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />
-                      {isBg ? "За този вход все още нямаме осигурен достъп." : "We do not yet have access to this entrance."}
-                    </p>
-                  )}
                   {district && blok && normalizedVhod && entranceCheck?.approved && (
                     <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
                       <CheckCircle2 className="w-3 h-3" />

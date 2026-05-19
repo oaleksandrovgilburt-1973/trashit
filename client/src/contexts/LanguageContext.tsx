@@ -155,6 +155,19 @@ export interface Translations {
   profileSaved: string;
   myCredits: string;
   memberSince: string;
+  
+  // Hero section
+  heroTitle: string;
+  heroLine1: string;
+  heroLine2: string;
+  heroCreditsInfo: string;
+  heroPromo: string;
+  // Services
+  serviceStandard: string;
+  serviceRecycling: string;
+  serviceNonstandard: string;
+  serviceConstruction: string;
+  serviceSubscription: string;
 
   // Common
   loading: string;
@@ -319,6 +332,16 @@ const bg: Translations = {
   search: "Търси",
   noData: "Няма данни",
   or: "или",
+  heroTitle: "Ангажиран си, а трябва да се изхвърли боклука.",
+  heroLine1: "От вратата ти — до кофата. Без лошо време, без спор у дома.",
+  heroLine2: "С абонамент или когато пожелаеш — 1 кредит = 0.69€",
+  heroCreditsInfo: "1 кредит = 0.69€",
+  heroPromo: "⭐ Регистрирай се и получи 2 безплатни кредита — ПРОБВАЙ!",
+  serviceStandard: "Стандартен смесен битов отпадък",
+  serviceRecycling: "Разделно събиране на отпадъци",
+  serviceNonstandard: "Нестандартен отпадък",
+  serviceConstruction: "Строителен отпадък",
+  serviceSubscription: "Абонамент",
 };
 
 const en: Translations = {
@@ -470,6 +493,16 @@ const en: Translations = {
   search: "Search",
   noData: "No data",
   or: "or",
+  heroTitle: "Busy? Let us take out the trash.",
+  heroLine1: "From your door — to the bin. No bad weather, no arguments at home.",
+  heroLine2: "Subscribe or use when you need — 1 credit = €0.69",
+  heroCreditsInfo: "1 credit = €0.69",
+  heroPromo: "⭐ Register and get 2 free credits — TRY IT!",
+  serviceStandard: "Standard household waste",
+  serviceRecycling: "Recycling collection",
+  serviceNonstandard: "Non-standard waste",
+  serviceConstruction: "Construction waste",
+  serviceSubscription: "Subscription",
 };
 
 const translations: Record<Language, Translations> = { bg, en };
