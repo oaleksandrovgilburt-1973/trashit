@@ -177,7 +177,7 @@ export default function Home() {
             )}
             
             {!user && !loading && (
-              <div className="mt-4 space-y-1">
+              <div className="mt-4 space-y-1 text-center">
                 <p className="text-white/90 text-sm">🗑️ <strong>Ангажиран си, а трябва да се изхвърли боклука.</strong></p>
                 <p className="text-white/80 text-sm">От вратата ти — до кофата. Без лошо време, без спор у дома.</p>
                 <p className="text-white/80 text-sm">С абонамент или когато пожелаеш, използваш — <strong>1 кредит = 0.69€</strong></p>
@@ -189,6 +189,11 @@ export default function Home() {
 
         {/* Services */}
         <section className="container py-6">
+          {!user && !loading && (
+            <div className="flex justify-center mb-6">
+              <img src="/trashit-flow.svg" alt="Как работи TRASHit" className="w-full max-w-2xl" />
+            </div>
+          )}
           <h2 className="text-lg font-bold text-foreground mb-4">{t.mainMenuTitle}</h2>
 
 <div className="space-y-2">
