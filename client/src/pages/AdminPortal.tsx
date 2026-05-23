@@ -664,6 +664,7 @@ function CreditsTab() {
 // ─── Tab 5: Requests ──────────────────────────────────────────────────────────
 function RequestsTab() {
   const [view, setView] = useState<"active" | "completed">("active");
+  const adminSession = typeof window !== "undefined" ? localStorage.getItem("admin_session") : null;
   const [openDates, setOpenDates] = useState<Set<string>>(new Set());
   const { data: allRequests } = trpc.requests.listAll.useQuery();
 
