@@ -46,7 +46,6 @@ function ClientChatPanel({ requestId, isBg }: { requestId: number; isBg: boolean
   });
 
   if (isLoading) return null;
-  if (messages.length === 0 && !msg) return null;
 
   const roleLabel: Record<string, string> = {
     client: isBg ? "Вие" : "You",
