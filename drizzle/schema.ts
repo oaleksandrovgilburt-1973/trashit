@@ -290,6 +290,9 @@ export const workerQuotes = mysqlTable("worker_quotes", {
   proposedDate: varchar("proposedDate", { length: 64 }),
   note: text("note"),
   status: mysqlEnum("status", ["pending", "accepted", "rejected"]).default("pending").notNull(),
+  /** If admin edited the quote, store who edited it */
+  adminEditedBy: varchar("adminEditedBy", { length: 128 }),
+  adminEditedAt: timestamp("adminEditedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

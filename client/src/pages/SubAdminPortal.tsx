@@ -804,13 +804,18 @@ function DescriptionsTab() {
   });
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
-  const descMap = descriptions as Record<string, string> | undefined;
+  const descMap: Record<string, string> = {};
+  if (descriptions && !Array.isArray(descriptions)) {
+    Object.assign(descMap, descriptions);
+  } else if (Array.isArray(descriptions)) {
+    (descriptions as any[]).forEach((d: any) => { descMap[d.activityKey] = d.description; });
+  }
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-bold text-gray-900">Описания на дейности</h2>
       <p className="text-sm text-gray-500">Добавете допълнителна информация към всяка дейност.</p>
       {ACTIVITY_KEYS.map(({ key, label, icon }) => {
-        const current = descMap?.[key] ?? "";
+        const current = descMap[key] ?? "";
         const isEditing = editingKey === key;
         return (
           <div key={key} className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">

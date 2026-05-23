@@ -64,6 +64,10 @@ import {
   getSubscriptionByStripeId, getTodayVisitsBySlot, markVisitCompleted,
   createDailyVisitsForSubscription, getWorkerSubscriptionPref, setWorkerSubscriptionPref,
   getSubscriptionById,
+  // Request Messages
+  getMessagesByRequestId, addRequestMessage,
+  // Admin Quote Edit
+  adminEditQuote,
 } from "./db";
 
 const BONUS_CREDITS = "2.00";
@@ -678,7 +682,7 @@ export const appRouter = router({
         const worker = r.workerOpenId ? allWorkers.find(w => w.openId === r.workerOpenId) : null;
         let acceptedQuoteProposedDate: string | null = null;
         let acceptedQuotePrice: string | null = null;
-        if (r.status === "assigned" || r.status === "pending_payment") {
+        if (r.status === "assigned" || r.status === "pending_payment" || r.status === "paid") {
           const acceptedQuote = await getAcceptedQuoteForRequest(r.id);
           acceptedQuoteProposedDate = acceptedQuote?.proposedDate ?? null;
           acceptedQuotePrice = acceptedQuote?.price ?? null;
@@ -1569,9 +1573,9 @@ export const appRouter = router({
           const client = await getUserByOpenId(reqBefore.userOpenId);
           if (client?.fcmToken) {
             await sendPushNotification(client.fcmToken, {
-              title: "✅ Заявката е изпълнена",
-              body: "Вашата заявка за изхвърляне на отпадъци е успешно изпълнена.",
-              data: { requestId: String(input.requestId), type: "completed" },
+              title: needsPayment ? "💳 Заявката е изпълнена — необходимо е плащане" : "✅ Заявката е изпълнена",
+              body: needsPayment ? "Вашата заявка е изпълнена. Моля, платете за да приключите." : "Вашата заявка за изхвърляне на отпадъци е успешно изпълнена.",
+              data: { requestId: String(input.requestId), type: needsPayment ? "pending_payment" : "completed" },
             });
           }
         }
@@ -1754,6 +1758,168 @@ export const appRouter = router({
           }
         }
         return { success: true };
+      }),
+
+    /** Admin: edit an existing quote (price, note, proposedDate) */
+    adminEdit: adminProcedure
+      .input(z.object({
+        quoteId: z.number(),
+        price: z.string().regex(/^\d+(\.\d{1,2})?$/, "Невалидна цена"),
+        note: z.string().optional(),
+        proposedDate: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const quote = await getQuoteById(input.quoteId);
+        if (!quote) throw new TRPCError({ code: "NOT_FOUND", message: "Офертата не е намерена." });
+        const adminName = ctx.user?.name ?? ctx.user?.email ?? "Администратор";
+        await adminEditQuote(
+          input.quoteId,
+          input.price,
+          input.note ?? null,
+          input.proposedDate ?? null,
+          adminName,
+        );
+        // Notify client about updated quote
+        const req = await getRequestById(quote.requestId);
+        if (req) {
+          const client = await getUserByOpenId(req.userOpenId);
+          if (client?.fcmToken) {
+            await sendPushNotification(client.fcmToken, {
+              title: "💰 Офертата е актуализирана",
+              body: `Администраторът е актуализирал офертата за вашата заявка. Нова цена: ${input.price} лв.`,
+              data: { requestId: String(quote.requestId), type: "quote", url: "/" },
+            });
+          }
+        }
+        return { success: true };
+      }),
+  }),
+
+  // ── Request Messages (bidirectional chat) ─────────────────────────────────
+  requestMessages: router({
+    /** Get all messages for a request (client, worker, admin) */
+    getForRequest: publicProcedure
+      .input(z.object({
+        requestId: z.number(),
+        // Worker auth
+        deviceToken: z.string().optional(),
+        // Admin auth
+        adminToken: z.string().optional(),
+      }))
+      .query(async ({ ctx, input }) => {
+        const req = await getRequestById(input.requestId);
+        if (!req) throw new TRPCError({ code: "NOT_FOUND" });
+        // Auth: client (must own request), worker (valid session), admin (valid token)
+        const isClient = ctx.user && req.userOpenId === ctx.user.openId;
+        const workerSession = input.deviceToken ? await getWorkerSession(input.deviceToken) : null;
+        const isWorker = !!workerSession;
+        const adminConfig = await import("./db").then(m => m.getAdminConfig());
+        const isAdmin = input.adminToken && adminConfig?.activeTokenHash
+          ? await bcrypt.compare(input.adminToken, adminConfig.activeTokenHash)
+          : false;
+        if (!isClient && !isWorker && !isAdmin) throw new TRPCError({ code: "FORBIDDEN" });
+        return getMessagesByRequestId(input.requestId);
+      }),
+
+    /** Client sends a message */
+    sendAsClient: protectedProcedure
+      .input(z.object({ requestId: z.number(), message: z.string().min(1).max(1000) }))
+      .mutation(async ({ ctx, input }) => {
+        const req = await getRequestById(input.requestId);
+        if (!req) throw new TRPCError({ code: "NOT_FOUND" });
+        if (req.userOpenId !== ctx.user.openId) throw new TRPCError({ code: "FORBIDDEN" });
+        const id = await addRequestMessage({
+          requestId: input.requestId,
+          senderRole: "client",
+          senderName: ctx.user.name ?? ctx.user.email ?? "Клиент",
+          senderOpenId: ctx.user.openId,
+          message: input.message,
+        });
+        // Notify worker if assigned
+        if (req.workerOpenId) {
+          const allWorkers = await getAllWorkers();
+          const worker = allWorkers.find(w => w.openId === req.workerOpenId);
+          if (worker?.fcmToken) {
+            await sendPushNotification(worker.fcmToken, {
+              title: "💬 Съобщение от клиент",
+              body: input.message.slice(0, 100),
+              data: { requestId: String(input.requestId), type: "message" },
+            });
+          }
+        }
+        // Notify all admins
+        try {
+          const adminUsers = await getUsersByRole("admin");
+          for (const adminUser of adminUsers) {
+            if (adminUser.fcmToken) {
+              await sendPushNotification(adminUser.fcmToken, {
+                title: "💬 Съобщение от клиент",
+                body: `Заявка #${input.requestId}: ${input.message.slice(0, 80)}`,
+                data: { requestId: String(input.requestId), type: "message", url: "/" },
+              });
+            }
+          }
+        } catch { /* ignore FCM errors */ }
+        return { success: true, id };
+      }),
+
+    /** Worker sends a message */
+    sendAsWorker: publicProcedure
+      .input(z.object({
+        deviceToken: z.string(),
+        requestId: z.number(),
+        message: z.string().min(1).max(1000),
+      }))
+      .mutation(async ({ input }) => {
+        const session = await getWorkerSession(input.deviceToken);
+        if (!session) throw new TRPCError({ code: "UNAUTHORIZED" });
+        const allWorkers = await getAllWorkers();
+        const worker = allWorkers.find(w => w.id === session.workerId);
+        if (!worker) throw new TRPCError({ code: "NOT_FOUND" });
+        const req = await getRequestById(input.requestId);
+        if (!req) throw new TRPCError({ code: "NOT_FOUND" });
+        const id = await addRequestMessage({
+          requestId: input.requestId,
+          senderRole: "worker",
+          senderName: worker.name,
+          senderOpenId: worker.openId ?? undefined,
+          message: input.message,
+        });
+        // Notify client
+        const client = await getUserByOpenId(req.userOpenId);
+        if (client?.fcmToken) {
+          await sendPushNotification(client.fcmToken, {
+            title: "💬 Съобщение от работник",
+            body: input.message.slice(0, 100),
+            data: { requestId: String(input.requestId), type: "message", url: "/" },
+          });
+        }
+        return { success: true, id };
+      }),
+
+    /** Admin sends a message */
+    sendAsAdmin: adminProcedure
+      .input(z.object({ requestId: z.number(), message: z.string().min(1).max(1000) }))
+      .mutation(async ({ ctx, input }) => {
+        const req = await getRequestById(input.requestId);
+        if (!req) throw new TRPCError({ code: "NOT_FOUND" });
+        const id = await addRequestMessage({
+          requestId: input.requestId,
+          senderRole: "admin",
+          senderName: ctx.user?.name ?? "Администратор",
+          senderOpenId: ctx.user?.openId,
+          message: input.message,
+        });
+        // Notify client
+        const client = await getUserByOpenId(req.userOpenId);
+        if (client?.fcmToken) {
+          await sendPushNotification(client.fcmToken, {
+            title: "💬 Съобщение от TRASHit",
+            body: input.message.slice(0, 100),
+            data: { requestId: String(input.requestId), type: "message", url: "/" },
+          });
+        }
+        return { success: true, id };
       }),
   }),
 

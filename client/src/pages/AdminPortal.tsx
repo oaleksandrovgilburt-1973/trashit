@@ -772,6 +772,10 @@ function RequestsTab() {
                             {(r.type === "nonstandard" || r.type === "construction") && r.status === "pending" && (
                               <AdminQuotePanel requestId={r.id} />
                             )}
+                            {/* Admin chat panel — always visible for nonstandard/construction */}
+                            {(r.type === "nonstandard" || r.type === "construction") && (
+                              <AdminChatPanel requestId={r.id} adminToken={adminSession ?? ""} />
+                            )}
                           </div>
                         ))}
                       </div>
@@ -849,6 +853,10 @@ function RequestsTab() {
 // ─── AdminQuotePanel (used inside RequestsTab) ─────────────────────────────────────────────────────────────────────────────────
 function AdminQuotePanel({ requestId }: { requestId: number }) {
   const utils = trpc.useUtils();
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editPrice, setEditPrice] = useState("");
+  const [editNote, setEditNote] = useState("");
+  const [editDate, setEditDate] = useState("");
   const { data: quotes = [], isLoading } = trpc.workerQuotes.adminGetForRequest.useQuery({ requestId });
 
   const acceptMutation = trpc.workerQuotes.adminAccept.useMutation({
@@ -869,6 +877,22 @@ function AdminQuotePanel({ requestId }: { requestId: number }) {
     onError: (e) => toast.error(e.message),
   });
 
+  const editMutation = trpc.workerQuotes.adminEdit.useMutation({
+    onSuccess: () => {
+      toast.success("Офертата е обновена!");
+      setEditingId(null);
+      utils.workerQuotes.adminGetForRequest.invalidate({ requestId });
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const startEdit = (q: any) => {
+    setEditingId(q.id);
+    setEditPrice(q.price);
+    setEditNote(q.note ?? "");
+    setEditDate(q.proposedDate ?? "");
+  };
+
   if (isLoading) return <p className="text-xs text-muted-foreground mt-1">Зарежда...</p>;
 
   const pending = quotes.filter((q: any) => q.status === "pending");
@@ -880,44 +904,134 @@ function AdminQuotePanel({ requestId }: { requestId: number }) {
     <div className="mt-2 space-y-1.5">
       {pending.map((q: any) => (
         <div key={q.id} className="bg-amber-50 border border-amber-200 rounded-lg p-2 space-y-1">
-          <div className="flex items-center gap-1 text-xs font-semibold text-amber-800">
-            <DollarSign className="w-3 h-3" />Оферта от работник
-          </div>
           <div className="flex items-center justify-between">
-            <span className="font-bold text-amber-900">{q.price} лв.</span>
-            <span className="text-xs text-amber-700">{q.workerName}</span>
-          </div>
-          {q.proposedDate && (
-            <div className="flex items-center gap-1 text-xs text-amber-700">
-              <CalendarDays className="w-3 h-3" />
-              {new Date(q.proposedDate).toLocaleString("bg-BG", { dateStyle: "medium", timeStyle: "short" })}
+            <div className="flex items-center gap-1 text-xs font-semibold text-amber-800">
+              <DollarSign className="w-3 h-3" />
+              {q.adminEditedBy ? `Оферта (ред. от админ)` : `Оферта от работник`}
             </div>
-          )}
-          {q.note && <p className="text-xs text-amber-800 italic">"{q.note}"</p>}
-          <div className="flex gap-1.5 pt-0.5">
-            <Button size="sm" className="flex-1 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs h-6 px-2"
-              disabled={acceptMutation.isPending || rejectMutation.isPending}
-              onClick={() => acceptMutation.mutate({ quoteId: q.id })}>
-              <CheckCheck className="w-3 h-3 mr-1" />Приеми
-            </Button>
-            <Button size="sm" variant="outline" className="flex-1 rounded-lg text-red-600 border-red-200 hover:bg-red-50 text-xs h-6 px-2"
-              disabled={acceptMutation.isPending || rejectMutation.isPending}
-              onClick={() => rejectMutation.mutate({ quoteId: q.id })}>
-              <X className="w-3 h-3 mr-1" />Отхвърли
-            </Button>
+            {editingId !== q.id && (
+              <Button size="sm" variant="ghost" className="h-5 px-1 text-xs text-amber-700"
+                onClick={() => startEdit(q)}>
+                <Pencil className="w-3 h-3 mr-0.5" />Редактирай
+              </Button>
+            )}
           </div>
+
+          {editingId === q.id ? (
+            <div className="space-y-1.5">
+              <div className="flex gap-1.5">
+                <Input value={editPrice} onChange={e => setEditPrice(e.target.value)}
+                  placeholder="Цена (лв.)" className="h-7 text-xs flex-1" />
+                <Input value={editDate} onChange={e => setEditDate(e.target.value)}
+                  placeholder="Дата (незадълж.)" className="h-7 text-xs flex-1" />
+              </div>
+              <Input value={editNote} onChange={e => setEditNote(e.target.value)}
+                placeholder="Бележка" className="h-7 text-xs" />
+              <div className="flex gap-1.5">
+                <Button size="sm" className="flex-1 h-6 text-xs bg-blue-600 hover:bg-blue-700 text-white"
+                  disabled={editMutation.isPending}
+                  onClick={() => editMutation.mutate({ quoteId: q.id, price: editPrice, note: editNote || undefined, proposedDate: editDate || undefined })}>
+                  <Save className="w-3 h-3 mr-1" />Запази
+                </Button>
+                <Button size="sm" variant="outline" className="flex-1 h-6 text-xs"
+                  onClick={() => setEditingId(null)}>
+                  <X className="w-3 h-3 mr-1" />Откажи
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-amber-900">{q.price} лв.</span>
+                <span className="text-xs text-amber-700">{q.workerName}</span>
+              </div>
+              {q.proposedDate && (
+                <div className="flex items-center gap-1 text-xs text-amber-700">
+                  <CalendarDays className="w-3 h-3" />
+                  {new Date(q.proposedDate).toLocaleString("bg-BG", { dateStyle: "medium", timeStyle: "short" })}
+                </div>
+              )}
+              {q.note && <p className="text-xs text-amber-800 italic">"{q.note}"</p>}
+              {q.adminEditedBy && (
+                <p className="text-xs text-blue-600">Редактирано от: {q.adminEditedBy}</p>
+              )}
+              <div className="flex gap-1.5 pt-0.5">
+                <Button size="sm" className="flex-1 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs h-6 px-2"
+                  disabled={acceptMutation.isPending || rejectMutation.isPending}
+                  onClick={() => acceptMutation.mutate({ quoteId: q.id })}>
+                  <CheckCheck className="w-3 h-3 mr-1" />Приеми
+                </Button>
+                <Button size="sm" variant="outline" className="flex-1 rounded-lg text-red-600 border-red-200 hover:bg-red-50 text-xs h-6 px-2"
+                  disabled={acceptMutation.isPending || rejectMutation.isPending}
+                  onClick={() => rejectMutation.mutate({ quoteId: q.id })}>
+                  <X className="w-3 h-3 mr-1" />Отхвърли
+                </Button>
+              </div>
+            </>
+          )}
         </div>
       ))}
       {/* Show accepted/rejected quotes as status badges */}
       {quotes.filter((q: any) => q.status !== "pending").map((q: any) => (
         <div key={q.id} className="flex items-center gap-2 text-xs text-gray-500">
           <DollarSign className="w-3 h-3" />
-          <span>{q.workerName}: {q.price} лв.</span>
+          <span>{q.workerName}: {q.price} лв.{q.adminEditedBy ? " (ред. от админ)" : ""}</span>
           <Badge variant="outline" className={q.status === "accepted" ? "text-green-700 border-green-300" : "text-gray-400"}>
             {q.status === "accepted" ? "Приета" : "Отхвърлена"}
           </Badge>
         </div>
       ))}
+    </div>
+  );
+}
+
+// ─── AdminChatPanel (bidirectional chat for admin) ─────────────────────────────
+function AdminChatPanel({ requestId, adminToken }: { requestId: number; adminToken: string }) {
+  const utils = trpc.useUtils();
+  const [msg, setMsg] = useState("");
+  const { data: messages = [], isLoading } = trpc.requestMessages.getForRequest.useQuery(
+    { requestId, adminToken },
+    { refetchInterval: 10000 },
+  );
+  const sendMutation = trpc.requestMessages.sendAsAdmin.useMutation({
+    onSuccess: () => {
+      setMsg("");
+      utils.requestMessages.getForRequest.invalidate({ requestId, adminToken });
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  if (isLoading) return null;
+  if (messages.length === 0 && !msg) return null;
+
+  const roleLabel: Record<string, string> = { client: "Клиент", worker: "Работник", admin: "Админ" };
+  const roleBg: Record<string, string> = { client: "bg-blue-50 border-blue-200", worker: "bg-green-50 border-green-200", admin: "bg-purple-50 border-purple-200" };
+
+  return (
+    <div className="mt-2 border border-gray-200 rounded-lg overflow-hidden">
+      <div className="bg-gray-50 px-2 py-1 text-xs font-semibold text-gray-600 flex items-center gap-1">
+        <Send className="w-3 h-3" />Чат ({messages.length})
+      </div>
+      {messages.length > 0 && (
+        <div className="max-h-40 overflow-y-auto p-2 space-y-1.5">
+          {messages.map((m: any) => (
+            <div key={m.id} className={`rounded p-1.5 border text-xs ${roleBg[m.senderRole] ?? "bg-gray-50 border-gray-200"}`}>
+              <span className="font-semibold">{roleLabel[m.senderRole] ?? m.senderRole}{m.senderName ? ` (${m.senderName})` : ""}: </span>
+              <span>{m.message}</span>
+              <span className="block text-gray-400 text-[10px] mt-0.5">{new Date(m.createdAt).toLocaleString("bg-BG")}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="flex gap-1.5 p-2 border-t border-gray-100">
+        <Input value={msg} onChange={e => setMsg(e.target.value)} placeholder="Напишете съобщение..." className="h-7 text-xs flex-1"
+          onKeyDown={e => { if (e.key === "Enter" && msg.trim()) sendMutation.mutate({ requestId, message: msg.trim() }); }} />
+        <Button size="sm" className="h-7 px-2 text-xs bg-purple-600 hover:bg-purple-700 text-white"
+          disabled={!msg.trim() || sendMutation.isPending}
+          onClick={() => sendMutation.mutate({ requestId, message: msg.trim() })}>
+          <Send className="w-3 h-3" />
+        </Button>
+      </div>
     </div>
   );
 }

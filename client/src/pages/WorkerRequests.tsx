@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -30,6 +30,75 @@ const TYPE_LABELS_BG: Record<string, string> = {
   nonstandard: "Нестандартен",
   construction: "Строителен",
 };
+
+/** Bidirectional chat panel for worker */
+function WorkerChatPanel({ requestId, deviceToken, isBg }: { requestId: number; deviceToken: string; isBg: boolean }) {
+  const utils = trpc.useUtils();
+  const [msg, setMsg] = React.useState("");
+  const { data: messages = [], isLoading } = trpc.requestMessages.getForRequest.useQuery(
+    { requestId, deviceToken },
+    { refetchInterval: 15000 },
+  );
+  const sendMutation = trpc.requestMessages.sendAsWorker.useMutation({
+    onSuccess: () => {
+      setMsg("");
+      utils.requestMessages.getForRequest.invalidate({ requestId, deviceToken });
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  if (isLoading) return null;
+  if (messages.length === 0 && !msg) return null;
+
+  const roleLabel: Record<string, string> = {
+    client: isBg ? "Клиент" : "Client",
+    worker: isBg ? "Вие" : "You",
+    admin: isBg ? "Администратор" : "Admin",
+  };
+  const roleBg: Record<string, string> = {
+    client: "bg-blue-50 border-blue-200",
+    worker: "bg-green-50 border-green-200",
+    admin: "bg-purple-50 border-purple-200",
+  };
+
+  return (
+    <div className="mt-2 border border-gray-200 rounded-xl overflow-hidden">
+      <div className="bg-gray-50 px-2 py-1 text-xs font-semibold text-gray-600 flex items-center gap-1">
+        <Send className="w-3 h-3" />{isBg ? `Съобщения (${messages.length})` : `Messages (${messages.length})`}
+      </div>
+      {messages.length > 0 && (
+        <div className="max-h-40 overflow-y-auto p-2 space-y-1.5">
+          {messages.map((m: any) => (
+            <div key={m.id} className={`rounded-lg p-1.5 border text-xs ${roleBg[m.senderRole] ?? "bg-gray-50 border-gray-200"}`}>
+              <span className="font-semibold">{roleLabel[m.senderRole] ?? m.senderRole}: </span>
+              <span>{m.message}</span>
+              <span className="block text-gray-400 text-[10px] mt-0.5">
+                {new Date(m.createdAt).toLocaleString(isBg ? "bg-BG" : "en-GB")}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="flex gap-1.5 p-2 border-t border-gray-100">
+        <Input
+          value={msg}
+          onChange={e => setMsg(e.target.value)}
+          placeholder={isBg ? "Напишете съобщение..." : "Type a message..."}
+          className="h-7 text-xs flex-1"
+          onKeyDown={e => { if (e.key === "Enter" && msg.trim()) sendMutation.mutate({ requestId, deviceToken, message: msg.trim() }); }}
+        />
+        <Button
+          size="sm"
+          className="h-7 px-2 text-xs bg-green-600 hover:bg-green-700 text-white"
+          disabled={!msg.trim() || sendMutation.isPending}
+          onClick={() => sendMutation.mutate({ requestId, deviceToken, message: msg.trim() })}
+        >
+          <Send className="w-3 h-3" />
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 export default function WorkerRequests() {
   const [, navigate] = useLocation();
@@ -288,6 +357,11 @@ export default function WorkerRequests() {
                                                       className="rounded-xl max-h-36 w-full object-cover border border-gray-200 hover:opacity-90 transition-opacity"
                                                     />
                                                   </a>
+                                                )}
+
+                                                {/* Worker chat panel */}
+                                                {(req.type === "nonstandard" || req.type === "construction") && (
+                                                  <WorkerChatPanel requestId={req.id} deviceToken={getDeviceToken()} isBg={isBg} />
                                                 )}
 
                                                 {/* Contact */}

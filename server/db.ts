@@ -902,3 +902,41 @@ export async function setWorkerSubscriptionPref(workerId: number, acceptsSubscri
   await db.insert(workerSubscriptionPrefs).values({ workerId, acceptsSubscriptions })
     .onDuplicateKeyUpdate({ set: { acceptsSubscriptions } });
 }
+// ─── Request Messages (bidirectional chat thread) ─────────────────────────────
+
+import { requestMessages, InsertRequestMessage, RequestMessage } from "../drizzle/schema";
+
+export async function getMessagesByRequestId(requestId: number): Promise<RequestMessage[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(requestMessages)
+    .where(eq(requestMessages.requestId, requestId))
+    .orderBy(asc(requestMessages.createdAt));
+}
+
+export async function addRequestMessage(data: InsertRequestMessage): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(requestMessages).values(data);
+  return (result[0] as any).insertId ?? 0;
+}
+
+// ─── Worker Quotes (admin edit) ───────────────────────────────────────────────
+
+export async function adminEditQuote(
+  quoteId: number,
+  price: string,
+  note: string | null,
+  proposedDate: string | null,
+  adminName: string,
+): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(workerQuotes).set({
+    price,
+    note,
+    proposedDate,
+    adminEditedBy: adminName,
+    adminEditedAt: new Date(),
+  }).where(eq(workerQuotes.id, quoteId));
+}

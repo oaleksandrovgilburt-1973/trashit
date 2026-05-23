@@ -9,8 +9,9 @@ import { toast } from "sonner";
 import {
   Trash2, Recycle, Package, HardHat,
   Clock, CheckCircle2, XCircle, Loader2,
-  ChevronLeft, Plus, MapPin, DollarSign, CalendarDays, CheckCheck, X, CreditCard
+  ChevronLeft, Plus, MapPin, DollarSign, CalendarDays, CheckCheck, X, CreditCard, Send
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 const TYPE_LABELS: Record<string, { bg: string; en: string; icon: React.ReactNode; color: string }> = {
   standard: { bg: "Стандартен", en: "Standard", icon: <Trash2 className="w-4 h-4" />, color: "bg-green-100 text-green-700" },
@@ -27,6 +28,75 @@ const STATUS_LABELS: Record<string, { bg: string; en: string; icon: React.ReactN
   pending_payment: { bg: "Очаква плащане", en: "Awaiting payment", icon: <CreditCard className="w-4 h-4" />, color: "bg-purple-100 text-purple-700" },
   paid: { bg: "Платено", en: "Paid", icon: <CheckCircle2 className="w-4 h-4" />, color: "bg-emerald-100 text-emerald-700" },
 };
+
+/** Bidirectional chat panel for client */
+function ClientChatPanel({ requestId, isBg }: { requestId: number; isBg: boolean }) {
+  const utils = trpc.useUtils();
+  const [msg, setMsg] = React.useState("");
+  const { data: messages = [], isLoading } = trpc.requestMessages.getForRequest.useQuery(
+    { requestId },
+    { refetchInterval: 15000 },
+  );
+  const sendMutation = trpc.requestMessages.sendAsClient.useMutation({
+    onSuccess: () => {
+      setMsg("");
+      utils.requestMessages.getForRequest.invalidate({ requestId });
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  if (isLoading) return null;
+  if (messages.length === 0 && !msg) return null;
+
+  const roleLabel: Record<string, string> = {
+    client: isBg ? "Вие" : "You",
+    worker: isBg ? "Работник" : "Worker",
+    admin: isBg ? "Администратор" : "Admin",
+  };
+  const roleBg: Record<string, string> = {
+    client: "bg-blue-50 border-blue-200",
+    worker: "bg-green-50 border-green-200",
+    admin: "bg-purple-50 border-purple-200",
+  };
+
+  return (
+    <div className="mt-3 border border-gray-200 rounded-xl overflow-hidden">
+      <div className="bg-gray-50 px-3 py-1.5 text-xs font-semibold text-gray-600 flex items-center gap-1">
+        <Send className="w-3 h-3" />{isBg ? `Съобщения (${messages.length})` : `Messages (${messages.length})`}
+      </div>
+      {messages.length > 0 && (
+        <div className="max-h-48 overflow-y-auto p-3 space-y-2">
+          {messages.map((m: any) => (
+            <div key={m.id} className={`rounded-lg p-2 border text-xs ${roleBg[m.senderRole] ?? "bg-gray-50 border-gray-200"}`}>
+              <span className="font-semibold">{roleLabel[m.senderRole] ?? m.senderRole}: </span>
+              <span>{m.message}</span>
+              <span className="block text-gray-400 text-[10px] mt-0.5">
+                {new Date(m.createdAt).toLocaleString(isBg ? "bg-BG" : "en-GB")}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="flex gap-2 p-2 border-t border-gray-100">
+        <Input
+          value={msg}
+          onChange={e => setMsg(e.target.value)}
+          placeholder={isBg ? "Напишете съобщение..." : "Type a message..."}
+          className="h-8 text-xs flex-1"
+          onKeyDown={e => { if (e.key === "Enter" && msg.trim()) sendMutation.mutate({ requestId, message: msg.trim() }); }}
+        />
+        <Button
+          size="sm"
+          className="h-8 px-2 text-xs bg-green-600 hover:bg-green-700 text-white"
+          disabled={!msg.trim() || sendMutation.isPending}
+          onClick={() => sendMutation.mutate({ requestId, message: msg.trim() })}
+        >
+          <Send className="w-3 h-3" />
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 /** Inline quote panel for a single request */
 function QuotePanel({ requestId, isBg, onAction }: { requestId: number; isBg: boolean; onAction: () => void }) {
