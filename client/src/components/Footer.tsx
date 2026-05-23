@@ -1,6 +1,6 @@
 import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
-import { Mail, Phone } from "lucide-react";
+import { Mail, } from "lucide-react";
 
 export default function Footer() {
   const { t } = useLanguage();
@@ -22,14 +22,7 @@ export default function Footer() {
           >
             <Mail className="w-3 h-3" />
             <span className="font-medium">{email}</span>
-          </a>
-          <a
-            href={`tel:${phone.replace(/\s/g, "")}`}
-            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
-          >
-            <Phone className="w-3 h-3" />
-            <span className="font-medium">{phone}</span>
-          </a>
+          </a>          
         </div>
       </div>
     </footer>
