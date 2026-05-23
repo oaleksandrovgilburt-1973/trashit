@@ -65,7 +65,6 @@ function WorkerChatPanel({ requestId, deviceToken, isBg }: { requestId: number; 
       <div className="bg-gray-50 px-2 py-1 text-xs font-semibold text-gray-600 flex items-center gap-1">
         <Send className="w-3 h-3" />{isBg ? `Съобщения (${messages.length})` : `Messages (${messages.length})`}
       </div>
-      {messages.length > 0 && (
         <div className="max-h-40 overflow-y-auto p-2 space-y-1.5">
           {messages.map((m: any) => (
             <div key={m.id} className={`rounded-lg p-1.5 border text-xs ${roleBg[m.senderRole] ?? "bg-gray-50 border-gray-200"}`}>
@@ -77,7 +76,6 @@ function WorkerChatPanel({ requestId, deviceToken, isBg }: { requestId: number; 
             </div>
           ))}
         </div>
-      )}
       <div className="flex gap-1.5 p-2 border-t border-gray-100">
         <Input
           value={msg}
