@@ -339,6 +339,11 @@ export default function MyRequests() {
                     />
                   </a>
                 )}
+                
+                {/* Bidirectional chat for nonstandard/construction */}
+                {(req.type === "nonstandard" || req.type === "construction") && (
+                  <ClientChatPanel requestId={req.id} isBg={isBg} />
+                )}
 
                 {/* Assigned worker info + expected date */}
                 {req.status === "assigned" && (
