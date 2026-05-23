@@ -391,3 +391,17 @@ export type WorkerSubscriptionPref = typeof workerSubscriptionPrefs.$inferSelect
 
 export type SubAdmin = typeof subAdmins.$inferSelect;
 export type InsertSubAdmin = typeof subAdmins.$inferInsert;
+
+// ─── Request Messages (bidirectional chat thread per request) ─────────────────
+export const requestMessages = mysqlTable("request_messages", {
+  id: int("id").autoincrement().primaryKey(),
+  requestId: int("requestId").notNull(),
+  senderRole: mysqlEnum("senderRole", ["client", "worker", "admin"]).notNull(),
+  senderName: varchar("senderName", { length: 128 }),
+  senderOpenId: varchar("senderOpenId", { length: 64 }),
+  message: text("message").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type RequestMessage = typeof requestMessages.$inferSelect;
+export type InsertRequestMessage = typeof requestMessages.$inferInsert;
