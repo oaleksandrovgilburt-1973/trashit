@@ -170,9 +170,13 @@ export default function Home() {
               </div>
             )}
             {user && (
-              <div className="mt-4 flex items-center gap-2">
-                <Leaf className="w-4 h-4 text-white/70" />
-                <p className="text-white/70 text-sm">{t.appTagline}</p>
+              <div className="mt-4 space-y-1">
+                <p className="text-white font-bold text-lg leading-snug">"Боклукът излиза.<br/>Ти си оставаш вкъщи."</p>
+                <p className="text-white/75 text-sm leading-snug">TRASHit е твоята модерна услуга за лесно и удобно изхвърляне на отпадъци от дома. Спести време и усилия – ние се грижим за всичко.</p>
+                <div className="flex items-center gap-2">
+                  <Leaf className="w-4 h-4 text-white/70" />
+                  <p className="text-white/70 text-sm">{t.appTagline}</p>
+                </div>
               </div>
             )}
             
@@ -196,35 +200,32 @@ export default function Home() {
           )}
           <h2 className="text-lg font-bold text-foreground mb-4">{t.mainMenuTitle}</h2>
 
-<div className="space-y-2">
+<div className="grid grid-cols-2 gap-3">
             {services.map((service) => (
               service.active ? (
                 <Link key={service.href} href={service.href}>
-                  <div className="flex items-center gap-3 p-4 rounded-2xl bg-primary/10 border border-primary/20 hover:bg-primary/20 hover:border-primary/40 transition-all cursor-pointer group">
+                  <div className="flex flex-col gap-2 p-4 rounded-2xl bg-primary/10 border border-primary/20 hover:bg-primary/20 hover:border-primary/40 transition-all cursor-pointer group h-full">
                     <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center group-hover:bg-primary/25 transition-colors flex-shrink-0">
                       {service.icon}
                     </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-foreground">{service.label}</p>
-                      {descMap[service.key] && (
-                        <p className="text-sm text-gray-700 mt-0.5">{descMap[service.key]}</p>
-                      )}
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                    <p className="text-sm font-semibold text-foreground leading-snug">{service.label}</p>
+                    {descMap[service.key] && (
+                      <p className="text-xs text-gray-500 leading-snug">{descMap[service.key]}</p>
+                    )}
+                    <ChevronRight className="w-4 h-4 text-primary mt-auto self-end" />
                   </div>
                 </Link>
               ) : (
-                <div key={service.href} className="flex items-center gap-3 p-4 rounded-2xl bg-gray-100 border border-gray-200 opacity-60 cursor-not-allowed">
+                <div key={service.href} className="flex flex-col gap-2 p-4 rounded-2xl bg-gray-100 border border-gray-200 opacity-50 cursor-not-allowed h-full">
                   <div className="w-10 h-10 rounded-xl bg-gray-200 flex items-center justify-center flex-shrink-0">
                     {service.icon}
                   </div>
-                  <p className="flex-1 text-sm font-semibold text-gray-400">{service.label}</p>
-                  <span className="text-xs text-gray-400 font-medium">Очаквайте скоро</span>
+                  <p className="text-sm font-semibold text-gray-400 leading-snug">{service.label}</p>
+                  <span className="text-xs text-gray-400 mt-auto">Очаквайте скоро</span>
                 </div>
               )
             ))}
           </div>
-
           {/* Guest CTA */}
           {!user && !loading && (
             <div className="mt-6 p-5 rounded-2xl bg-secondary border border-border text-center">
