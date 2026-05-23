@@ -48,7 +48,6 @@ function WorkerChatPanel({ requestId, deviceToken, isBg }: { requestId: number; 
   });
 
   if (isLoading) return null;
-  if (messages.length === 0 && !msg) return null;
 
   const roleLabel: Record<string, string> = {
     client: isBg ? "Клиент" : "Client",
