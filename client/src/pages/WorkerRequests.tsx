@@ -120,15 +120,14 @@ export default function WorkerRequests() {
   };
 
   const deviceToken = getDeviceToken();
-
-  const { data: rawData, isLoading, refetch } = trpc.workerDistricts.getRequestsForMyDistricts.useQuery(
+  const { data, isLoading, refetch } = trpc.workerDistricts.getRequestsForMyDistricts.useQuery(
   { deviceToken },
-  { enabled: !!deviceToken }
+  { enabled: !!deviceToken, refetchInterval: 30000 },
 );
-  const grouped = rawData ?? {};
+  const grouped = data ?? {};
   const totalPending = Object.values(grouped).reduce(
-  (sum, bloks) => sum + Object.values(bloks).reduce(
-    (s, vhods) => s + Object.values(vhods).reduce((ss, reqs) => ss + reqs.length, 0), 0
+  (sum, bloks) => sum + Object.values(bloks as Record<string, Record<string, unknown[]>>).reduce(
+    (s, vhods) => s + Object.values(vhods).reduce((ss, reqs) => ss + (reqs as unknown[]).length, 0), 0
   ), 0
 );
 
@@ -141,7 +140,7 @@ export default function WorkerRequests() {
     onError: (e) => toast.error(e.message),
   });
 
-  const completeMutation = trpc.requests.complete.useMutation({
+  const completeMutation = trpc.workerDistricts.completeRequest.useMutation({
     onSuccess: () => {
       toast.success(isBg ? "Заявката е приключена" : "Request completed");
       refetch();
@@ -399,7 +398,7 @@ export default function WorkerRequests() {
                                                 <Button
                                                   size="sm"
                                                   variant="outline"
-                                                  onClick={() => completeMutation.mutate({ id: req.id })}
+                                                  onClick={() => completeMutation.mutate({ requestId: req.id, deviceToken: getDeviceToken() })}
                                                   disabled={completeMutation.isPending}
                                                   className="rounded-xl text-xs h-7 px-2"
                                                 >
