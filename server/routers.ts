@@ -733,13 +733,14 @@ export const appRouter = router({
 
     // Worker/Admin: list all pending requests grouped
     listPending: protectedProcedure.query(async ({ ctx }) => {
-      if (ctx.user.role !== "worker" && ctx.user.role !== "admin") {
-        throw new TRPCError({ code: "FORBIDDEN", message: "Достъпът е забранен." });
-      }
-      const all = await getPendingRequests();
+  if (ctx.user.role !== "worker" && ctx.user.role !== "admin") {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Достъпът е забранен." });
+  }
+  const all = await getAllRequests();
+  const filtered = all.filter(r => r.status === "pending" || r.status === "assigned");
       // Group: district -> blok -> vhod -> [requests]
-      const grouped: Record<string, Record<string, Record<string, typeof all>>> = {};
-      for (const r of all) {
+      const grouped: Record<string, Record<string, Record<string, typeof filtered>>> = {};
+  for (const r of filtered) {
         if (!grouped[r.district]) grouped[r.district] = {};
         if (!grouped[r.district][r.blok]) grouped[r.district][r.blok] = {};
         if (!grouped[r.district][r.blok][r.vhod]) grouped[r.district][r.blok][r.vhod] = [];
