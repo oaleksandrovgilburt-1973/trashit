@@ -121,6 +121,7 @@ export default function WorkerRequests() {
   };
 
   const [deviceToken] = useState(() => getDeviceToken());
+  console.log("deviceToken:", deviceToken);
   const { data, isLoading, refetch } = trpc.workerDistricts.getRequestsForMyDistricts.useQuery(
   { deviceToken },
   { enabled: !!deviceToken, refetchInterval: 30000 },
