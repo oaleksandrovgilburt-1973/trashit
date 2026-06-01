@@ -119,7 +119,18 @@ export default function WorkerRequests() {
     } catch { return ""; }
   };
 
-  const { data, isLoading, refetch } = trpc.requests.listPending.useQuery();
+  const deviceToken = getDeviceToken();
+
+  const { data: groupedData, isLoading, refetch } = trpc.workerDistricts.getRequestsForMyDistricts.useQuery(
+  { deviceToken },
+  { enabled: !!deviceToken }
+);
+  const grouped = groupedData ?? {};
+  const totalPending = Object.values(grouped).reduce(
+  (sum, bloks) => sum + Object.values(bloks).reduce(
+    (s, vhods) => s + Object.values(vhods).reduce((ss, reqs) => ss + reqs.length, 0), 0
+  ), 0
+);
 
   const quoteMutation = trpc.workerQuotes.send.useMutation({
     onSuccess: () => {
@@ -196,9 +207,6 @@ export default function WorkerRequests() {
       </MainLayout>
     );
   }
-
-  const grouped = data?.grouped ?? {};
-  const totalPending = data?.raw?.length ?? 0;
 
   return (
     <MainLayout showFooter>
