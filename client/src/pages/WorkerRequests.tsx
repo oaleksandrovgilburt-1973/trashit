@@ -366,8 +366,8 @@ export default function WorkerRequests() {
 
                                                 {/* Worker chat panel */}
                                                 {(req.type === "nonstandard" || req.type === "construction") && (
-                                                  <WorkerChatPanel requestId={req.id} deviceToken={getDeviceToken()} isBg={isBg} />
-                                                )}
+  <div className="text-xs text-red-500">Chat: {req.type} / {req.id}</div>
+)}
 
                                                 {/* Contact */}
                                                 <div className="flex items-center gap-3 mt-2">
