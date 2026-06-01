@@ -16,7 +16,6 @@ import {
   DollarSign, Send,
 } from "lucide-react";
 import { sortBgEntrances } from "../../../shared/bgAlphabet";
-import { useState } from "react";
 
 const TYPE_ICONS: Record<string, React.ReactNode> = {
   standard: <Trash2 className="w-4 h-4" />,
