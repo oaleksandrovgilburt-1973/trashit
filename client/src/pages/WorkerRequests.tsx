@@ -365,8 +365,9 @@ export default function WorkerRequests() {
                                                 )}
 
                                                 {/* Worker chat panel */}
-                                                {(req.type === "nonstandard" || req.type === "construction") && (
-  <div className="text-xs text-red-500">Chat: {req.type} / {req.id}</div>
+<div className="text-xs text-red-500">Type: {req.type} / ID: {req.id}</div>
+{(req.type === "nonstandard" || req.type === "construction") && (
+  <WorkerChatPanel requestId={req.id} deviceToken={getDeviceToken()} isBg={isBg} />
 )}
 
                                                 {/* Contact */}
