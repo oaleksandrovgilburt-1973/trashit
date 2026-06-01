@@ -121,9 +121,9 @@ export default function WorkerRequests() {
 
   const deviceToken = getDeviceToken();
 
-  const { data: rawData, isLoading, refetch } = trpc.requests.getRequestsForMyDistricts.useQuery(
+  const { data: rawData, isLoading, refetch } = trpc.workerDistricts.getRequestsForMyDistricts.useQuery(
   { deviceToken },
-  { enabled: !!deviceToken },
+  { enabled: !!deviceToken }
 );
   const grouped = rawData ?? {};
   const totalPending = Object.values(grouped).reduce(
