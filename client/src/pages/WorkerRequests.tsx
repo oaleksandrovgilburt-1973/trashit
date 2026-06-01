@@ -65,6 +65,7 @@ function WorkerChatPanel({ requestId, deviceToken, isBg }: { requestId: number; 
       <div className="bg-gray-50 px-2 py-1 text-xs font-semibold text-gray-600 flex items-center gap-1">
         <Send className="w-3 h-3" />{isBg ? `Съобщения (${messages.length})` : `Messages (${messages.length})`}
       </div>
+      {messages.length > 0 && (
         <div className="max-h-40 overflow-y-auto p-2 space-y-1.5">
           {messages.map((m: any) => (
             <div key={m.id} className={`rounded-lg p-1.5 border text-xs ${roleBg[m.senderRole] ?? "bg-gray-50 border-gray-200"}`}>
@@ -76,6 +77,7 @@ function WorkerChatPanel({ requestId, deviceToken, isBg }: { requestId: number; 
             </div>
           ))}
         </div>
+      )}
       <div className="flex gap-1.5 p-2 border-t border-gray-100">
         <Input
           value={msg}
@@ -120,17 +122,16 @@ export default function WorkerRequests() {
   };
 
   const [deviceToken] = useState(() => getDeviceToken());
-  console.log("deviceToken:", deviceToken);
   const { data, isLoading, refetch } = trpc.workerDistricts.getRequestsForMyDistricts.useQuery(
-  { deviceToken },
-  { enabled: !!deviceToken, refetchInterval: 30000 },
-);
+    { deviceToken },
+    { enabled: !!deviceToken, refetchInterval: 30000 },
+  );
   const grouped = data ?? {};
   const totalPending = Object.values(grouped).reduce(
-  (sum, bloks) => sum + Object.values(bloks as Record<string, Record<string, unknown[]>>).reduce(
-    (s, vhods) => s + Object.values(vhods).reduce((ss, reqs) => ss + (reqs as unknown[]).length, 0), 0
-  ), 0
-);
+    (sum, bloks) => sum + Object.values(bloks as Record<string, Record<string, unknown[]>>).reduce(
+      (s, vhods) => s + Object.values(vhods).reduce((ss, reqs) => ss + (reqs as unknown[]).length, 0), 0
+    ), 0
+  );
 
   const quoteMutation = trpc.workerQuotes.send.useMutation({
     onSuccess: () => {
@@ -365,10 +366,9 @@ export default function WorkerRequests() {
                                                 )}
 
                                                 {/* Worker chat panel */}
-<div className="text-xs text-red-500">Type: {req.type} / ID: {req.id}</div>
-{(req.type === "nonstandard" || req.type === "construction") && (
-  <WorkerChatPanel requestId={req.id} deviceToken={getDeviceToken()} isBg={isBg} />
-)}
+                                                {(req.type === "nonstandard" || req.type === "construction") && (
+                                                  <WorkerChatPanel requestId={req.id} deviceToken={deviceToken} isBg={isBg} />
+                                                )}
 
                                                 {/* Contact */}
                                                 <div className="flex items-center gap-3 mt-2">
