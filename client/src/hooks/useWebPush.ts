@@ -27,6 +27,14 @@ export function useWebPush() {
         const permission = await Notification.requestPermission();
         if (permission !== "granted") return;
 
+        // Unregister firebase-messaging-sw.js if still active
+        const allRegs = await navigator.serviceWorker.getRegistrations();
+        for (const r of allRegs) {
+          if (r.active?.scriptURL?.includes("firebase-messaging-sw")) {
+            await r.unregister();
+          }
+        }
+
         const reg = await navigator.serviceWorker.ready;
 
         // Always unsubscribe any existing subscription (could be old FCM one)
