@@ -954,8 +954,7 @@ export async function savePushSubscription(
   const db = await getDb();
   if (!db) return;
   await db.insert(pushSubscriptions)
-    .values({ ownerKey, ownerType, endpoint, p256dh, auth })
-    .onDuplicateKeyUpdate({ set: { ownerKey, ownerType, p256dh, auth } });
+    .values({ ownerKey, ownerType, endpoint, p256dh, auth });
 }
 
 export async function getPushSubscriptionsByOwner(
