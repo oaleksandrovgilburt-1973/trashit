@@ -953,8 +953,8 @@ export async function savePushSubscription(
 ): Promise<void> {
   const db = await getDb();
   if (!db) return;
-  await db.insert(pushSubscriptions)
-    .values({ ownerKey, ownerType, endpoint, p256dh, auth });
+  await db.delete(pushSubscriptions).where(eq(pushSubscriptions.endpoint, endpoint));
+  await db.insert(pushSubscriptions).values({ ownerKey, ownerType, endpoint, p256dh, auth });
 }
 
 export async function getPushSubscriptionsByOwner(
