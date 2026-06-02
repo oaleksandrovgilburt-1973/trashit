@@ -39,9 +39,16 @@ export function useWebPush() {
 
         // Always unsubscribe any existing subscription (could be old FCM one)
         const existing = await reg.pushManager.getSubscription();
-        if (existing) {
-          await existing.unsubscribe();
-        }
+if (existing) {
+  const json = existing.toJSON() as { endpoint: string; keys: { p256dh: string; auth: string } };
+  await subscribeUser.mutateAsync({
+    endpoint: json.endpoint,
+    p256dh: json.keys.p256dh,
+    auth: json.keys.auth,
+  });
+  subscribed.current = true;
+  return;
+}
 
         // Create fresh VAPID subscription
         const sub = await reg.pushManager.subscribe({
