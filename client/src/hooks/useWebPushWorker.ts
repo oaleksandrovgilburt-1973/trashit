@@ -30,15 +30,7 @@ export function useWebPushWorker(deviceToken: string | null) {
 
         const existing = await reg.pushManager.getSubscription();
         if (existing) {
-          const json = existing.toJSON() as { endpoint: string; keys: { p256dh: string; auth: string } };
-          await subscribeWorker.mutateAsync({
-            deviceToken,
-            endpoint: json.endpoint,
-            p256dh: json.keys.p256dh,
-            auth: json.keys.auth,
-          });
-          subscribed.current = true;
-          return;
+          await existing.unsubscribe();
         }
 
         const sub = await reg.pushManager.subscribe({

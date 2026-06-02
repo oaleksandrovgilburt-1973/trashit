@@ -33,15 +33,7 @@ export function useWebPush() {
         // Check if already subscribed
         const existing = await reg.pushManager.getSubscription();
         if (existing) {
-          // Save/refresh in DB (idempotent upsert)
-          const json = existing.toJSON() as { endpoint: string; keys: { p256dh: string; auth: string } };
-          await subscribeUser.mutateAsync({
-            endpoint: json.endpoint,
-            p256dh: json.keys.p256dh,
-            auth: json.keys.auth,
-          });
-          subscribed.current = true;
-          return;
+          await existing.unsubscribe();
         }
 
         // Create new subscription
