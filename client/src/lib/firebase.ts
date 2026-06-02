@@ -80,7 +80,11 @@ export async function requestFCMToken(): Promise<string | null> {
 
   try {
     // Register SW and wait until it is active
-    const activeReg = await navigator.serviceWorker.ready;
+    const registration = await navigator.serviceWorker.register(
+  "/firebase-messaging-sw.js",
+  { scope: "/" }
+);
+const activeReg = await waitForSWActive(registration);
 
     const messaging = getMessagingInstance();
     if (!messaging) return null;

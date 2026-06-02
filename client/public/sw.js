@@ -1,25 +1,4 @@
-importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js');
 
-firebase.initializeApp({
-  apiKey: "AIzaSyAKViTJgZqQ_ffJQ3j0LYmnyNcZAFU8Itg",
-  authDomain: "trashit-c02a2.firebaseapp.com",
-  projectId: "trashit-c02a2",
-  messagingSenderId: "1007790802752",
-  appId: "1:1007790802752:web:b5915feb6871267a769ca5",
-});
-const messaging = firebase.messaging();
-messaging.onBackgroundMessage((payload) => {
-  const title = (payload.notification?.title) || (payload.data?.title) || 'TRASHit';
-  const body  = (payload.notification?.body)  || (payload.data?.body)  || '';
-  const url   = payload.data?.url || '/';
-  self.registration.showNotification(title, {
-    body,
-    icon: '/icon-192.png',
-    badge: '/icon-192.png',
-    data: { url, ...(payload.data || {}) },
-  });
-});
 
 // TRASHit Service Worker v3.0
 // IMPORTANT: Bump CACHE_VERSION on every deploy to force cache invalidation.
