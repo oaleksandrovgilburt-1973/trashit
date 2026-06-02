@@ -1,6 +1,9 @@
 /**
  * useWebPushWorker — subscribes a worker device to Web Push (VAPID) notifications.
  * Must be called after worker login with a valid deviceToken.
+ *
+ * If an existing subscription is found (e.g. old FCM one), it is unsubscribed
+ * first so a fresh VAPID subscription is always created.
  */
 import { useEffect, useRef } from "react";
 import { trpc } from "@/lib/trpc";
@@ -28,11 +31,13 @@ export function useWebPushWorker(deviceToken: string | null) {
 
         const reg = await navigator.serviceWorker.ready;
 
+        // Always unsubscribe any existing subscription (could be old FCM one)
         const existing = await reg.pushManager.getSubscription();
         if (existing) {
           await existing.unsubscribe();
         }
 
+        // Create fresh VAPID subscription
         const sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(publicKey).buffer as ArrayBuffer,

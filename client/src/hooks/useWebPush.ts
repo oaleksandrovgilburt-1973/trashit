@@ -2,8 +2,8 @@
  * useWebPush — subscribes the current user to Web Push (VAPID) notifications
  * and saves the subscription to the backend via tRPC.
  *
- * Replaces useFCMNotifications for logged-in users.
- * Must be called only when the user is logged in.
+ * If an existing subscription is found (e.g. old FCM one), it is unsubscribed
+ * first so a fresh VAPID subscription is always created.
  */
 import { useEffect, useRef } from "react";
 import { trpc } from "@/lib/trpc";
@@ -13,7 +13,6 @@ export function useWebPush() {
     staleTime: Infinity,
   });
   const subscribeUser = trpc.webPush.subscribeUser.useMutation();
-  const unsubscribe = trpc.webPush.unsubscribe.useMutation();
   const subscribed = useRef(false);
 
   useEffect(() => {
@@ -30,13 +29,13 @@ export function useWebPush() {
 
         const reg = await navigator.serviceWorker.ready;
 
-        // Check if already subscribed
+        // Always unsubscribe any existing subscription (could be old FCM one)
         const existing = await reg.pushManager.getSubscription();
         if (existing) {
           await existing.unsubscribe();
         }
 
-        // Create new subscription
+        // Create fresh VAPID subscription
         const sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(publicKey).buffer as ArrayBuffer,
