@@ -405,3 +405,16 @@ export const requestMessages = mysqlTable("request_messages", {
 
 export type RequestMessage = typeof requestMessages.$inferSelect;
 export type InsertRequestMessage = typeof requestMessages.$inferInsert;
+
+// ─── Web Push Subscriptions (VAPID) ──────────────────────────────────────────
+export const pushSubscriptions = mysqlTable("push_subscriptions", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerKey: varchar("ownerKey", { length: 128 }).notNull(),
+  ownerType: mysqlEnum("ownerType", ["user", "worker", "admin"]).notNull(),
+  endpoint: text("endpoint").notNull(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type PushSubscriptionRow = typeof pushSubscriptions.$inferSelect;
+export type InsertPushSubscription = typeof pushSubscriptions.$inferInsert;

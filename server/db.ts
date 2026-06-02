@@ -18,6 +18,7 @@ import {
   subAdmins, SubAdmin, InsertSubAdmin,
   subscriptions, subscriptionVisits, workerSubscriptionPrefs,
   Subscription, InsertSubscription, SubscriptionVisit,
+  pushSubscriptions, PushSubscriptionRow,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -939,4 +940,53 @@ export async function adminEditQuote(
     adminEditedBy: adminName,
     adminEditedAt: new Date(),
   }).where(eq(workerQuotes.id, quoteId));
+}
+
+// ─── Web Push Subscriptions ───────────────────────────────────────────────────
+
+export async function savePushSubscription(
+  ownerKey: string,
+  ownerType: "user" | "worker" | "admin",
+  endpoint: string,
+  p256dh: string,
+  auth: string,
+): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.insert(pushSubscriptions)
+    .values({ ownerKey, ownerType, endpoint, p256dh, auth })
+    .onDuplicateKeyUpdate({ set: { ownerKey, ownerType, p256dh, auth } });
+}
+
+export async function getPushSubscriptionsByOwner(
+  ownerKey: string,
+): Promise<PushSubscriptionRow[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(pushSubscriptions).where(eq(pushSubscriptions.ownerKey, ownerKey));
+}
+
+export async function getPushSubscriptionsByOwnerType(
+  ownerType: "user" | "worker" | "admin",
+): Promise<PushSubscriptionRow[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(pushSubscriptions).where(eq(pushSubscriptions.ownerType, ownerType));
+}
+
+export async function deletePushSubscription(endpoint: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(pushSubscriptions).where(eq(pushSubscriptions.endpoint, endpoint));
+}
+
+export async function getFirstPushSubscriptionByType(
+  ownerType: "user" | "worker" | "admin",
+): Promise<PushSubscriptionRow | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(pushSubscriptions)
+    .where(eq(pushSubscriptions.ownerType, ownerType))
+    .limit(1);
+  return rows[0] ?? null;
 }

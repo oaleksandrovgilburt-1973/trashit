@@ -1,12 +1,12 @@
 import { useAuth } from "@/_core/hooks/useAuth";
-import { useFCMNotifications } from "@/hooks/useFCMNotifications";
+import { useWebPush } from "@/hooks/useWebPush";
 
 /**
- * Activates FCM push notifications when the user is logged in.
+ * Activates Web Push (VAPID) notifications when the user is logged in.
  * Must be rendered inside the tRPC provider tree.
  */
-function FCMInner() {
-  useFCMNotifications();
+function WebPushInner() {
+  useWebPush();
   return null;
 }
 
@@ -15,7 +15,7 @@ export function FCMProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      {!loading && user && <FCMInner />}
+      {!loading && user && <WebPushInner />}
       {children}
     </>
   );

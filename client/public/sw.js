@@ -1,61 +1,69 @@
-
-
-// TRASHit Service Worker v3.0
+// TRASHit Service Worker v5.0 — Web Push (VAPID)
 // IMPORTANT: Bump CACHE_VERSION on every deploy to force cache invalidation.
-const CACHE_VERSION = 'trashit-v3';
+const CACHE_VERSION = 'trashit-v5';
 
 // Install: skip waiting immediately so new SW activates ASAP
 self.addEventListener('install', (event) => {
   console.log('[SW] Installing version:', CACHE_VERSION);
-  // Skip waiting immediately — don't wait for old tabs to close
   self.skipWaiting();
 });
 
-// Activate: delete ALL old caches (including same-name), then claim all clients
+// Activate: delete ALL old caches, then claim all clients
 self.addEventListener('activate', (event) => {
   console.log('[SW] Activating version:', CACHE_VERSION);
   event.waitUntil(
     caches.keys().then((keys) => {
-      return Promise.all(
-        keys.map((key) => {
-          console.log('[SW] Deleting old cache:', key);
-          return caches.delete(key);
-        })
-      );
-    }).then(() => {
-      // Take control of all open tabs immediately
-      return self.clients.claim();
-    })
+      return Promise.all(keys.map((key) => {
+        console.log('[SW] Deleting old cache:', key);
+        return caches.delete(key);
+      }));
+    }).then(() => self.clients.claim())
   );
 });
 
-// Listen for SKIP_WAITING message from the client (UpdateBanner "Обнови" button)
+// Listen for SKIP_WAITING message
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
-    console.log('[SW] Received SKIP_WAITING — activating now');
     self.skipWaiting();
   }
 });
 
-// Fetch: network-first for everything (ensures fresh content after updates)
+// Helper: determine if a request should NEVER be cached
+function shouldBypass(request, url) {
+  // Only cache GET requests
+  if (request.method !== 'GET') return true;
+
+  // Never cache API calls (tRPC, OAuth, Stripe, etc.)
+  if (url.pathname.startsWith('/api/')) return true;
+
+  // Never cache tRPC batch queries (extra safety)
+  if (url.pathname.includes('/trpc/')) return true;
+  if (url.search.includes('batch=')) return true;
+
+  // Never cache cross-origin requests
+  if (url.origin !== self.location.origin) return true;
+
+  // Never cache Vite dev server internals
+  if (url.pathname.startsWith('/@')) return true;
+  if (url.pathname.startsWith('/node_modules/')) return true;
+
+  return false;
+}
+
+// Fetch: network-first for cacheable requests, bypass for API/tRPC
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Skip non-GET requests
-  if (event.request.method !== 'GET') return;
+  // Bypass — let the browser handle it directly (no SW interception)
+  if (shouldBypass(event.request, url)) return;
 
-  // Skip API calls — never cache these
-  if (url.pathname.startsWith('/api/')) return;
-
-  // Skip cross-origin requests (CDN, Firebase, etc.)
-  if (url.origin !== self.location.origin) return;
-
-  // Network-first for all same-origin requests
+  // Network-first for all same-origin static assets
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // Only cache successful responses
-        if (response.ok && response.status === 200) {
+        // Only cache successful responses for static assets (JS, CSS, images, fonts)
+        const isStaticAsset = /\.(js|css|png|jpg|jpeg|svg|ico|woff2?|ttf|eot)(\?.*)?$/.test(url.pathname);
+        if (response.ok && response.status === 200 && isStaticAsset) {
           const clone = response.clone();
           caches.open(CACHE_VERSION).then((cache) => {
             cache.put(event.request, clone);
@@ -77,7 +85,7 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// Push notifications
+// ─── Web Push (VAPID) — push event handler ───────────────────────────────────
 self.addEventListener('push', (event) => {
   if (!event.data) return;
   let data = {};
@@ -86,15 +94,21 @@ self.addEventListener('push', (event) => {
   } catch {
     data = { title: 'TRASHit', body: event.data.text() };
   }
+  const title = data.title || 'TRASHit';
   const options = {
     body: data.body || '',
-    icon: '/icon-192.png',
-    badge: '/icon-192.png',
+    icon: data.icon || '/icon-192.png',
+    badge: data.badge || '/icon-192.png',
     vibrate: [100, 50, 100],
-    data: { url: data.url || '/' },
+    tag: data.tag || 'trashit-notification',
+    renotify: true,
+    data: {
+      url: data.url || '/',
+      ...(data.data || {}),
+    },
   };
   event.waitUntil(
-    self.registration.showNotification(data.title || 'TRASHit', options)
+    self.registration.showNotification(title, options)
   );
 });
 

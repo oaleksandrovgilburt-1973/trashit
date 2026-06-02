@@ -9,6 +9,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { notifyOwner } from "./_core/notification";
 import { sendPushNotification } from "./fcm";
+import { sendWebPush, sendWebPushToMany } from "./webpush";
 import { sendTelegramMessage, TELEGRAM_CHATS } from "./telegram";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc"; // protectedProcedure used for worker/user procedures
 import Stripe from "stripe";
@@ -66,6 +67,9 @@ import {
   getSubscriptionById,
   // Request Messages
   getMessagesByRequestId, addRequestMessage,
+  // Web Push
+  savePushSubscription, getPushSubscriptionsByOwner, getPushSubscriptionsByOwnerType,
+  deletePushSubscription, getFirstPushSubscriptionByType,
   // Admin Quote Edit
   adminEditQuote,
 } from "./db";
@@ -670,6 +674,23 @@ export const appRouter = router({
             }
           }
         } catch { /* ignore FCM errors */ }
+        // Web Push при нова заявка
+        try {
+          const allWorkersWP = await getAllWorkers();
+          for (const worker of allWorkersWP) {
+            if (!worker.isActive) continue;
+            const workerDists = await getWorkerDistricts(worker.openId);
+            if (workerDists.includes(input.district)) {
+              const workerSubs = await getPushSubscriptionsByOwner(String(worker.id));
+              for (const sub of workerSubs) {
+                sendWebPush(
+                  { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+                  { title: "📦 Нова заявка", body: `Нова заявка в ${input.district}`, url: "/worker" }
+                ).catch(() => {});
+              }
+            }
+          }
+        } catch { /* ignore WebPush errors */ }
         return { success: true, id, creditsUsed, creditType };
       }),
     // Client: list own requests
@@ -1579,6 +1600,13 @@ export const appRouter = router({
               data: { requestId: String(input.requestId), type: needsPayment ? "pending_payment" : "completed" },
             });
           }
+          const clientSubs = await getPushSubscriptionsByOwner(reqBefore.userOpenId);
+          for (const sub of clientSubs) {
+            sendWebPush(
+              { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+              { title: needsPayment ? "💳 Заявката е изпълнена" : "✅ Заявката е изпълнена", body: "Вашата заявка е успешно изпълнена.", url: "/" }
+            ).catch(() => {});
+          }
         }
         return { success: true };
       }),
@@ -1847,6 +1875,15 @@ export const appRouter = router({
               data: { requestId: String(input.requestId), type: "message" },
             });
           }
+          if (worker) {
+            const workerSubs = await getPushSubscriptionsByOwner(String(worker.id));
+            for (const sub of workerSubs) {
+              sendWebPush(
+                { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+                { title: "💬 Съобщение от клиент", body: input.message.slice(0, 100), url: "/worker" }
+              ).catch(() => {});
+            }
+          }
         }
         // Notify all admins
         try {
@@ -1858,6 +1895,13 @@ export const appRouter = router({
                 body: `Заявка #${input.requestId}: ${input.message.slice(0, 80)}`,
                 data: { requestId: String(input.requestId), type: "message", url: "/" },
               });
+            }
+            const adminSubs2 = await getPushSubscriptionsByOwner(adminUser.openId);
+            for (const sub of adminSubs2) {
+              sendWebPush(
+                { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+                { title: "💬 Съобщение от клиент", body: input.message.slice(0, 100), url: "/admin" }
+              ).catch(() => {});
             }
           }
         } catch { /* ignore FCM errors */ }
@@ -1894,6 +1938,13 @@ export const appRouter = router({
             body: input.message.slice(0, 100),
             data: { requestId: String(input.requestId), type: "message", url: "/" },
           });
+        }
+        const clientSubs2 = await getPushSubscriptionsByOwner(req.userOpenId);
+        for (const sub of clientSubs2) {
+          sendWebPush(
+            { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+            { title: "💬 Съобщение от работник", body: input.message.slice(0, 100), url: "/" }
+          ).catch(() => {});
         }
         return { success: true, id };
       }),
@@ -1943,6 +1994,44 @@ export const appRouter = router({
         const result = success ? "Изпратено успешно" : "Неуспешно — виж server logs";
         console.log("[FCM-TEST] Result:", result);
         return { success, tokenPreview, result };
+      }),
+  }),
+
+  webPush: router({
+    getPublicKey: publicProcedure.query(() => {
+      return { publicKey: process.env.VAPID_PUBLIC_KEY ?? null };
+    }),
+
+    subscribeUser: protectedProcedure
+      .input(z.object({
+        endpoint: z.string().url(),
+        p256dh: z.string(),
+        auth: z.string(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await savePushSubscription(ctx.user.openId, "user", input.endpoint, input.p256dh, input.auth);
+        return { success: true };
+      }),
+
+    subscribeWorker: publicProcedure
+      .input(z.object({
+        deviceToken: z.string(),
+        endpoint: z.string().url(),
+        p256dh: z.string(),
+        auth: z.string(),
+      }))
+      .mutation(async ({ input }) => {
+        const session = await getWorkerSession(input.deviceToken);
+        if (!session) throw new TRPCError({ code: "UNAUTHORIZED", message: "Невалидна сесия." });
+        await savePushSubscription(String(session.workerId), "worker", input.endpoint, input.p256dh, input.auth);
+        return { success: true };
+      }),
+
+    unsubscribe: publicProcedure
+      .input(z.object({ endpoint: z.string() }))
+      .mutation(async ({ input }) => {
+        await deletePushSubscription(input.endpoint);
+        return { success: true };
       }),
   }),
 
