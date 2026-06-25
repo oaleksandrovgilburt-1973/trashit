@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -12,7 +12,7 @@ import {
   CheckCircle, ChevronDown, ChevronRight, LogOut,
   Trash2, Recycle, Package, HardHat, Camera, Map,
   Settings, List, X, ArrowLeft, Send, Upload,
-  CalendarDays, Sun, Moon, Loader2
+  CalendarDays, Sun, Moon, Loader2, ClipboardList
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
@@ -302,12 +302,13 @@ function WorkerChatPanel({ requestId, deviceToken, isBg }: { requestId: number; 
 
 // ─── Request Card ─────────────────────────────────────────────────────────────
 function RequestCard({
-  req, deviceToken, onComplete, onProblem
+  req, deviceToken, onComplete, onProblem, disableComplete
 }: {
   req: Request;
   deviceToken: string;
   onComplete: (id: number) => void;
   onProblem: (req: Request) => void;
+  disableComplete?: boolean;
 }) {
   const { language } = useLanguage();
   const isBg = language === "bg";
@@ -417,11 +418,13 @@ function RequestCard({
   <div className="flex gap-2">
     <Button
       size="sm"
-      className="flex-1 rounded-xl bg-primary text-white text-xs"
+      className="flex-1 rounded-xl bg-primary text-white text-xs disabled:opacity-40 disabled:cursor-not-allowed"
       onClick={() => onComplete(req.id)}
+      disabled={!!disableComplete}
+      title={disableComplete ? (isBg ? "Приет от друг работник" : "Claimed by another worker") : undefined}
     >
       <CheckCircle className="w-3 h-3 mr-1" />
-      {isBg ? "Приключи" : "Complete"}
+      {disableComplete ? (isBg ? "Прието от друг" : "Claimed") : (isBg ? "Приключи" : "Complete")}
     </Button>
     <Button
       size="sm"
@@ -452,8 +455,37 @@ function GroupedRequestsView({ deviceToken }: { deviceToken: string }) {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const { data: myAssignments = [] } = trpc.workerAssignments.myAssignments.useQuery(
+    { deviceToken },
+    { enabled: !!deviceToken, refetchInterval: 30000 }
+  );
+
+  const claimMutation = trpc.workerAssignments.claim.useMutation({
+    onSuccess: () => { toast.success(isBg ? "Входът е приет!" : "Entrance claimed!"); refetch(); },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const unclaimMutation = trpc.workerAssignments.unclaim.useMutation({
+    onSuccess: () => { toast.success(isBg ? "Входът е освободен!" : "Entrance released!"); refetch(); },
+    onError: (e) => toast.error(e.message),
+  });
+
   const { data: grouped = {}, isLoading, refetch } = trpc.workerDistricts.getRequestsForMyDistricts.useQuery(
     { deviceToken }, { enabled: !!deviceToken, refetchInterval: 30000 }
+  );
+
+  // Collect all entrance keys for batch claim status check
+  const groupedData2 = grouped as Record<string, Record<string, Record<string, Request[]>>>;
+  const allEntrances = useMemo(() =>
+    Object.entries(groupedData2).flatMap(([district, blocks]) =>
+      Object.entries(blocks).flatMap(([blok, entrances]) =>
+        Object.keys(entrances).map(vhod => ({ district, blok, vhod }))
+      )
+    ), [grouped]);
+
+  const { data: claimStatus = {} } = trpc.workerAssignments.getForEntrances.useQuery(
+    { deviceToken, entrances: allEntrances },
+    { enabled: !!deviceToken && allEntrances.length > 0, refetchInterval: 30000 }
   );
 
   const completeMutation = trpc.workerDistricts.completeRequest.useMutation({
@@ -605,6 +637,12 @@ function GroupedRequestsView({ deviceToken }: { deviceToken: string }) {
                           {Object.entries(entrances).sort(([a], [b]) => sortBgEntrances(a, b)).map(([vhod, reqs]) => {
                             const entrKey = `${district}|${blok}|${vhod}`;
                             const isEntrExpanded = expandedEntrances.has(entrKey);
+                            const myAssignment = myAssignments.find(
+                              a => a.district === district && a.blok === blok && a.vhod === vhod
+                            );
+                            const isClaimedByMe = !!myAssignment;
+                            const entrClaim = claimStatus[entrKey];
+                            const isClaimedByOther = entrClaim?.claimedByOther === true;
 
                             return (
                               <div key={vhod} className="border rounded-xl overflow-hidden">
@@ -617,19 +655,55 @@ function GroupedRequestsView({ deviceToken }: { deviceToken: string }) {
                                       {isBg ? `Вх. ${vhod}` : `Entr. ${vhod}`}
                                     </span>
                                     <Badge variant="secondary" className="text-xs">{reqs.length}</Badge>
+                                    {isClaimedByMe && (
+                                      <Badge className="bg-blue-100 text-blue-700 border-0 text-xs px-1.5">
+                                        {isBg ? "Прието от мен" : "Claimed by me"}
+                                      </Badge>
+                                    )}
+                                    {isClaimedByOther && (
+                                      <Badge className="bg-gray-200 text-gray-600 border-0 text-xs px-1.5">
+                                        {isBg ? "Прието от друг" : "Claimed by other"}
+                                      </Badge>
+                                    )}
                                     {isEntrExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
                                   </button>
-                                  <Button
-                                    size="sm"
-                                    className="rounded-xl text-xs bg-green-600 hover:bg-green-700 text-white h-7 px-2 ml-2"
-                                    onClick={() => {
-                                      completeEntranceMutation.mutate({ district, blok, vhod, deviceToken });
-                                    }}
-                                    disabled={completeEntranceMutation.isPending}
-                                  >
-                                    <CheckCircle className="w-3 h-3 mr-1" />
-                                    {isBg ? "Приключи вход" : "Complete entrance"}
-                                  </Button>
+                                  <div className="flex gap-1 ml-2">
+                                    {isClaimedByMe ? (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="rounded-xl text-xs border-blue-300 text-blue-600 hover:bg-blue-50 h-7 px-2"
+                                        onClick={() => unclaimMutation.mutate({ district, blok, vhod, deviceToken })}
+                                        disabled={unclaimMutation.isPending}
+                                      >
+                                        {isBg ? "Освободи" : "Release"}
+                                      </Button>
+                                    ) : !isClaimedByOther && (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="rounded-xl text-xs border-primary text-primary hover:bg-primary/10 h-7 px-2"
+                                        onClick={() => claimMutation.mutate({ district, blok, vhod, deviceToken })}
+                                        disabled={claimMutation.isPending}
+                                      >
+                                        {isBg ? "Приеми" : "Claim"}
+                                      </Button>
+                                    )}
+                                    <Button
+                                      size="sm"
+                                      className="rounded-xl text-xs bg-green-600 hover:bg-green-700 text-white h-7 px-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                                      onClick={() => {
+                                        completeEntranceMutation.mutate({ district, blok, vhod, deviceToken });
+                                      }}
+                                      disabled={completeEntranceMutation.isPending || isClaimedByOther}
+                                      title={isClaimedByOther ? (isBg ? "Приет от друг работник" : "Claimed by another worker") : undefined}
+                                    >
+                                      <CheckCircle className="w-3 h-3 mr-1" />
+                                      {isClaimedByOther
+                                        ? (isBg ? "Прието от друг" : "Claimed")
+                                        : (isBg ? "Приключи вход" : "Complete entrance")}
+                                    </Button>
+                                  </div>
                                 </div>
 
                                 {isEntrExpanded && (
@@ -641,6 +715,7 @@ function GroupedRequestsView({ deviceToken }: { deviceToken: string }) {
                                         deviceToken={deviceToken}
                                         onComplete={(id) => completeMutation.mutate({ requestId: id, deviceToken })}
                                         onProblem={(r) => setProblemReq(r)}
+                                        disableComplete={isClaimedByOther}
                                       />
                                     ))}
                                   </div>
@@ -855,6 +930,55 @@ function WorkerSubscriptionsTab({ deviceToken, isBg }: { deviceToken: string; is
   );
 }
 
+// ─── Worker Assignments Tab ───────────────────────────────────────────────────
+function WorkerAssignmentsTab({ deviceToken, isBg }: { deviceToken: string; isBg: boolean }) {
+  const { data: assignments = [], isLoading, refetch } = trpc.workerAssignments.myAssignments.useQuery(
+    { deviceToken },
+    { enabled: !!deviceToken }
+  );
+  const unclaimMutation = trpc.workerAssignments.unclaim.useMutation({
+    onSuccess: () => { toast.success(isBg ? "Входът е освободен!" : "Entrance released!"); refetch(); },
+    onError: (e) => toast.error(e.message),
+  });
+
+  if (isLoading) return <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
+
+  return (
+    <div className="space-y-4">
+      <h2 className="text-lg font-bold">{isBg ? "Приети входове" : "Claimed Entrances"}</h2>
+      {assignments.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground">
+          <ClipboardList className="w-12 h-12 mx-auto mb-3 opacity-30" />
+          <p className="font-medium">{isBg ? "Нямате приети входове" : "No claimed entrances"}</p>
+          <p className="text-sm mt-1">{isBg ? "Приемете входове от таба Заявки." : "Claim entrances from the Requests tab."}</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {assignments.map(a => (
+            <div key={a.id} className="flex items-center justify-between p-3 rounded-2xl border bg-white shadow-sm">
+              <div>
+                <p className="text-sm font-semibold">{a.district}</p>
+                <p className="text-xs text-muted-foreground">
+                  {isBg ? `Бл. ${a.blok}, Вх. ${a.vhod}` : `Bl. ${a.blok}, Entr. ${a.vhod}`}
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="rounded-xl text-xs border-red-200 text-red-600 hover:bg-red-50 h-8"
+                onClick={() => unclaimMutation.mutate({ district: a.district, blok: a.blok, vhod: a.vhod, deviceToken })}
+                disabled={unclaimMutation.isPending}
+              >
+                {isBg ? "Освободи" : "Release"}
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main WorkerPortal ────────────────────────────────────────────────────────
 export default function WorkerPortal() {
   const { language } = useLanguage();
@@ -862,7 +986,7 @@ export default function WorkerPortal() {
   const [, setLocation] = useLocation();
 
   const [session, setSession] = useState<WorkerSession | null>(null);
-  const [activeTab, setActiveTab] = useState<"requests" | "districts" | "subscriptions" | "profile">("requests");
+  const [activeTab, setActiveTab] = useState<"requests" | "districts" | "subscriptions" | "assignments" | "profile">("requests");
 
   useEffect(() => {
     const stored = localStorage.getItem("trashit_worker_session");
@@ -952,6 +1076,7 @@ export default function WorkerPortal() {
               { id: "requests", label: isBg ? "Заявки" : "Requests", icon: <List className="w-4 h-4" /> },
               { id: "districts", label: isBg ? "Квартали" : "Districts", icon: <MapPin className="w-4 h-4" /> },
               { id: "subscriptions", label: isBg ? "Абон." : "Subs", icon: <CalendarDays className="w-4 h-4" /> },
+              { id: "assignments", label: isBg ? "Приети" : "Claimed", icon: <ClipboardList className="w-4 h-4" /> },
               { id: "profile", label: isBg ? "Профил" : "Profile", icon: <Settings className="w-4 h-4" /> },
             ].map(tab => (
               <button
@@ -993,6 +1118,9 @@ export default function WorkerPortal() {
 )}
 {activeTab === "subscriptions" && (
   <WorkerSubscriptionsTab deviceToken={session.deviceToken} isBg={isBg} />
+)}
+{activeTab === "assignments" && (
+  <WorkerAssignmentsTab deviceToken={session.deviceToken} isBg={isBg} />
 )}
 {activeTab === "profile" && (
           <div className="space-y-4">

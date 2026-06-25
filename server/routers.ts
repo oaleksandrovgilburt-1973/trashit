@@ -1588,6 +1588,13 @@ export const appRouter = router({
         if (!worker) throw new TRPCError({ code: "NOT_FOUND", message: "Работникът не е намерен." });
         const reqBefore = await getRequestById(input.requestId);
         const needsPayment = reqBefore?.type === "nonstandard" || reqBefore?.type === "construction";
+        // Guard: check if the entrance of this request is claimed by another worker
+        if (reqBefore?.district && reqBefore?.blok && reqBefore?.vhod) {
+          const existingAssignment = await getAssignmentByEntrance(reqBefore.district, reqBefore.blok, reqBefore.vhod);
+          if (existingAssignment && existingAssignment.workerOpenId !== worker.openId) {
+            throw new TRPCError({ code: "FORBIDDEN", message: "Входът е приет от друг работник и не можете да го приключите." });
+          }
+        }
         if (needsPayment) {
           await completeRequestPendingPayment(input.requestId, worker.openId, worker.id);
         } else {
@@ -1627,6 +1634,11 @@ export const appRouter = router({
         const allWorkers = await getAllWorkers();
         const worker = allWorkers.find(w => w.id === session.workerId);
         if (!worker) throw new TRPCError({ code: "NOT_FOUND", message: "Работникът не е намерен." });
+        // Guard: check if entrance is claimed by another worker
+        const existingAssignment = await getAssignmentByEntrance(input.district, input.blok, input.vhod);
+        if (existingAssignment && existingAssignment.workerOpenId !== worker.openId) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Входът е приет от друг работник и не можете да го приключите." });
+        }
         const count = await completeRequestsByEntrance(
           input.district, input.blok, input.vhod,
           worker.openId, worker.id
@@ -2093,6 +2105,40 @@ export const appRouter = router({
     all: protectedProcedure.query(async () => {
       return getAllAssignments();
     }),
+
+    // Get claim status for multiple entrances (used by workers to disable Complete button)
+    getForEntrances: publicProcedure
+      .input(z.object({
+        deviceToken: z.string(),
+        entrances: z.array(z.object({
+          district: z.string(),
+          blok: z.string(),
+          vhod: z.string(),
+        })),
+      }))
+      .query(async ({ input }) => {
+        const session = await getWorkerSession(input.deviceToken);
+        if (!session) return {};
+        const allWorkers = await getAllWorkers();
+        const worker = allWorkers.find(w => w.id === session.workerId);
+        if (!worker) return {};
+        const allAssignments = await getAllAssignments();
+        const result: Record<string, { claimedByMe: boolean; claimedByOther: boolean }> = {};
+        for (const { district, blok, vhod } of input.entrances) {
+          const key = `${district}|${blok}|${vhod}`;
+          const assignment = allAssignments.find(
+            a => a.district === district && a.blok === blok && a.vhod === vhod
+          );
+          if (!assignment) {
+            result[key] = { claimedByMe: false, claimedByOther: false };
+          } else if (assignment.workerOpenId === worker.openId) {
+            result[key] = { claimedByMe: true, claimedByOther: false };
+          } else {
+            result[key] = { claimedByMe: false, claimedByOther: true };
+          }
+        }
+        return result;
+      }),
   }),
 
   // ── Activity Descriptions ─────────────────────────────────────────────────
