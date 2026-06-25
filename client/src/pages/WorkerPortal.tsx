@@ -1059,6 +1059,11 @@ export default function WorkerPortal() {
     },
   });
 
+  const { data: myStats } = trpc.workerAssignments.myStats.useQuery(
+    { deviceToken: session?.deviceToken ?? "" },
+    { enabled: !!session?.deviceToken }
+  );
+
   if (!session) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F9FAFB] p-4">
@@ -1198,6 +1203,9 @@ export default function WorkerPortal() {
                     <p className="font-semibold">{session.name}</p>
                     <p className="text-sm text-muted-foreground">
                       {isBg ? "Работник" : "Worker"}
+                    </p>
+                    <p className="text-sm text-green-600 font-medium mt-1">
+                      {isBg ? `Приключени заявки: ${myStats?.completedCount ?? 0}` : `Completed requests: ${myStats?.completedCount ?? 0}`}
                     </p>
                   </div>
                 </div>

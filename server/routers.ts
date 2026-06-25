@@ -75,6 +75,7 @@ import {
   adminEditQuote,
   // Worker Assignments
   claimEntrance, unclaimEntrance, getWorkerAssignments, getAllAssignments, getAssignmentByEntrance,
+  getWorkerCompletedCount,
 } from "./db";
 
 const BONUS_CREDITS = "2.00";
@@ -2099,10 +2100,14 @@ export const appRouter = router({
         const worker = allWorkers.find(w => w.id === session.workerId);
         if (!worker) return [];
         const assignments = await getWorkerAssignments(worker.openId);
-        const allPending = await getPendingRequests();
+        // Enrich each assignment with active requests (pending OR assigned)
+        const allActive = await getAllRequests();
+        const activeFiltered = allActive.filter(
+          r => r.status === "pending" || r.status === "assigned"
+        );
         return assignments.map(a => ({
           ...a,
-          requests: allPending.filter(
+          requests: activeFiltered.filter(
             r => r.district === a.district && r.blok === a.blok && r.vhod === a.vhod
           ),
         }));
@@ -2112,6 +2117,19 @@ export const appRouter = router({
     all: protectedProcedure.query(async () => {
       return getAllAssignments();
     }),
+
+    // Get stats for the current worker
+    myStats: publicProcedure
+      .input(z.object({ deviceToken: z.string() }))
+      .query(async ({ input }) => {
+        const session = await getWorkerSession(input.deviceToken);
+        if (!session) return { completedCount: 0 };
+        const allWorkers = await getAllWorkers();
+        const worker = allWorkers.find(w => w.id === session.workerId);
+        if (!worker) return { completedCount: 0 };
+        const completedCount = await getWorkerCompletedCount(worker.openId);
+        return { completedCount };
+      }),
 
     // Batch claim status for multiple entrances (used by GroupedRequestsView to filter)
     getForEntrances: publicProcedure
