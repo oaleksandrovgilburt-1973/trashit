@@ -302,13 +302,12 @@ function WorkerChatPanel({ requestId, deviceToken, isBg }: { requestId: number; 
 
 // ─── Request Card ─────────────────────────────────────────────────────────────
 function RequestCard({
-  req, deviceToken, onComplete, onProblem, disableComplete
+  req, deviceToken, onComplete, onProblem
 }: {
   req: Request;
   deviceToken: string;
   onComplete: (id: number) => void;
   onProblem: (req: Request) => void;
-  disableComplete?: boolean;
 }) {
   const { language } = useLanguage();
   const isBg = language === "bg";
@@ -418,13 +417,11 @@ function RequestCard({
   <div className="flex gap-2">
     <Button
       size="sm"
-      className="flex-1 rounded-xl bg-primary text-white text-xs disabled:opacity-40 disabled:cursor-not-allowed"
+      className="flex-1 rounded-xl bg-primary text-white text-xs"
       onClick={() => onComplete(req.id)}
-      disabled={!!disableComplete}
-      title={disableComplete ? (isBg ? "Приет от друг работник" : "Claimed by another worker") : undefined}
     >
       <CheckCircle className="w-3 h-3 mr-1" />
-      {disableComplete ? (isBg ? "Прието от друг" : "Claimed") : (isBg ? "Приключи" : "Complete")}
+      {isBg ? "Приключи" : "Complete"}
     </Button>
     <Button
       size="sm"
@@ -455,29 +452,14 @@ function GroupedRequestsView({ deviceToken }: { deviceToken: string }) {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { data: myAssignments = [] } = trpc.workerAssignments.myAssignments.useQuery(
-    { deviceToken },
-    { enabled: !!deviceToken, refetchInterval: 30000 }
-  );
-
-  const claimMutation = trpc.workerAssignments.claim.useMutation({
-    onSuccess: () => { toast.success(isBg ? "Входът е приет!" : "Entrance claimed!"); refetch(); },
-    onError: (e) => toast.error(e.message),
-  });
-
-  const unclaimMutation = trpc.workerAssignments.unclaim.useMutation({
-    onSuccess: () => { toast.success(isBg ? "Входът е освободен!" : "Entrance released!"); refetch(); },
-    onError: (e) => toast.error(e.message),
-  });
-
   const { data: grouped = {}, isLoading, refetch } = trpc.workerDistricts.getRequestsForMyDistricts.useQuery(
     { deviceToken }, { enabled: !!deviceToken, refetchInterval: 30000 }
   );
 
-  // Collect all entrance keys for batch claim status check
-  const groupedData2 = grouped as Record<string, Record<string, Record<string, Request[]>>>;
+  // Build entrance list for batch claim status
+  const groupedData0 = grouped as Record<string, Record<string, Record<string, Request[]>>>;
   const allEntrances = useMemo(() =>
-    Object.entries(groupedData2).flatMap(([district, blocks]) =>
+    Object.entries(groupedData0).flatMap(([district, blocks]) =>
       Object.entries(blocks).flatMap(([blok, entrances]) =>
         Object.keys(entrances).map(vhod => ({ district, blok, vhod }))
       )
@@ -487,6 +469,11 @@ function GroupedRequestsView({ deviceToken }: { deviceToken: string }) {
     { deviceToken, entrances: allEntrances },
     { enabled: !!deviceToken && allEntrances.length > 0, refetchInterval: 30000 }
   );
+
+  const claimMutation = trpc.workerAssignments.claim.useMutation({
+    onSuccess: () => { toast.success(isBg ? "Входът е приет!" : "Entrance claimed!"); refetch(); },
+    onError: (e) => toast.error(e.message),
+  });
 
   const completeMutation = trpc.workerDistricts.completeRequest.useMutation({
     onSuccess: () => { toast.success(isBg ? "Заявката е приключена!" : "Request completed!"); refetch(); },
@@ -573,7 +560,23 @@ function GroupedRequestsView({ deviceToken }: { deviceToken: string }) {
   }
 
   const groupedData = grouped as Record<string, Record<string, Record<string, Request[]>>>;
-  const districts = Object.keys(groupedData);
+
+  // Filter out claimed entrances from this view
+  const filteredGroupedData: Record<string, Record<string, Record<string, Request[]>>> = {};
+  for (const [district, blocks] of Object.entries(groupedData)) {
+    for (const [blok, entrances] of Object.entries(blocks)) {
+      for (const [vhod, reqs] of Object.entries(entrances)) {
+        const key = `${district}|${blok}|${vhod}`;
+        const status = claimStatus[key];
+        if (status?.claimedByMe || status?.claimedByOther) continue; // hide claimed entrances
+        if (!filteredGroupedData[district]) filteredGroupedData[district] = {};
+        if (!filteredGroupedData[district][blok]) filteredGroupedData[district][blok] = {};
+        filteredGroupedData[district][blok][vhod] = reqs;
+      }
+    }
+  }
+
+  const districts = Object.keys(filteredGroupedData);
 
   if (districts.length === 0) {
     return (
@@ -582,8 +585,8 @@ function GroupedRequestsView({ deviceToken }: { deviceToken: string }) {
         <p className="font-medium">{isBg ? "Няма активни заявки" : "No active requests"}</p>
         <p className="text-sm mt-1">
           {isBg
-            ? "Всички заявки са приключени или не сте избрали квартали."
-            : "All requests are completed or no districts selected."}
+            ? "Всички заявки са приключени, приети, или не сте избрали квартали."
+            : "All requests are completed, claimed, or no districts selected."}
         </p>
       </div>
     );
@@ -592,7 +595,7 @@ function GroupedRequestsView({ deviceToken }: { deviceToken: string }) {
   return (
     <div className="space-y-3">
       {districts.map(district => {
-        const blocks = groupedData[district];
+        const blocks = filteredGroupedData[district];
         const totalInDistrict = Object.values(blocks).flatMap(b => Object.values(b)).flat().length;
         const isDistExpanded = expandedDistricts.has(district);
 
@@ -637,12 +640,6 @@ function GroupedRequestsView({ deviceToken }: { deviceToken: string }) {
                           {Object.entries(entrances).sort(([a], [b]) => sortBgEntrances(a, b)).map(([vhod, reqs]) => {
                             const entrKey = `${district}|${blok}|${vhod}`;
                             const isEntrExpanded = expandedEntrances.has(entrKey);
-                            const myAssignment = myAssignments.find(
-                              a => a.district === district && a.blok === blok && a.vhod === vhod
-                            );
-                            const isClaimedByMe = !!myAssignment;
-                            const entrClaim = claimStatus[entrKey];
-                            const isClaimedByOther = entrClaim?.claimedByOther === true;
 
                             return (
                               <div key={vhod} className="border rounded-xl overflow-hidden">
@@ -655,55 +652,17 @@ function GroupedRequestsView({ deviceToken }: { deviceToken: string }) {
                                       {isBg ? `Вх. ${vhod}` : `Entr. ${vhod}`}
                                     </span>
                                     <Badge variant="secondary" className="text-xs">{reqs.length}</Badge>
-                                    {isClaimedByMe && (
-                                      <Badge className="bg-blue-100 text-blue-700 border-0 text-xs px-1.5">
-                                        {isBg ? "Прието от мен" : "Claimed by me"}
-                                      </Badge>
-                                    )}
-                                    {isClaimedByOther && (
-                                      <Badge className="bg-gray-200 text-gray-600 border-0 text-xs px-1.5">
-                                        {isBg ? "Прието от друг" : "Claimed by other"}
-                                      </Badge>
-                                    )}
                                     {isEntrExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
                                   </button>
-                                  <div className="flex gap-1 ml-2">
-                                    {isClaimedByMe ? (
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="rounded-xl text-xs border-blue-300 text-blue-600 hover:bg-blue-50 h-7 px-2"
-                                        onClick={() => unclaimMutation.mutate({ district, blok, vhod, deviceToken })}
-                                        disabled={unclaimMutation.isPending}
-                                      >
-                                        {isBg ? "Освободи" : "Release"}
-                                      </Button>
-                                    ) : !isClaimedByOther && (
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="rounded-xl text-xs border-primary text-primary hover:bg-primary/10 h-7 px-2"
-                                        onClick={() => claimMutation.mutate({ district, blok, vhod, deviceToken })}
-                                        disabled={claimMutation.isPending}
-                                      >
-                                        {isBg ? "Приеми" : "Claim"}
-                                      </Button>
-                                    )}
-                                    <Button
-                                      size="sm"
-                                      className="rounded-xl text-xs bg-green-600 hover:bg-green-700 text-white h-7 px-2 disabled:opacity-40 disabled:cursor-not-allowed"
-                                      onClick={() => {
-                                        completeEntranceMutation.mutate({ district, blok, vhod, deviceToken });
-                                      }}
-                                      disabled={completeEntranceMutation.isPending || isClaimedByOther}
-                                      title={isClaimedByOther ? (isBg ? "Приет от друг работник" : "Claimed by another worker") : undefined}
-                                    >
-                                      <CheckCircle className="w-3 h-3 mr-1" />
-                                      {isClaimedByOther
-                                        ? (isBg ? "Прието от друг" : "Claimed")
-                                        : (isBg ? "Приключи вход" : "Complete entrance")}
-                                    </Button>
-                                  </div>
+                                  <Button
+                                    size="sm"
+                                    className="rounded-xl text-xs bg-blue-600 hover:bg-blue-700 text-white h-7 px-2 ml-2"
+                                    onClick={() => claimMutation.mutate({ district, blok, vhod, deviceToken })}
+                                    disabled={claimMutation.isPending}
+                                  >
+                                    <ClipboardList className="w-3 h-3 mr-1" />
+                                    {isBg ? "Приеми" : "Claim"}
+                                  </Button>
                                 </div>
 
                                 {isEntrExpanded && (
@@ -715,7 +674,6 @@ function GroupedRequestsView({ deviceToken }: { deviceToken: string }) {
                                         deviceToken={deviceToken}
                                         onComplete={(id) => completeMutation.mutate({ requestId: id, deviceToken })}
                                         onProblem={(r) => setProblemReq(r)}
-                                        disableComplete={isClaimedByOther}
                                       />
                                     ))}
                                   </div>
@@ -931,50 +889,144 @@ function WorkerSubscriptionsTab({ deviceToken, isBg }: { deviceToken: string; is
 }
 
 // ─── Worker Assignments Tab ───────────────────────────────────────────────────
-function WorkerAssignmentsTab({ deviceToken, isBg }: { deviceToken: string; isBg: boolean }) {
+function WorkerAssignmentsTab({ deviceToken }: { deviceToken: string }) {
+  const { language } = useLanguage();
+  const isBg = language === "bg";
+
   const { data: assignments = [], isLoading, refetch } = trpc.workerAssignments.myAssignments.useQuery(
     { deviceToken },
-    { enabled: !!deviceToken }
+    { enabled: !!deviceToken, refetchInterval: 30000 }
   );
+
   const unclaimMutation = trpc.workerAssignments.unclaim.useMutation({
     onSuccess: () => { toast.success(isBg ? "Входът е освободен!" : "Entrance released!"); refetch(); },
     onError: (e) => toast.error(e.message),
   });
 
-  if (isLoading) return <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
+  const completeEntranceMutation = trpc.workerDistricts.completeEntrance.useMutation({
+    onSuccess: (data) => {
+      const count = (data as any).count ?? 0;
+      toast.success(isBg ? `Приключени ${count} заявки!` : `Completed ${count} requests!`);
+      refetch();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
+
+  if (assignments.length === 0) {
+    return (
+      <div className="text-center py-12 text-muted-foreground">
+        <ClipboardList className="w-12 h-12 mx-auto mb-3 text-blue-300" />
+        <p className="font-medium">{isBg ? "Нямате приети входове" : "No claimed entrances"}</p>
+        <p className="text-sm mt-1">
+          {isBg ? "Приемете вход от таба \"Заявки\"." : "Claim an entrance from the Requests tab."}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-bold">{isBg ? "Приети входове" : "Claimed Entrances"}</h2>
-      {assignments.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          <ClipboardList className="w-12 h-12 mx-auto mb-3 opacity-30" />
-          <p className="font-medium">{isBg ? "Нямате приети входове" : "No claimed entrances"}</p>
-          <p className="text-sm mt-1">{isBg ? "Приемете входове от таба Заявки." : "Claim entrances from the Requests tab."}</p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {assignments.map(a => (
-            <div key={a.id} className="flex items-center justify-between p-3 rounded-2xl border bg-white shadow-sm">
+      {(assignments as any[]).map((a) => {
+        const reqs: Request[] = a.requests ?? [];
+        return (
+          <div key={`${a.district}|${a.blok}|${a.vhod}`} className="border rounded-2xl overflow-hidden shadow-sm">
+            {/* Entrance header */}
+            <div className="flex items-center justify-between p-3 bg-blue-50 border-b border-blue-100">
               <div>
-                <p className="text-sm font-semibold">{a.district}</p>
-                <p className="text-xs text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-blue-600" />
+                  <span className="font-semibold text-sm">{a.district}</span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
                   {isBg ? `Бл. ${a.blok}, Вх. ${a.vhod}` : `Bl. ${a.blok}, Entr. ${a.vhod}`}
+                  {reqs.length > 0 && (
+                    <Badge variant="secondary" className="ml-2 text-xs">{reqs.length}</Badge>
+                  )}
                 </p>
               </div>
-              <Button
-                size="sm"
-                variant="outline"
-                className="rounded-xl text-xs border-red-200 text-red-600 hover:bg-red-50 h-8"
-                onClick={() => unclaimMutation.mutate({ district: a.district, blok: a.blok, vhod: a.vhod, deviceToken })}
-                disabled={unclaimMutation.isPending}
-              >
-                {isBg ? "Освободи" : "Release"}
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  className="rounded-xl text-xs bg-green-600 hover:bg-green-700 text-white h-8 px-3"
+                  disabled={completeEntranceMutation.isPending || reqs.length === 0}
+                  onClick={() => completeEntranceMutation.mutate({ district: a.district, blok: a.blok, vhod: a.vhod, deviceToken })}
+                >
+                  <CheckCircle className="w-3 h-3 mr-1" />
+                  {isBg ? "Приключи" : "Complete"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="rounded-xl text-xs border-red-200 text-red-600 hover:bg-red-50 h-8 px-3"
+                  disabled={unclaimMutation.isPending}
+                  onClick={() => unclaimMutation.mutate({ district: a.district, blok: a.blok, vhod: a.vhod, deviceToken })}
+                >
+                  <X className="w-3 h-3 mr-1" />
+                  {isBg ? "Освободи" : "Release"}
+                </Button>
+              </div>
             </div>
-          ))}
-        </div>
-      )}
+
+            {/* Requests inside this entrance */}
+            {reqs.length === 0 ? (
+              <div className="p-3 text-center text-xs text-muted-foreground">
+                {isBg ? "Няма активни заявки за този вход" : "No active requests for this entrance"}
+              </div>
+            ) : (
+              <div className="p-2 space-y-2 bg-gray-50">
+                {reqs.map((req) => (
+                  <div key={req.id} className={`border rounded-xl p-3 space-y-1.5 ${req.hasProblem ? 'bg-red-50 border-red-300' : 'bg-white'}`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {getWasteIcon(req.type)}
+                        <span className="text-sm font-medium">{getWasteLabel(req.type, isBg)}</span>
+                        <Badge variant="outline" className="text-xs">
+                          {isBg ? `Ет. ${req.etaj}, Ап. ${req.apartament}` : `Fl. ${req.etaj}, Apt. ${req.apartament}`}
+                        </Badge>
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(req.createdAt).toLocaleDateString(isBg ? "bg-BG" : "en-GB")}
+                      </span>
+                    </div>
+                    {req.description && (
+                      <p className="text-xs text-muted-foreground italic">"{req.description}"</p>
+                    )}
+                    {req.estimatedVolume && (
+                      <div className="flex items-center gap-1 text-xs text-orange-600 bg-orange-50 rounded-lg px-2 py-1">
+                        <Package className="w-3 h-3" />
+                        {isBg ? `Прогнозен обем: ${req.estimatedVolume}` : `Est. volume: ${req.estimatedVolume}`}
+                      </div>
+                    )}
+                    {req.imageUrl && (
+                      <img src={req.imageUrl} alt="waste" className="max-h-32 w-auto object-contain rounded-xl" />
+                    )}
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      {req.contactPhone && (
+                        <a href={`tel:${req.contactPhone}`} className="flex items-center gap-1 hover:text-primary transition-colors">
+                          <Phone className="w-3 h-3" />{req.contactPhone}
+                        </a>
+                      )}
+                      {req.contactEmail && (
+                        <a href={`mailto:${req.contactEmail}`} className="flex items-center gap-1 hover:text-primary transition-colors">
+                          <Mail className="w-3 h-3" />{req.contactEmail}
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -986,7 +1038,7 @@ export default function WorkerPortal() {
   const [, setLocation] = useLocation();
 
   const [session, setSession] = useState<WorkerSession | null>(null);
-  const [activeTab, setActiveTab] = useState<"requests" | "districts" | "subscriptions" | "assignments" | "profile">("requests");
+  const [activeTab, setActiveTab] = useState<"requests" | "assignments" | "districts" | "subscriptions" | "profile">("requests");
 
   useEffect(() => {
     const stored = localStorage.getItem("trashit_worker_session");
@@ -1074,9 +1126,9 @@ export default function WorkerPortal() {
           <div className="flex">
             {[
               { id: "requests", label: isBg ? "Заявки" : "Requests", icon: <List className="w-4 h-4" /> },
+              { id: "assignments", label: isBg ? "Приети" : "Claimed", icon: <ClipboardList className="w-4 h-4" /> },
               { id: "districts", label: isBg ? "Квартали" : "Districts", icon: <MapPin className="w-4 h-4" /> },
               { id: "subscriptions", label: isBg ? "Абон." : "Subs", icon: <CalendarDays className="w-4 h-4" /> },
-              { id: "assignments", label: isBg ? "Приети" : "Claimed", icon: <ClipboardList className="w-4 h-4" /> },
               { id: "profile", label: isBg ? "Профил" : "Profile", icon: <Settings className="w-4 h-4" /> },
             ].map(tab => (
               <button
@@ -1112,15 +1164,26 @@ export default function WorkerPortal() {
           </div>
         )}
 
+        {activeTab === "assignments" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold">
+                {isBg ? "Приети входове" : "Claimed Entrances"}
+              </h2>
+              <Badge variant="outline" className="text-xs">
+                {isBg ? "Обновява се на 30с" : "Refreshes every 30s"}
+              </Badge>
+            </div>
+            <WorkerAssignmentsTab deviceToken={session.deviceToken} />
+          </div>
+        )}
+
         
          {activeTab === "districts" && (
   <DistrictSelector deviceToken={session.deviceToken} />
 )}
 {activeTab === "subscriptions" && (
   <WorkerSubscriptionsTab deviceToken={session.deviceToken} isBg={isBg} />
-)}
-{activeTab === "assignments" && (
-  <WorkerAssignmentsTab deviceToken={session.deviceToken} isBg={isBg} />
 )}
 {activeTab === "profile" && (
           <div className="space-y-4">

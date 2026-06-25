@@ -2089,7 +2089,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    // Get this worker's claimed entrances
+    // Get this worker's claimed entrances (enriched with pending/assigned requests)
     myAssignments: publicProcedure
       .input(z.object({ deviceToken: z.string() }))
       .query(async ({ input }) => {
@@ -2098,13 +2098,55 @@ export const appRouter = router({
         const allWorkers = await getAllWorkers();
         const worker = allWorkers.find(w => w.id === session.workerId);
         if (!worker) return [];
-        return getWorkerAssignments(worker.openId);
+        const assignments = await getWorkerAssignments(worker.openId);
+        const allPending = await getPendingRequests();
+        return assignments.map(a => ({
+          ...a,
+          requests: allPending.filter(
+            r => r.district === a.district && r.blok === a.blok && r.vhod === a.vhod
+          ),
+        }));
       }),
 
     // Get all assignments (admin/sub-admin view)
     all: protectedProcedure.query(async () => {
       return getAllAssignments();
     }),
+
+    // Batch claim status for multiple entrances (used by GroupedRequestsView to filter)
+    getForEntrances: publicProcedure
+      .input(z.object({
+        deviceToken: z.string(),
+        entrances: z.array(z.object({
+          district: z.string(),
+          blok: z.string(),
+          vhod: z.string(),
+        })),
+      }))
+      .query(async ({ input }) => {
+        const session = await getWorkerSession(input.deviceToken);
+        if (!session) return {};
+        const allWorkers = await getAllWorkers();
+        const worker = allWorkers.find(w => w.id === session.workerId);
+        if (!worker) return {};
+        const allAssignments = await getAllAssignments();
+        const result: Record<string, { claimedByMe: boolean; claimedByOther: boolean }> = {};
+        for (const { district, blok, vhod } of input.entrances) {
+          const key = `${district}|${blok}|${vhod}`;
+          const assignment = allAssignments.find(
+            a => a.district === district && a.blok === blok && a.vhod === vhod
+          );
+          if (!assignment) {
+            result[key] = { claimedByMe: false, claimedByOther: false };
+          } else if (assignment.workerOpenId === worker.openId) {
+            result[key] = { claimedByMe: true, claimedByOther: false };
+          } else {
+            result[key] = { claimedByMe: false, claimedByOther: true };
+          }
+        }
+        return result;
+      }),
+  }),
 
     // Get claim status for multiple entrances (used by workers to disable Complete button)
     getForEntrances: publicProcedure
