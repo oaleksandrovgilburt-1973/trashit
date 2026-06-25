@@ -205,6 +205,14 @@ export default function Home() {
 
         {/* Services */}
         <section className="container py-6">
+          <div className="flex justify-center mb-4">
+            <button
+              onClick={() => setShowServicesPopup(true)}
+              className="flex items-center gap-1.5 bg-primary text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-primary/90 transition-colors"
+            >
+              ℹ️ Описание на услугите
+            </button>
+          </div>
           {/* Flow illustration for guests — temporarily hidden */}
           {/* {!user && !loading && (
             <div className="flex justify-center mb-6">
