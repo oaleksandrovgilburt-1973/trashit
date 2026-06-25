@@ -132,6 +132,16 @@ export default function Credits() {
   const recyclingPkgs = packages?.recycling ?? [];
   const currentPkgs = creditTypeTab === "standard" ? standardPkgs : recyclingPkgs;
 
+  // Promo: old prices and discount % per package id
+  const promoData: Record<string, { oldPrice: number; discount: number }> = {
+    std_1:  { oldPrice: 0.90, discount: 23 },
+    std_10: { oldPrice: 8.90, discount: 22 },
+    std_20: { oldPrice: 17.90, discount: 23 },
+    rec_1:  { oldPrice: 1.30, discount: 24 },
+    rec_10: { oldPrice: 12.90, discount: 23 },
+    rec_20: { oldPrice: 25.90, discount: 24 },
+  };
+
   return (
     <MainLayout>
       <div className="max-w-2xl mx-auto px-4 py-6">
@@ -267,6 +277,12 @@ export default function Credits() {
                       </p>
                     </div>
                     <div className="text-right">
+                      {promoData[pkg.id] && (
+                        <div className="flex items-center justify-end gap-1.5 mb-0.5">
+                          <span className="text-xs text-gray-400 line-through">{promoData[pkg.id].oldPrice.toFixed(2)} €</span>
+                          <span className="text-xs font-bold bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full">-{promoData[pkg.id].discount}%</span>
+                        </div>
+                      )}
                       <div className="text-xl font-black text-gray-900">{pkg.price.toFixed(2)} €</div>
                       <div className="text-xs text-gray-500">
                         {(pkg.price / pkg.total).toFixed(2)} €/кредит

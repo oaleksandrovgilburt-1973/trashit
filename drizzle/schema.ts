@@ -418,3 +418,16 @@ export const pushSubscriptions = mysqlTable("push_subscriptions", {
 });
 export type PushSubscriptionRow = typeof pushSubscriptions.$inferSelect;
 export type InsertPushSubscription = typeof pushSubscriptions.$inferInsert;
+
+// ─── Worker Assignments (Claim система) ──────────────────────────────────────
+export const workerAssignments = mysqlTable("worker_assignments", {
+  id: int("id").autoincrement().primaryKey(),
+  workerId: int("workerId").notNull(),
+  workerOpenId: varchar("workerOpenId", { length: 64 }).notNull(),
+  district: varchar("district", { length: 128 }).notNull(),
+  blok: varchar("blok", { length: 64 }).notNull(),
+  vhod: varchar("vhod", { length: 32 }).notNull(),
+  claimedAt: timestamp("claimedAt").defaultNow().notNull(),
+});
+export type WorkerAssignment = typeof workerAssignments.$inferSelect;
+export type InsertWorkerAssignment = typeof workerAssignments.$inferInsert;

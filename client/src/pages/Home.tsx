@@ -1,8 +1,10 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
 import MainLayout from "@/components/MainLayout";
-import { Trash2, Sparkles, LogIn, UserPlus, ChevronRight, Leaf, User, CreditCard, Recycle, LogOut, Bell, BellOff, Package, HardHat, Building2, Home as HomeIcon, MoreHorizontal, CalendarDays } from "lucide-react";
+import { Trash2, Sparkles, LogIn, UserPlus, ChevronRight, Leaf, User, CreditCard, Recycle, LogOut, Bell, BellOff, Package, HardHat, Building2, Home as HomeIcon, MoreHorizontal, CalendarDays, X } from "lucide-react";
 import { StandardCoin, RecyclingCoin } from "@/components/CreditCoin";
+import AppStoreBadges from "@/components/AppStoreBadges";
+import { TERMS_TEXT } from "@/lib/termsContent";
 import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useState, useEffect } from "react";
@@ -15,6 +17,16 @@ export default function Home() {
   const saveFcmToken = trpc.users.saveFcmToken.useMutation();
 
   const [notifPermission, setNotifPermission] = useState<NotificationPermission | null>(null);
+
+  // Services popup — shown once per session
+  const [showServicesPopup, setShowServicesPopup] = useState(() => {
+    return !sessionStorage.getItem("trashit_services_popup_seen");
+  });
+  const closeServicesPopup = () => {
+    sessionStorage.setItem("trashit_services_popup_seen", "1");
+    setShowServicesPopup(false);
+  };
+  const [showHomeTermsModal, setShowHomeTermsModal] = useState(false);
 
   const refreshPermission = () => {
     if ("Notification" in window) {
@@ -193,11 +205,12 @@ export default function Home() {
 
         {/* Services */}
         <section className="container py-6">
-          {!user && !loading && (
+          {/* Flow illustration for guests — temporarily hidden */}
+          {/* {!user && !loading && (
             <div className="flex justify-center mb-6">
               <img src="/trashit-flow.svg" alt="Как работи TRASHit" className="w-full max-w-2xl" />
             </div>
-          )}
+          )} */}
           <h2 className="text-lg font-bold text-foreground mb-4">{t.mainMenuTitle}</h2>
 
 <div className="grid grid-cols-2 gap-3">
@@ -248,6 +261,10 @@ export default function Home() {
                   </button>
                 </Link>
               </div>
+              <div className="mt-4 pt-4 border-t border-border">
+                <p className="text-xs text-muted-foreground mb-2">Изтеглете приложението</p>
+                <AppStoreBadges />
+              </div>
             </div>
           )}
 
@@ -293,7 +310,73 @@ export default function Home() {
             </div>
           )}
         </section>
+
+        {/* Footer links */}
+        <div className="container py-6 text-center">
+          <button
+            onClick={() => setShowHomeTermsModal(true)}
+            className="text-xs text-muted-foreground underline hover:text-foreground transition-colors"
+          >
+            Общи условия
+          </button>
+        </div>
       </div>
+
+      {/* Terms modal (accessible from home page footer) */}
+      {showHomeTermsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-background rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <h2 className="text-base font-bold text-foreground">Общи условия</h2>
+              <button
+                onClick={() => setShowHomeTermsModal(false)}
+                className="p-1.5 rounded-lg hover:bg-secondary transition-colors"
+              >
+                <X className="w-5 h-5 text-muted-foreground" />
+              </button>
+            </div>
+            <div className="overflow-y-auto p-4 flex-1">
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{TERMS_TEXT}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Services popup — shown once per session */}
+      {showServicesPopup && (
+        <div className="fixed inset-x-0 top-4 z-50 flex justify-center px-4 pointer-events-none">
+          <div className="bg-white rounded-2xl shadow-2xl border border-border w-full max-w-sm pointer-events-auto animate-in slide-in-from-top-4 duration-300">
+            <div className="flex items-start justify-between p-4 pb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">🗑️</span>
+                <h2 className="text-base font-bold text-foreground">Добре дошли в TRASHit!</h2>
+              </div>
+              <button
+                onClick={closeServicesPopup}
+                className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="px-4 pb-4 space-y-2 text-sm text-muted-foreground">
+              <p>TRASHit е платформа изхвърляне на отпадъци от вашия адрес. Предлагаме:</p>
+              <ul className="space-y-1 pl-2">
+                <li>🏠 <strong>Стандартен битов отпадък</strong> — редовно извозване</li>
+                <li>♻️ <strong>Рециклиране</strong> — разделно събиране</li>
+                <li>📦 <strong>Нестандартен отпадък</strong> — едрогабаритни предмети</li>
+                <li>🏗️ <strong>Строителен отпадък</strong> — след ремонт</li>
+                {/*<li>🧹 <strong>Почистване</strong> — на входове и общи части</li>*/}
+              </ul>
+              <button
+                onClick={closeServicesPopup}
+                className="w-full mt-3 py-2.5 rounded-xl bg-primary text-white font-semibold text-sm hover:bg-primary/90 transition-all"
+              >
+                Разбрах
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </MainLayout>
   );
 }

@@ -10,6 +10,7 @@ import WasteDisposal from "./pages/WasteDisposal";
 import Cleaning from "./pages/Cleaning";
 import WorkerPortal from "./pages/WorkerPortal";
 import WorkerLogin from "./pages/WorkerLogin";
+import WorkerAssignments from "@/pages/WorkerAssignments";
 import AdminPortal from "./pages/AdminPortal";
 import AdminLogin from "./pages/AdminLogin";
 import SubAdminPortal from "./pages/SubAdminPortal";
@@ -44,6 +45,7 @@ function Router() {
       <Route path="/worker/login" component={WorkerLogin} />
       <Route path="/worker" component={WorkerPortal} />
       <Route path="/worker/requests" component={WorkerRequests} />
+      <Route path="/worker/assignments" component={WorkerAssignments} />
 
       {/* Admin */}
       <Route path="/admin/login" component={AdminLogin} />

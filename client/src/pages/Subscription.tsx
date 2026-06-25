@@ -16,6 +16,10 @@ const PRICES: Record<string, Record<string, number>> = {
   standard: { "15": 8.99, "30": 17.99 },
   recycling: { "15": 11.99, "30": 21.99 },
 };
+const OLD_PRICES: Record<string, Record<string, { old: number; discount: number }>> = {
+  standard: { "15": { old: 11.90, discount: 24 }, "30": { old: 23.90, discount: 25 } },
+  recycling: { "15": { old: 15.90, discount: 25 }, "30": { old: 28.90, discount: 24 } },
+};
 
 const TYPE_LABELS: Record<string, string> = {
   standard: "Стандартен битов",
@@ -281,6 +285,12 @@ export default function Subscription() {
                   >
                     <span className={`text-2xl font-black ${visits === v ? "text-blue-700" : "text-foreground"}`}>{v}</span>
                     <span className={`text-xs ${visits === v ? "text-blue-600" : "text-muted-foreground"}`}>посещения</span>
+                    {OLD_PRICES[type]?.[v] && (
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs line-through text-gray-400">€{OLD_PRICES[type][v].old.toFixed(2)}</span>
+                        <span className="text-xs font-bold bg-red-100 text-red-600 px-1 py-0.5 rounded-full">-{OLD_PRICES[type][v].discount}%</span>
+                      </div>
+                    )}
                     <span className={`text-sm font-bold ${visits === v ? "text-blue-700" : "text-muted-foreground"}`}>
                       €{PRICES[type][v].toFixed(2)}/мес
                     </span>
@@ -404,6 +414,12 @@ export default function Subscription() {
                   <p className="text-blue-200 text-sm">{SLOT_LABELS[timeSlot]}</p>
                 </div>
                 <div className="text-right">
+                  {OLD_PRICES[type]?.[visits] && (
+                    <div className="flex items-center justify-end gap-1.5 mb-0.5">
+                      <span className="text-sm line-through text-blue-200">€{OLD_PRICES[type][visits].old.toFixed(2)}</span>
+                      <span className="text-xs font-bold bg-red-500 text-white px-1.5 py-0.5 rounded-full">-{OLD_PRICES[type][visits].discount}%</span>
+                    </div>
+                  )}
                   <p className="text-3xl font-black">€{price.toFixed(2)}</p>
                   <p className="text-blue-200 text-xs">/месец</p>
                 </div>

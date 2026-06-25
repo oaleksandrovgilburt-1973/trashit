@@ -19,6 +19,7 @@ import {
   subscriptions, subscriptionVisits, workerSubscriptionPrefs,
   Subscription, InsertSubscription, SubscriptionVisit,
   pushSubscriptions, PushSubscriptionRow,
+  workerAssignments, WorkerAssignment,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -986,6 +987,72 @@ export async function getFirstPushSubscriptionByType(
   if (!db) return null;
   const rows = await db.select().from(pushSubscriptions)
     .where(eq(pushSubscriptions.ownerType, ownerType))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+// ─── Worker Assignments (Claim) ───────────────────────────────────────────────
+
+export async function claimEntrance(
+  workerId: number,
+  workerOpenId: string,
+  district: string,
+  blok: string,
+  vhod: string,
+): Promise<{ success: boolean; alreadyClaimed: boolean }> {
+  const db = await getDb();
+  if (!db) return { success: false, alreadyClaimed: false };
+  // Check if already claimed by someone else
+  const existing = await db.select().from(workerAssignments)
+    .where(and(eq(workerAssignments.district, district), eq(workerAssignments.blok, blok), eq(workerAssignments.vhod, vhod)))
+    .limit(1);
+  if (existing.length > 0 && existing[0].workerOpenId !== workerOpenId) {
+    return { success: false, alreadyClaimed: true };
+  }
+  if (existing.length > 0 && existing[0].workerOpenId === workerOpenId) {
+    return { success: true, alreadyClaimed: false }; // already owned by this worker
+  }
+  await db.insert(workerAssignments).values({ workerId, workerOpenId, district, blok, vhod });
+  return { success: true, alreadyClaimed: false };
+}
+
+export async function unclaimEntrance(
+  workerOpenId: string,
+  district: string,
+  blok: string,
+  vhod: string,
+): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(workerAssignments).where(
+    and(
+      eq(workerAssignments.workerOpenId, workerOpenId),
+      eq(workerAssignments.district, district),
+      eq(workerAssignments.blok, blok),
+      eq(workerAssignments.vhod, vhod),
+    )
+  );
+}
+
+export async function getWorkerAssignments(workerOpenId: string): Promise<WorkerAssignment[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(workerAssignments).where(eq(workerAssignments.workerOpenId, workerOpenId));
+}
+
+export async function getAllAssignments(): Promise<WorkerAssignment[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(workerAssignments);
+}
+
+export async function getAssignmentByEntrance(
+  district: string, blok: string, vhod: string,
+): Promise<WorkerAssignment | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(workerAssignments)
+    .where(and(eq(workerAssignments.district, district), eq(workerAssignments.blok, blok), eq(workerAssignments.vhod, vhod)))
     .limit(1);
   return rows[0] ?? null;
 }

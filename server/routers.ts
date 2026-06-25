@@ -68,10 +68,13 @@ import {
   // Request Messages
   getMessagesByRequestId, addRequestMessage,
   // Web Push
+  // Web Push
   savePushSubscription, getPushSubscriptionsByOwner, getPushSubscriptionsByOwnerType,
   deletePushSubscription, getFirstPushSubscriptionByType,
   // Admin Quote Edit
   adminEditQuote,
+  // Worker Assignments
+  claimEntrance, unclaimEntrance, getWorkerAssignments, getAllAssignments, getAssignmentByEntrance,
 } from "./db";
 
 const BONUS_CREDITS = "2.00";
@@ -2033,6 +2036,63 @@ export const appRouter = router({
         await deletePushSubscription(input.endpoint);
         return { success: true };
       }),
+  }),
+
+  // ── Worker Assignments (Claim система) ────────────────────────────────────
+  workerAssignments: router({
+    // Worker claims an entrance
+    claim: publicProcedure
+      .input(z.object({
+        deviceToken: z.string(),
+        district: z.string(),
+        blok: z.string(),
+        vhod: z.string(),
+      }))
+      .mutation(async ({ input }) => {
+        const session = await getWorkerSession(input.deviceToken);
+        if (!session) throw new TRPCError({ code: "UNAUTHORIZED", message: "Невалидна сесия." });
+        const allWorkers = await getAllWorkers();
+        const worker = allWorkers.find(w => w.id === session.workerId);
+        if (!worker) throw new TRPCError({ code: "NOT_FOUND" });
+        const result = await claimEntrance(worker.id, worker.openId, input.district, input.blok, input.vhod);
+        if (result.alreadyClaimed) throw new TRPCError({ code: "CONFLICT", message: "Входът вече е приет от друг работник." });
+        return { success: result.success };
+      }),
+
+    // Worker releases an entrance
+    unclaim: publicProcedure
+      .input(z.object({
+        deviceToken: z.string(),
+        district: z.string(),
+        blok: z.string(),
+        vhod: z.string(),
+      }))
+      .mutation(async ({ input }) => {
+        const session = await getWorkerSession(input.deviceToken);
+        if (!session) throw new TRPCError({ code: "UNAUTHORIZED", message: "Невалидна сесия." });
+        const allWorkers = await getAllWorkers();
+        const worker = allWorkers.find(w => w.id === session.workerId);
+        if (!worker) throw new TRPCError({ code: "NOT_FOUND" });
+        await unclaimEntrance(worker.openId, input.district, input.blok, input.vhod);
+        return { success: true };
+      }),
+
+    // Get this worker's claimed entrances
+    myAssignments: publicProcedure
+      .input(z.object({ deviceToken: z.string() }))
+      .query(async ({ input }) => {
+        const session = await getWorkerSession(input.deviceToken);
+        if (!session) return [];
+        const allWorkers = await getAllWorkers();
+        const worker = allWorkers.find(w => w.id === session.workerId);
+        if (!worker) return [];
+        return getWorkerAssignments(worker.openId);
+      }),
+
+    // Get all assignments (admin/sub-admin view)
+    all: protectedProcedure.query(async () => {
+      return getAllAssignments();
+    }),
   }),
 
   // ── Activity Descriptions ─────────────────────────────────────────────────

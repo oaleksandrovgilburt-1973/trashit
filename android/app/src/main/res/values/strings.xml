@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">TRASHit</string>
+    <string name="title_activity_main">TRASHit</string>
+    <string name="package_name">bg.trashit.app</string>
+    <string name="custom_url_scheme">bg.trashit.app</string>
+</resources>

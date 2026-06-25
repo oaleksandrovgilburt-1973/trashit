@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
-import { Mail, Phone, ArrowLeft, Sparkles, Eye, EyeOff } from "lucide-react";
+import { Mail, Phone, ArrowLeft, Sparkles, Eye, EyeOff, X } from "lucide-react";
+import { TERMS_TEXT } from "@/lib/termsContent";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
 import { getLoginUrl } from "@/const";
@@ -25,7 +26,8 @@ export default function ClientAuth() {
 
   // Phone form state
   const [phoneForm, setPhoneForm] = useState({ name: "", phone: "" });
-
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
   const registerMutation = trpc.clientAuth.register.useMutation({
     onSuccess: async (data) => {
       await utils.auth.me.invalidate();
@@ -252,9 +254,30 @@ export default function ClientAuth() {
                   </>
                 )}
 
+                {mode === "register" && (
+                  <div className="flex items-start gap-2">
+                    <input
+                      type="checkbox"
+                      id="terms-email"
+                      checked={termsAccepted}
+                      onChange={e => setTermsAccepted(e.target.checked)}
+                      className="mt-0.5 w-4 h-4 accent-primary cursor-pointer"
+                    />
+                    <label htmlFor="terms-email" className="text-xs text-muted-foreground leading-relaxed">
+                      Приемам{" "}
+                      <button
+                        type="button"
+                        onClick={() => setShowTermsModal(true)}
+                        className="text-primary underline font-medium"
+                      >
+                        Общите условия
+                      </button>
+                    </label>
+                  </div>
+                )}
                 <button
                   onClick={handleSubmit}
-                  disabled={isPending}
+                  disabled={isPending || (mode === "register" && !termsAccepted)}
                   className="w-full py-3 rounded-xl bg-primary text-white font-semibold text-sm hover:bg-primary/90 disabled:opacity-60 transition-all shadow-md"
                 >
                   {isPending ? t.loading : mode === "login" ? t.login : t.register}
@@ -292,9 +315,28 @@ export default function ClientAuth() {
                   {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
                 </div>
 
+                <div className="flex items-start gap-2">
+                  <input
+                    type="checkbox"
+                    id="terms-phone"
+                    checked={termsAccepted}
+                    onChange={e => setTermsAccepted(e.target.checked)}
+                    className="mt-0.5 w-4 h-4 accent-primary cursor-pointer"
+                  />
+                  <label htmlFor="terms-phone" className="text-xs text-muted-foreground leading-relaxed">
+                    Приемам{" "}
+                    <button
+                      type="button"
+                      onClick={() => setShowTermsModal(true)}
+                      className="text-primary underline font-medium"
+                    >
+                      Общите условия
+                    </button>
+                  </label>
+                </div>
                 <button
                   onClick={handleSubmit}
-                  disabled={isPending}
+                  disabled={isPending || !termsAccepted}
                   className="w-full py-3 rounded-xl bg-primary text-white font-semibold text-sm hover:bg-primary/90 disabled:opacity-60 transition-all shadow-md"
                 >
                   {isPending ? t.loading : t.register}
@@ -304,6 +346,34 @@ export default function ClientAuth() {
           </div>
         </div>
       </div>
+
+      {/* Terms Modal */}
+      {showTermsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-background rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <h2 className="text-base font-bold text-foreground">Общи условия</h2>
+              <button
+                onClick={() => setShowTermsModal(false)}
+                className="p-1.5 rounded-lg hover:bg-secondary transition-colors"
+              >
+                <X className="w-5 h-5 text-muted-foreground" />
+              </button>
+            </div>
+            <div className="overflow-y-auto p-4 flex-1">
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{TERMS_TEXT}</p>
+            </div>
+            <div className="p-4 border-t border-border">
+              <button
+                onClick={() => { setTermsAccepted(true); setShowTermsModal(false); }}
+                className="w-full py-3 rounded-xl bg-primary text-white font-semibold text-sm hover:bg-primary/90 transition-all"
+              >
+                Приемам
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </MainLayout>
   );
 }
