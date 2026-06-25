@@ -24,6 +24,7 @@ export default function AppStoreBadges({ className = "" }: { className?: string 
       
         href="#"
         aria-label="Get it on Google Play"
+
         className="inline-flex items-center gap-2 px-4 py-2.5 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors"
       >
         <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white" xmlns="http://www.w3.org/2000/svg">
