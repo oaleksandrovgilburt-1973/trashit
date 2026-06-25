@@ -2148,40 +2148,7 @@ export const appRouter = router({
       }),
   }),
 
-    // Get claim status for multiple entrances (used by workers to disable Complete button)
-    getForEntrances: publicProcedure
-      .input(z.object({
-        deviceToken: z.string(),
-        entrances: z.array(z.object({
-          district: z.string(),
-          blok: z.string(),
-          vhod: z.string(),
-        })),
-      }))
-      .query(async ({ input }) => {
-        const session = await getWorkerSession(input.deviceToken);
-        if (!session) return {};
-        const allWorkers = await getAllWorkers();
-        const worker = allWorkers.find(w => w.id === session.workerId);
-        if (!worker) return {};
-        const allAssignments = await getAllAssignments();
-        const result: Record<string, { claimedByMe: boolean; claimedByOther: boolean }> = {};
-        for (const { district, blok, vhod } of input.entrances) {
-          const key = `${district}|${blok}|${vhod}`;
-          const assignment = allAssignments.find(
-            a => a.district === district && a.blok === blok && a.vhod === vhod
-          );
-          if (!assignment) {
-            result[key] = { claimedByMe: false, claimedByOther: false };
-          } else if (assignment.workerOpenId === worker.openId) {
-            result[key] = { claimedByMe: true, claimedByOther: false };
-          } else {
-            result[key] = { claimedByMe: false, claimedByOther: true };
-          }
-        }
-        return result;
-      }),
-  }),
+    
 
   // ── Activity Descriptions ─────────────────────────────────────────────────
   activityDescriptions: router({
