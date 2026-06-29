@@ -1,5 +1,5 @@
 import cron from "node-cron";
-import { getAllSubscriptions, createDailyVisitsForSubscription, getDb } from "./db";
+import { getAllSubscriptions, createDailyVisitsForSubscription, getDb, deleteOldCompletedRequests } from "./db";
 import { users, requests, subscriptions, transactions, workerProblems } from "../drizzle/schema";
 
 function shouldVisitToday(visitDays: string, todayDate: string): boolean {
@@ -94,4 +94,17 @@ export function startCronJobs(): void {
   });
 
   console.log("[Cron] Hourly DB backup job scheduled (every hour at :00)");
+
+  // ─── Daily cleanup: delete completed/cancelled requests older than 6 months ──
+  cron.schedule("0 2 * * *", async () => {
+    try {
+      const deleted = await deleteOldCompletedRequests();
+      if (deleted > 0) {
+        console.log(`[Cron/Cleanup] Deleted ${deleted} old completed/cancelled requests`);
+      }
+    } catch (err) {
+      console.error("[Cron/Cleanup] Error during old request cleanup:", err);
+    }
+  });
+  console.log("[Cron] Daily old-request cleanup job scheduled (every day at 02:00)");
 }

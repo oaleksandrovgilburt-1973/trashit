@@ -179,9 +179,28 @@ export default function MyRequests() {
   const { language } = useLanguage();
   const isBg = language === "bg";
 
+  const [activeTab, setActiveTab] = React.useState<"active" | "history">("active");
+  const [historyPage, setHistoryPage] = React.useState(1);
+  const HISTORY_PAGE_SIZE = 20;
+
   const { data: requests, isLoading, refetch } = trpc.requests.myList.useQuery(undefined, {
     enabled: isAuthenticated,
   });
+
+  const allSorted = React.useMemo(
+    () => (requests ?? []).slice().sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+    [requests],
+  );
+  const activeRequests = React.useMemo(
+    () => allSorted.filter(r => ["pending", "assigned", "pending_payment"].includes(r.status)),
+    [allSorted],
+  );
+  const historyRequests = React.useMemo(
+    () => allSorted.filter(r => ["completed", "cancelled", "paid"].includes(r.status)),
+    [allSorted],
+  );
+  const historyTotalPages = Math.max(1, Math.ceil(historyRequests.length / HISTORY_PAGE_SIZE));
+  const historyPaged = historyRequests.slice((historyPage - 1) * HISTORY_PAGE_SIZE, historyPage * HISTORY_PAGE_SIZE);
 
   const cancelMutation = trpc.requests.cancel.useMutation({
     onSuccess: () => {
@@ -259,14 +278,38 @@ export default function MyRequests() {
           </Button>
         </div>
 
-        {/* Empty state */}
-        {(!requests || requests.length === 0) && (
+        {/* Tabs */}
+        <div className="flex gap-1 mb-4 bg-gray-100 rounded-xl p-1">
+          <button
+            onClick={() => setActiveTab("active")}
+            className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === "active" ? "bg-white shadow-sm text-gray-900" : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            {isBg
+              ? `Активни${activeRequests.length > 0 ? ` (${activeRequests.length})` : ""}`
+              : `Active${activeRequests.length > 0 ? ` (${activeRequests.length})` : ""}`}
+          </button>
+          <button
+            onClick={() => { setActiveTab("history"); setHistoryPage(1); }}
+            className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === "history" ? "bg-white shadow-sm text-gray-900" : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            {isBg
+              ? `История${historyRequests.length > 0 ? ` (${historyRequests.length})` : ""}`
+              : `History${historyRequests.length > 0 ? ` (${historyRequests.length})` : ""}`}
+          </button>
+        </div>
+
+        {/* Empty state — active tab */}
+        {activeTab === "active" && activeRequests.length === 0 && (
           <div className="text-center py-16">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Trash2 className="w-8 h-8 text-gray-400" />
             </div>
             <p className="text-gray-500 mb-4">
-              {isBg ? "Нямате подадени заявки" : "No requests submitted yet"}
+              {isBg ? "Нямате активни заявки" : "No active requests"}
             </p>
             <Button onClick={() => navigate("/waste-disposal")} className="rounded-2xl bg-primary hover:bg-primary/90">
               {isBg ? "Подай заявка" : "Submit Request"}
@@ -274,9 +317,16 @@ export default function MyRequests() {
           </div>
         )}
 
+        {/* Empty state — history tab */}
+        {activeTab === "history" && historyRequests.length === 0 && (
+          <div className="text-center py-16">
+            <p className="text-gray-400 text-sm">{isBg ? "Нямa история на заявки" : "No request history"}</p>
+          </div>
+        )}
+
         {/* Requests list */}
         <div className="space-y-2">
-          {requests?.slice().sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((req) => {
+          {(activeTab === "active" ? activeRequests : historyPaged).map((req) => {
             const typeInfo = TYPE_LABELS[req.type] ?? TYPE_LABELS.standard;
             const statusInfo = STATUS_LABELS[req.status] ?? STATUS_LABELS.pending;
             const date = new Date(req.createdAt).toLocaleDateString(isBg ? "bg-BG" : "en-GB", {
@@ -423,6 +473,33 @@ export default function MyRequests() {
             );
           })}
         </div>
+
+        {/* Pagination — History tab only */}
+        {activeTab === "history" && historyTotalPages > 1 && (
+          <div className="flex items-center justify-center gap-3 mt-6">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setHistoryPage(p => Math.max(1, p - 1))}
+              disabled={historyPage === 1}
+              className="rounded-xl"
+            >
+              {isBg ? "← Назад" : "← Prev"}
+            </Button>
+            <span className="text-sm text-gray-500">
+              {historyPage} / {historyTotalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setHistoryPage(p => Math.min(historyTotalPages, p + 1))}
+              disabled={historyPage === historyTotalPages}
+              className="rounded-xl"
+            >
+              {isBg ? "Напред →" : "Next →"}
+            </Button>
+          </div>
+        )}
       </div>
     </MainLayout>
   );

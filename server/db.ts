@@ -1084,3 +1084,24 @@ export async function getAssignmentByEntrance(
     .limit(1);
   return rows[0] ?? null;
 }
+
+// ─── Cleanup ──────────────────────────────────────────────────────────────────
+
+export async function deleteOldCompletedRequests(): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+  const cutoff = new Date();
+  cutoff.setMonth(cutoff.getMonth() - 6);
+  const allCompleted = await db.select({ id: requests.id, updatedAt: requests.updatedAt })
+    .from(requests)
+    .where(eq(requests.status, "completed"));
+  const allCancelled = await db.select({ id: requests.id, updatedAt: requests.updatedAt })
+    .from(requests)
+    .where(eq(requests.status, "cancelled"));
+  const toDelete = [...allCompleted, ...allCancelled].filter(r => r.updatedAt && new Date(r.updatedAt) < cutoff);
+  if (toDelete.length === 0) return 0;
+  for (const r of toDelete) {
+    await db.delete(requests).where(eq(requests.id, r.id));
+  }
+  return toDelete.length;
+}
