@@ -512,6 +512,34 @@ export async function getWorkerCompletedCount(workerOpenId: string): Promise<num
   return result.length;
 }
 
+export async function getWorkerDailyStats(workerOpenId: string, days: number = 30): Promise<{
+  todayCount: number;
+  history: Array<{ date: string; count: number }>;
+}> {
+  const db = await getDb();
+  if (!db) return { todayCount: 0, history: [] };
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+  const result = await db.select().from(requests)
+    .where(and(
+      eq(requests.workerOpenId, workerOpenId),
+      eq(requests.status, "completed"),
+    ));
+  const todayStr = new Date().toISOString().split("T")[0];
+  const counts: Record<string, number> = {};
+  for (const r of result) {
+    if (!r.completedAt) continue;
+    const d = new Date(r.completedAt);
+    if (d < cutoff) continue;
+    const dateStr = d.toISOString().split("T")[0];
+    counts[dateStr] = (counts[dateStr] ?? 0) + 1;
+  }
+  const history = Object.entries(counts)
+    .sort((a, b) => b[0].localeCompare(a[0]))
+    .map(([date, count]) => ({ date, count }));
+  return { todayCount: counts[todayStr] ?? 0, history };
+}
+
 export async function getAllWorkersWithStats() {
   const db = await getDb();
   if (!db) return [];

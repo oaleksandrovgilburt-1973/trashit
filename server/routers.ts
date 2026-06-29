@@ -75,7 +75,7 @@ import {
   adminEditQuote,
   // Worker Assignments
   claimEntrance, unclaimEntrance, getWorkerAssignments, getAllAssignments, getAssignmentByEntrance,
-  getWorkerCompletedCount,
+  getWorkerCompletedCount, getWorkerDailyStats,
 } from "./db";
 
 const BONUS_CREDITS = "2.00";
@@ -2123,12 +2123,13 @@ export const appRouter = router({
       .input(z.object({ deviceToken: z.string() }))
       .query(async ({ input }) => {
         const session = await getWorkerSession(input.deviceToken);
-        if (!session) return { completedCount: 0 };
+        if (!session) return { completedCount: 0, todayCount: 0, history: [] };
         const allWorkers = await getAllWorkers();
         const worker = allWorkers.find(w => w.id === session.workerId);
-        if (!worker) return { completedCount: 0 };
+        if (!worker) return { completedCount: 0, todayCount: 0, history: [] };
         const completedCount = await getWorkerCompletedCount(worker.openId);
-        return { completedCount };
+        const { todayCount, history } = await getWorkerDailyStats(worker.openId, 30);
+        return { completedCount, todayCount, history };
       }),
 
     // Batch claim status for multiple entrances (used by GroupedRequestsView to filter)

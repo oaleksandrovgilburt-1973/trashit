@@ -1204,19 +1204,40 @@ export default function WorkerPortal() {
                     <p className="text-sm text-muted-foreground">
                       {isBg ? "Работник" : "Worker"}
                     </p>
-                    <p className="text-sm text-green-600 font-medium mt-1">
-                      {isBg ? `Приключени заявки: ${myStats?.completedCount ?? 0}` : `Completed requests: ${myStats?.completedCount ?? 0}`}
-                    </p>
+                    
                   </div>
                 </div>
 
-                <div className="border-t pt-3">
-                  <p className="text-xs text-muted-foreground mb-1">
-                    {isBg ? "ID на устройство" : "Device ID"}
-                  </p>
-                  <p className="text-xs font-mono bg-gray-100 rounded-lg p-2 break-all">
-                    {session.deviceToken.slice(0, 20)}...
-                  </p>
+                <div className="border-t pt-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">{isBg ? "Общо приключени" : "Total completed"}</span>
+                    <span className="text-sm font-semibold">{myStats?.completedCount ?? 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">{isBg ? "Днес" : "Today"}</span>
+                    <span className="text-sm font-semibold text-green-600">{myStats?.todayCount ?? 0}</span>
+                  </div>
+                  {(myStats?.history?.length ?? 0) > 0 && (
+                    <div className="pt-2">
+                      <p className="text-xs text-muted-foreground mb-2">{isBg ? "История (последни 30 дни)" : "History (last 30 days)"}</p>
+                      <div className="space-y-1 max-h-48 overflow-y-auto">
+                        {myStats!.history.map(h => (
+                          <div key={h.date} className="flex items-center justify-between text-xs py-1 border-b border-gray-100 last:border-0">
+                            <span className="text-muted-foreground">{h.date}</span>
+                            <span className="font-medium">{h.count}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <div className="pt-2">
+                    <p className="text-xs text-muted-foreground mb-1">
+                      {isBg ? "ID на устройство" : "Device ID"}
+                    </p>
+                    <p className="text-xs font-mono bg-gray-100 rounded-lg p-2 break-all">
+                      {session.deviceToken.slice(0, 20)}...
+                    </p>
+                  </div>
                 </div>
 
                 <Button
