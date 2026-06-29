@@ -1644,6 +1644,8 @@ export const appRouter = router({
           input.district, input.blok, input.vhod,
           worker.openId, worker.id
         );
+        // Auto-release the claim after completing the entrance
+        await unclaimEntrance(worker.openId, input.district, input.blok, input.vhod);
         return { success: true, count };
       }),
     // Worker: report a problem using deviceToken
