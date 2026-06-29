@@ -247,7 +247,9 @@ function WorkersTab() {
                 <div className="mt-4 pt-4 border-t border-gray-100">
                   <h4 className="text-sm font-semibold text-gray-700 mb-2">Завършени заявки от {worker.name}</h4>
                   <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                    {allRequests?.filter(r => r.workerOpenId === worker.openId && r.status === "completed").map(r => (
+                    {allRequests?.filter(r => r.workerOpenId === worker.openId && r.status === "completed")
+                      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                      .map(r => (
                       <div key={r.id} className="text-xs bg-gray-50 rounded-lg p-2 flex justify-between">
                         <span>{r.district}, Бл. {r.blok}, Вх. {r.vhod}, Ап. {r.apartament}</span>
                         <span className="text-gray-400">{new Date(r.createdAt).toLocaleDateString("bg-BG")}</span>

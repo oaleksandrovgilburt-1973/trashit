@@ -17,11 +17,14 @@ export default function Home() {
   const saveFcmToken = trpc.users.saveFcmToken.useMutation();
 
   const [notifPermission, setNotifPermission] = useState<NotificationPermission | null>(null);
-
-  // Services popup — shown once per session
-  const [showServicesPopup, setShowServicesPopup] = useState(() => {
-    return !sessionStorage.getItem("trashit_services_popup_seen");
-  });
+  // Services popup — shown automatically only for guests (not logged in), once per session
+  const [showServicesPopup, setShowServicesPopup] = useState(false);
+  useEffect(() => {
+    if (loading) return;
+    if (!user && !sessionStorage.getItem("trashit_services_popup_seen")) {
+      setShowServicesPopup(true);
+    }
+  }, [user, loading]);
   const closeServicesPopup = () => {
     sessionStorage.setItem("trashit_services_popup_seen", "1");
     setShowServicesPopup(false);
