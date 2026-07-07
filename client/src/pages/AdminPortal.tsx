@@ -666,7 +666,10 @@ function CreditsTab() {
 }
 
 function PricesTab() {
-  const { data: allSettings } = trpc.settings.getAll.useQuery();
+  const { data: allSettings } = trpc.settings.getAll.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+    refetchInterval: false,
+  });
   const updateSetting = trpc.settings.update.useMutation({
     onSuccess: () => toast.success("Цената е обновена!"),
     onError: (e: any) => toast.error(e.message),
