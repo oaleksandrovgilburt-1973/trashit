@@ -2120,20 +2120,178 @@ function ReportsTab() {
 }
 function SubscriptionsTab() {
   const { data: subs, refetch } = trpc.subscriptions.adminList.useQuery();
+  const { data: allUsers = [] } = trpc.admin.list.useQuery();
+  const { data: allDistricts = [] } = trpc.districts.list.useQuery();
+
+  const [searchUser, setSearchUser] = React.useState("");
+  const [selectedUserOpenId, setSelectedUserOpenId] = React.useState("");
+  const [newType, setNewType] = React.useState<"standard" | "recycling">("standard");
+  const [newVisits, setNewVisits] = React.useState<15 | 30>(15);
+  const [newDistrict, setNewDistrict] = React.useState("");
+  const [newBlok, setNewBlok] = React.useState("");
+  const [newVhod, setNewVhod] = React.useState("");
+  const [newEtaj, setNewEtaj] = React.useState("");
+  const [newApartament, setNewApartament] = React.useState("");
+  const [newSlot, setNewSlot] = React.useState<"morning" | "evening">("morning");
+
+  const adminCreate = trpc.subscriptions.adminCreate.useMutation({
+    onSuccess: () => {
+      toast.success("Абонаментът е създаден!");
+      refetch();
+      setSelectedUserOpenId("");
+      setSearchUser("");
+      setNewBlok("");
+      setNewVhod("");
+      setNewEtaj("");
+      setNewApartament("");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   const adminCancel = trpc.subscriptions.adminCancel.useMutation({
     onSuccess: () => { toast.success("Абонаментът е отказан"); refetch(); },
     onError: (e: any) => toast.error(e.message),
   });
+
+  const filteredUsers = (allUsers as any[]).filter((u: any) =>
+    searchUser.length >= 2 &&
+    (u.name?.toLowerCase().includes(searchUser.toLowerCase()) ||
+     u.email?.toLowerCase().includes(searchUser.toLowerCase()))
+  );
+  const selectedUser = (allUsers as any[]).find((u: any) => u.openId === selectedUserOpenId);
+
   const active = subs?.filter(s => s.status === "active") ?? [];
   const cancelled = subs?.filter(s => s.status !== "active") ?? [];
   const typeLabel = (t: string) => t === "standard" ? "Стандартен" : "Рециклиращ";
   const slotLabel = (s: string) => s === "morning" ? "08:00–12:00" : "20:00–00:00";
   const statusColor = (s: string) => s === "active" ? "bg-green-100 text-green-700" : s === "cancelled" ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-600";
+
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-bold text-gray-900">Абонаменти</h2>
         <p className="text-sm text-gray-500 mt-0.5">Активни: {active.length} | Неактивни: {cancelled.length}</p>
+      </div>
+
+      {/* Форма за създаване */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm space-y-4">
+        <h3 className="font-semibold text-gray-800">Създай абонамент за клиент</h3>
+
+        {/* Търси клиент */}
+        <div className="space-y-1">
+          <label className="text-xs text-gray-500">Търси клиент (минимум 2 символа)</label>
+          <input
+            type="text"
+            value={searchUser}
+            onChange={e => { setSearchUser(e.target.value); setSelectedUserOpenId(""); }}
+            placeholder="Имейл или име..."
+            className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+          {filteredUsers.length > 0 && !selectedUserOpenId && (
+            <div className="border rounded-xl overflow-hidden shadow-sm">
+              {filteredUsers.slice(0, 5).map((u: any) => (
+                <div
+                  key={u.openId}
+                  className="px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer border-b last:border-0"
+                  onClick={() => { setSelectedUserOpenId(u.openId); setSearchUser(u.name ?? u.email ?? ""); }}
+                >
+                  <span className="font-medium">{u.name}</span>
+                  {u.email && <span className="text-gray-400 ml-2 text-xs">{u.email}</span>}
+                </div>
+              ))}
+            </div>
+          )}
+          {selectedUser && (
+            <p className="text-xs text-green-600">✓ Избран: {selectedUser.name} ({selectedUser.email})</p>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          {/* Тип */}
+          <div className="space-y-1">
+            <label className="text-xs text-gray-500">Тип</label>
+            <select value={newType} onChange={e => setNewType(e.target.value as any)}
+              className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none">
+              <option value="standard">Стандартен</option>
+              <option value="recycling">Рециклиращ</option>
+            </select>
+          </div>
+          {/* Посещения */}
+          <div className="space-y-1">
+            <label className="text-xs text-gray-500">Посещения/месец</label>
+            <select value={newVisits} onChange={e => setNewVisits(Number(e.target.value) as any)}
+              className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none">
+              <option value={15}>15</option>
+              <option value={30}>30</option>
+            </select>
+          </div>
+          {/* Слот */}
+          <div className="space-y-1">
+            <label className="text-xs text-gray-500">Времеви слот</label>
+            <select value={newSlot} onChange={e => setNewSlot(e.target.value as any)}
+              className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none">
+              <option value="morning">08:00–12:00</option>
+              <option value="evening">20:00–00:00</option>
+            </select>
+          </div>
+          {/* Квартал */}
+          <div className="space-y-1">
+            <label className="text-xs text-gray-500">Квартал</label>
+            <select value={newDistrict} onChange={e => setNewDistrict(e.target.value)}
+              className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none">
+              <option value="">Избери...</option>
+              {allDistricts.map((d: any) => (
+                <option key={d.id} value={d.name}>{d.name}</option>
+              ))}
+            </select>
+          </div>
+          {/* Блок */}
+          <div className="space-y-1">
+            <label className="text-xs text-gray-500">Блок</label>
+            <input value={newBlok} onChange={e => setNewBlok(e.target.value)}
+              placeholder="напр. 119"
+              className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none" />
+          </div>
+          {/* Вход */}
+          <div className="space-y-1">
+            <label className="text-xs text-gray-500">Вход</label>
+            <input value={newVhod} onChange={e => setNewVhod(e.target.value)}
+              placeholder="напр. А"
+              className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none" />
+          </div>
+          {/* Етаж */}
+          <div className="space-y-1">
+            <label className="text-xs text-gray-500">Етаж (незадължително)</label>
+            <input value={newEtaj} onChange={e => setNewEtaj(e.target.value)}
+              placeholder="напр. 3"
+              className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none" />
+          </div>
+          {/* Апартамент */}
+          <div className="space-y-1">
+            <label className="text-xs text-gray-500">Апартамент (незадължително)</label>
+            <input value={newApartament} onChange={e => setNewApartament(e.target.value)}
+              placeholder="напр. 12"
+              className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none" />
+          </div>
+        </div>
+
+        <Button
+          className="w-full rounded-xl bg-primary text-white"
+          disabled={!selectedUserOpenId || !newDistrict || !newBlok || !newVhod || adminCreate.isPending}
+          onClick={() => adminCreate.mutate({
+            userOpenId: selectedUserOpenId,
+            type: newType,
+            visits: newVisits,
+            district: newDistrict,
+            blok: newBlok,
+            vhod: newVhod,
+            etaj: newEtaj || undefined,
+            apartament: newApartament || undefined,
+            timeSlot: newSlot,
+          })}
+        >
+          {adminCreate.isPending ? "Създава се..." : "Създай абонамент"}
+        </Button>
       </div>
       <div>
         <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
@@ -2159,7 +2317,7 @@ function SubscriptionsTab() {
                       {sub.apartament ? `, Ап. ${sub.apartament}` : ""}
                     </p>
                     <p className="text-xs text-gray-400">
-                      Потребител: {sub.userOpenId} | Създаден: {new Date(sub.createdAt).toLocaleDateString("bg-BG")}
+                      {(sub as any).clientName ?? (sub as any).clientEmail ?? sub.userOpenId} | Създаден: {new Date(sub.createdAt).toLocaleDateString("bg-BG")}
                       {sub.currentPeriodEnd ? ` | До: ${new Date(sub.currentPeriodEnd).toLocaleDateString("bg-BG")}` : ""}
                     </p>
                   </div>
@@ -2199,7 +2357,7 @@ function SubscriptionsTab() {
                     </div>
                     <p className="text-sm text-gray-600">{sub.district}, Бл. {sub.blok}, Вх. {sub.vhod}</p>
                     <p className="text-xs text-gray-400">
-                      Потребител: {sub.userOpenId}
+                      {(sub as any).clientName ?? (sub as any).clientEmail ?? sub.userOpenId}
                       {sub.cancellationNote ? ` | Причина: ${sub.cancellationNote}` : ""}
                       {sub.cancelledAt ? ` | Отказан: ${new Date(sub.cancelledAt).toLocaleDateString("bg-BG")}` : ""}
                     </p>

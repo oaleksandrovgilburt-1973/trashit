@@ -2488,8 +2488,51 @@ export const appRouter = router({
         return { success: true };
       }),
     adminList: adminProcedure.query(async () => {
-      return getAllSubscriptions();
+      const subs = await getAllSubscriptions();
+      const users = await getAllUsers();
+      return subs.map(s => {
+        const user = users.find(u => u.openId === s.userOpenId);
+        return {
+          ...s,
+          clientName: user?.name ?? null,
+          clientEmail: user?.email ?? null,
+        };
+      });
     }),
+
+    adminCreate: adminProcedure
+      .input(z.object({
+        userOpenId: z.string(),
+        type: z.enum(["standard", "recycling"]),
+        visits: z.number(),
+        district: z.string(),
+        blok: z.string(),
+        vhod: z.string(),
+        etaj: z.string().optional(),
+        apartament: z.string().optional(),
+        timeSlot: z.enum(["morning", "evening"]),
+      }))
+      .mutation(async ({ input }) => {
+        const currentPeriodEnd = new Date();
+        currentPeriodEnd.setDate(currentPeriodEnd.getDate() + 30);
+        await createSubscription({
+          userOpenId: input.userOpenId,
+          type: input.type,
+          visits: input.visits,
+          district: input.district,
+          blok: input.blok,
+          vhod: input.vhod,
+          etaj: input.etaj ?? null,
+          apartament: input.apartament ?? null,
+          timeSlot: input.timeSlot,
+          status: "active",
+          currentPeriodEnd: currentPeriodEnd.toISOString(),
+          stripeSubscriptionId: null,
+          stripeCustomerId: null,
+        });
+        return { success: true };
+      }),
+
     adminCancel: adminProcedure
       .input(z.object({ id: z.number(), note: z.string().optional() }))
       .mutation(async ({ input }) => {
