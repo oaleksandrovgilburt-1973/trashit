@@ -2526,7 +2526,7 @@ export const appRouter = router({
           apartament: input.apartament ?? null,
           timeSlot: input.timeSlot,
           status: "active",
-          currentPeriodEnd: currentPeriodEnd.toISOString(),
+          currentPeriodEnd: currentPeriodEnd,
           stripeSubscriptionId: null,
           stripeCustomerId: null,
         });
