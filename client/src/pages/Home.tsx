@@ -12,7 +12,8 @@ import { requestFCMToken } from "@/lib/firebase";
 
 export default function Home() {
   const { user, loading, logout } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const isBg = language === "bg";
   const [, navigate] = useLocation();
   const saveFcmToken = trpc.users.saveFcmToken.useMutation();
 
