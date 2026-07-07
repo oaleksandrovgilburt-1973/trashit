@@ -759,8 +759,6 @@ function PricesTab() {
           );
         })}
       </div>
-    {/* Управление на цени */}
-      <PricesTab />
     </div>
   );
 }
