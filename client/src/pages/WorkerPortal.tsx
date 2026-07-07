@@ -302,12 +302,13 @@ function WorkerChatPanel({ requestId, deviceToken, isBg }: { requestId: number; 
 
 // ─── Request Card ─────────────────────────────────────────────────────────────
 function RequestCard({
-  req, deviceToken, onComplete, onProblem
+  req, deviceToken, onComplete, onProblem, onClaim
 }: {
   req: Request;
   deviceToken: string;
   onComplete: (id: number) => void;
   onProblem: (req: Request) => void;
+  onClaim?: (district: string, blok: string, vhod: string) => void;
 }) {
   const { language } = useLanguage();
   const isBg = language === "bg";
@@ -415,14 +416,14 @@ function RequestCard({
     <WorkerQuotePanel requestId={req.id} deviceToken={deviceToken} isBg={isBg} />
   )}
   <div className="flex gap-2">
-    {(req.type !== "nonstandard" && req.type !== "construction") && (
+    {(req.type !== "nonstandard" && req.type !== "construction") && onClaim && (
       <Button
         size="sm"
-        className="flex-1 rounded-xl bg-primary text-white text-xs"
-        onClick={() => onComplete(req.id)}
+        className="flex-1 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs"
+        onClick={() => onClaim(req.district, req.blok, req.vhod)}
       >
         <CheckCircle className="w-3 h-3 mr-1" />
-        {isBg ? "Приключи" : "Complete"}
+        {isBg ? "Приеми" : "Accept"}
       </Button>
     )}
     <Button
@@ -570,10 +571,15 @@ function GroupedRequestsView({ deviceToken }: { deviceToken: string }) {
       for (const [vhod, reqs] of Object.entries(entrances)) {
         const key = `${district}|${blok}|${vhod}`;
         const status = claimStatus[key];
-        if (status?.claimedByMe || status?.claimedByOther) continue; // hide claimed entrances
+        const isClaimed = status?.claimedByMe || status?.claimedByOther;
+        // If claimed, only keep nonstandard/construction requests (they need quotes, not claim)
+        const visibleReqs = isClaimed
+          ? reqs.filter(r => r.type === "nonstandard" || r.type === "construction")
+          : reqs;
+        if (visibleReqs.length === 0) continue;
         if (!filteredGroupedData[district]) filteredGroupedData[district] = {};
         if (!filteredGroupedData[district][blok]) filteredGroupedData[district][blok] = {};
-        filteredGroupedData[district][blok][vhod] = reqs;
+        filteredGroupedData[district][blok][vhod] = visibleReqs;
       }
     }
   }
@@ -676,6 +682,7 @@ function GroupedRequestsView({ deviceToken }: { deviceToken: string }) {
                                         deviceToken={deviceToken}
                                         onComplete={(id) => completeMutation.mutate({ requestId: id, deviceToken })}
                                         onProblem={(r) => setProblemReq(r)}
+                                        onClaim={(district, blok, vhod) => claimMutation.mutate({ district, blok, vhod, deviceToken })}
                                       />
                                     ))}
                                   </div>
