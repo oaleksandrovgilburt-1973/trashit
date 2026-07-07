@@ -19,7 +19,7 @@ export default function PrivacyPage() {
         </div>
         <div className="prose prose-sm max-w-none text-gray-700 space-y-4">
           <p className="text-xs text-gray-400 mb-6">
-            {isBg ? "Политика за поверителност и бисквитки на „Трашит" ЕООД" : "Privacy and Cookie Policy of Trashit Ltd."}
+            {isBg ? "Политика за поверителност и бисквитки на Трашит ЕООД" : "Privacy and Cookie Policy of Trashit Ltd."}
           </p>
 
           <h2 className="text-lg font-bold mt-6">{isBg ? "I. Въведение" : "I. Introduction"}</h2>

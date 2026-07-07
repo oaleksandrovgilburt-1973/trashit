@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useLanguage } from "@/contexts/LanguageContext";
 import MainLayout from "@/components/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,25 +22,25 @@ const OLD_PRICES: Record<string, Record<string, { old: number; discount: number 
   recycling: { "15": { old: 15.90, discount: 25 }, "30": { old: 28.90, discount: 24 } },
 };
 
-const TYPE_LABELS: Record<string, string> = {
-  standard: "Стандартен битов",
-  recycling: "Рециклиращ",
-};
-
-const SLOT_LABELS: Record<string, string> = {
-  morning: "08:00 – 12:00",
-  evening: "20:00 – 00:00",
-};
-
-const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  active: { label: "Активен", color: "bg-green-100 text-green-800" },
-  cancelled: { label: "Отказан", color: "bg-red-100 text-red-800" },
-  expired: { label: "Изтекъл", color: "bg-gray-100 text-gray-600" },
-};
-
 export default function Subscription() {
   const { user, loading: authLoading } = useAuth();
+  const { language } = useLanguage();
+  const isBg = language === "bg";
   const [, navigate] = useLocation();
+
+  const TYPE_LABELS: Record<string, string> = {
+    standard: isBg ? "Стандартен битов" : "Standard Household",
+    recycling: isBg ? "Рециклиращ" : "Recycling",
+  };
+  const SLOT_LABELS: Record<string, string> = {
+    morning: "08:00 – 12:00",
+    evening: "20:00 – 00:00",
+  };
+  const STATUS_LABELS: Record<string, { label: string; color: string }> = {
+    active: { label: isBg ? "Активен" : "Active", color: "bg-green-100 text-green-800" },
+    cancelled: { label: isBg ? "Отказан" : "Cancelled", color: "bg-red-100 text-red-800" },
+    expired: { label: isBg ? "Изтекъл" : "Expired", color: "bg-gray-100 text-gray-600" },
+  };
 
   // Form state
   const [type, setType] = useState<"standard" | "recycling">("standard");
@@ -76,10 +77,9 @@ export default function Subscription() {
   const subSuccess = urlParams.get("sub_success");
   useEffect(() => {
     if (subSuccess === "1") {
-      toast.success("Абонаментът е активиран успешно!");
+      toast.success(isBg ? "Абонаментът е активиран успешно!" : "Subscription activated successfully!");
       activeSubQ.refetch();
       allSubsQ.refetch();
-      // Clean URL
       window.history.replaceState({}, "", "/subscription");
     }
   }, [subSuccess]);
@@ -88,7 +88,7 @@ export default function Subscription() {
   const createCheckout = trpc.subscriptions.createCheckout.useMutation({
     onSuccess: (data) => {
       if (data.url) {
-        toast.info("Пренасочване към Stripe Checkout...");
+        toast.info(isBg ? "Пренасочване към Stripe Checkout..." : "Redirecting to Stripe Checkout...");
         window.open(data.url, "_blank");
       }
     },
@@ -98,7 +98,7 @@ export default function Subscription() {
   const utils = trpc.useUtils();
   const cancelSub = trpc.subscriptions.cancel.useMutation({
     onSuccess: () => {
-      toast.success("Абонаментът е отказан.");
+      toast.success(isBg ? "Абонаментът е отказан." : "Subscription cancelled.");
       setShowCancelForm(false);
       setCancelNote("");
       utils.subscriptions.myActive.invalidate();
@@ -109,7 +109,7 @@ export default function Subscription() {
 
   const handleSubscribe = () => {
     if (!district.trim() || !blok.trim() || !vhod.trim()) {
-      toast.error("Моля попълнете квартал, блок и вход.");
+      toast.error(isBg ? "Моля попълнете квартал, блок и вход." : "Please fill in district, block and entrance.");
       return;
     }
     createCheckout.mutate({
@@ -139,10 +139,10 @@ export default function Subscription() {
       <MainLayout>
         <div className="container py-12 text-center">
           <CalendarDays className="w-16 h-16 text-primary mx-auto mb-4" />
-          <h1 className="text-2xl font-bold mb-2">Месечен абонамент</h1>
-          <p className="text-muted-foreground mb-6">Влезте в профила си, за да се абонирате.</p>
+          <h1 className="text-2xl font-bold mb-2">{isBg ? "Месечен абонамент" : "Monthly Subscription"}</h1>
+          <p className="text-muted-foreground mb-6">{isBg ? "Влезте в профила си, за да се абонирате." : "Log in to your account to subscribe."}</p>
           <Link href="/auth">
-            <Button className="gap-2"><LogIn className="w-4 h-4" />Вход / Регистрация</Button>
+            <Button className="gap-2"><LogIn className="w-4 h-4" />{isBg ? "Вход / Регистрация" : "Login / Register"}</Button>
           </Link>
         </div>
       </MainLayout>
@@ -165,8 +165,8 @@ export default function Subscription() {
             <CalendarDays className="w-5 h-5 text-blue-700" />
           </div>
           <div>
-            <h1 className="text-xl font-bold">Месечен абонамент</h1>
-            <p className="text-xs text-muted-foreground">Редовни посещения на вашия адрес</p>
+            <h1 className="text-xl font-bold">{isBg ? "Месечен абонамент" : "Monthly Subscription"}</h1>
+            <p className="text-xs text-muted-foreground">{isBg ? "Редовни посещения на вашия адрес" : "Regular visits to your address"}</p>
           </div>
         </div>
 
@@ -176,31 +176,31 @@ export default function Subscription() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <CheckCircle className="w-5 h-5 text-green-600" />
-                <span className="font-bold text-green-800">Активен абонамент</span>
+                <span className="font-bold text-green-800">{isBg ? "Активен абонамент" : "Active Subscription"}</span>
               </div>
-              <Badge className="bg-green-100 text-green-800 border-0">Активен</Badge>
+              <Badge className="bg-green-100 text-green-800 border-0">{isBg ? "Активен" : "Active"}</Badge>
             </div>
             <div className="grid grid-cols-2 gap-2 text-sm">
               <div>
-                <p className="text-muted-foreground text-xs">Тип</p>
+                <p className="text-muted-foreground text-xs">{isBg ? "Тип" : "Type"}</p>
                 <p className="font-medium">{TYPE_LABELS[activeSub.type]}</p>
               </div>
               <div>
-                <p className="text-muted-foreground text-xs">Посещения</p>
-                <p className="font-medium">{activeSub.visits}/месец</p>
+                <p className="text-muted-foreground text-xs">{isBg ? "Посещения" : "Visits"}</p>
+                <p className="font-medium">{activeSub.visits}/{isBg ? "месец" : "month"}</p>
               </div>
               <div>
-                <p className="text-muted-foreground text-xs">Часови слот</p>
+                <p className="text-muted-foreground text-xs">{isBg ? "Часови слот" : "Time slot"}</p>
                 <p className="font-medium">{SLOT_LABELS[activeSub.timeSlot]}</p>
               </div>
               <div>
-                <p className="text-muted-foreground text-xs">Адрес</p>
-                <p className="font-medium">{activeSub.district}, Бл. {activeSub.blok}, Вх. {activeSub.vhod}</p>
+                <p className="text-muted-foreground text-xs">{isBg ? "Адрес" : "Address"}</p>
+                <p className="font-medium">{activeSub.district}, {isBg ? "Бл." : "Bl."} {activeSub.blok}, {isBg ? "Вх." : "Entr."} {activeSub.vhod}</p>
               </div>
               {activeSub.currentPeriodEnd && (
                 <div className="col-span-2">
-                  <p className="text-muted-foreground text-xs">Следващо подновяване</p>
-                  <p className="font-medium">{new Date(activeSub.currentPeriodEnd).toLocaleDateString("bg-BG")}</p>
+                  <p className="text-muted-foreground text-xs">{isBg ? "Следващо подновяване" : "Next renewal"}</p>
+                  <p className="font-medium">{new Date(activeSub.currentPeriodEnd).toLocaleDateString(isBg ? "bg-BG" : "en-GB")}</p>
                 </div>
               )}
             </div>
@@ -213,14 +213,14 @@ export default function Subscription() {
                 className="w-full text-red-600 border-red-200 hover:bg-red-50"
                 onClick={() => setShowCancelForm(true)}
               >
-                <X className="w-4 h-4 mr-1" />Откажи абонамента
+                <X className="w-4 h-4 mr-1" />{isBg ? "Откажи абонамента" : "Cancel subscription"}
               </Button>
             ) : (
               <div className="space-y-2">
                 <textarea
                   className="w-full rounded-xl border border-border p-3 text-sm resize-none"
                   rows={2}
-                  placeholder="Причина за отказ (по желание)"
+                  placeholder={isBg ? "Причина за отказ (по желание)" : "Reason for cancellation (optional)"}
                   value={cancelNote}
                   onChange={e => setCancelNote(e.target.value)}
                 />
@@ -231,7 +231,7 @@ export default function Subscription() {
                     className="flex-1"
                     onClick={() => setShowCancelForm(false)}
                   >
-                    Назад
+                    {isBg ? "Назад" : "Back"}
                   </Button>
                   <Button
                     size="sm"
@@ -239,7 +239,7 @@ export default function Subscription() {
                     disabled={cancelSub.isPending}
                     onClick={() => cancelSub.mutate({ id: activeSub.id, note: cancelNote || undefined })}
                   >
-                    {cancelSub.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Потвърди отказа"}
+                    {cancelSub.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : (isBg ? "Потвърди отказа" : "Confirm cancellation")}
                   </Button>
                 </div>
               </div>
@@ -250,7 +250,7 @@ export default function Subscription() {
           <div className="space-y-5">
             {/* Type selector */}
             <div className="space-y-2">
-              <p className="text-sm font-semibold text-foreground">Тип услуга</p>
+              <p className="text-sm font-semibold text-foreground">{isBg ? "Тип услуга" : "Service type"}</p>
               <div className="grid grid-cols-2 gap-3">
                 {(["standard", "recycling"] as const).map(t => (
                   <button
@@ -274,7 +274,7 @@ export default function Subscription() {
 
             {/* Visits selector */}
             <div className="space-y-2">
-              <p className="text-sm font-semibold text-foreground">Брой посещения/месец</p>
+              <p className="text-sm font-semibold text-foreground">{isBg ? "Брой посещения/месец" : "Visits per month"}</p>
               <div className="grid grid-cols-2 gap-3">
                 {(["15", "30"] as const).map(v => (
                   <button
@@ -285,7 +285,7 @@ export default function Subscription() {
                     }`}
                   >
                     <span className={`text-2xl font-black ${visits === v ? "text-blue-700" : "text-foreground"}`}>{v}</span>
-                    <span className={`text-xs ${visits === v ? "text-blue-600" : "text-muted-foreground"}`}>посещения</span>
+                    <span className={`text-xs ${visits === v ? "text-blue-600" : "text-muted-foreground"}`}>{isBg ? "посещения" : "visits"}</span>
                     {OLD_PRICES[type]?.[v] && (
                       <div className="flex items-center gap-1">
                         <span className="text-xs line-through text-gray-400">€{OLD_PRICES[type][v].old.toFixed(2)}</span>
@@ -293,7 +293,7 @@ export default function Subscription() {
                       </div>
                     )}
                     <span className={`text-sm font-bold ${visits === v ? "text-blue-700" : "text-muted-foreground"}`}>
-                      €{PRICES[type][v].toFixed(2)}/мес
+                      €{PRICES[type][v].toFixed(2)}/{isBg ? "мес" : "mo"}
                     </span>
                   </button>
                 ))}
@@ -303,8 +303,8 @@ export default function Subscription() {
             {/* Even/Odd days picker — only for 15-visit plans */}
             {visits === "15" && (
               <div className="space-y-2">
-                <p className="text-sm font-semibold text-foreground">Дати на посещения</p>
-                <p className="text-xs text-muted-foreground">Изберете дали работникът да идва на четни или нечетни дати от месеца.</p>
+                <p className="text-sm font-semibold text-foreground">{isBg ? "Дати на посещения" : "Visit days"}</p>
+                <p className="text-xs text-muted-foreground">{isBg ? "Изберете дали работникът да иде на четни или нечетни дати от месеца." : "Choose whether the worker visits on even or odd dates of the month."}</p>
                 <div className="grid grid-cols-2 gap-3">
                   {(["even", "odd"] as const).map(d => (
                     <button
@@ -314,12 +314,10 @@ export default function Subscription() {
                         visitDays === d ? "border-blue-500 bg-blue-50" : "border-border bg-background hover:border-blue-200"
                       }`}
                     >
-                      <span className={`text-xl font-black ${
-                        visitDays === d ? "text-blue-700" : "text-foreground"
-                      }`}>{d === "even" ? "2, 4, 6..." : "1, 3, 5..."}</span>
-                      <span className={`text-xs font-medium ${
-                        visitDays === d ? "text-blue-600" : "text-muted-foreground"
-                      }`}>{d === "even" ? "Четни дати" : "Нечетни дати"}</span>
+                      <span className={`text-xl font-black ${visitDays === d ? "text-blue-700" : "text-foreground"}`}>{d === "even" ? "2, 4, 6..." : "1, 3, 5..."}</span>
+                      <span className={`text-xs font-medium ${visitDays === d ? "text-blue-600" : "text-muted-foreground"}`}>
+                        {d === "even" ? (isBg ? "Четни дати" : "Even dates") : (isBg ? "Нечетни дати" : "Odd dates")}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -328,7 +326,7 @@ export default function Subscription() {
 
             {/* Time slot */}
             <div className="space-y-2">
-              <p className="text-sm font-semibold text-foreground">Часови слот</p>
+              <p className="text-sm font-semibold text-foreground">{isBg ? "Часови слот" : "Time slot"}</p>
               <div className="grid grid-cols-2 gap-3">
                 {(["morning", "evening"] as const).map(s => (
                   <button
@@ -344,7 +342,7 @@ export default function Subscription() {
                     }
                     <div className="text-left">
                       <p className={`text-sm font-medium ${timeSlot === s ? "text-blue-700" : "text-foreground"}`}>
-                        {s === "morning" ? "Сутрин" : "Вечер"}
+                        {s === "morning" ? (isBg ? "Сутрин" : "Morning") : (isBg ? "Вечер" : "Evening")}
                       </p>
                       <p className="text-xs text-muted-foreground">{SLOT_LABELS[s]}</p>
                     </div>
@@ -356,49 +354,49 @@ export default function Subscription() {
             {/* Address */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold text-foreground">Адрес</p>
+                <p className="text-sm font-semibold text-foreground">{isBg ? "Адрес" : "Address"}</p>
                 {!editAddress && (
                   <button
                     className="text-xs text-blue-600 underline"
                     onClick={() => setEditAddress(true)}
                   >
-                    Смени
+                    {isBg ? "Смени" : "Change"}
                   </button>
                 )}
               </div>
               {!editAddress && district ? (
                 <div className="rounded-xl border border-border bg-secondary p-3 text-sm">
-                  <p className="font-medium">{district}, Бл. {blok}, Вх. {vhod}{etaj ? `, Ет. ${etaj}` : ""}{apartament ? `, Ап. ${apartament}` : ""}</p>
+                  <p className="font-medium">{district}, {isBg ? "Бл." : "Bl."} {blok}, {isBg ? "Вх." : "Entr."} {vhod}{etaj ? `, ${isBg ? "Ет." : "Fl."} ${etaj}` : ""}{apartament ? `, ${isBg ? "Ап." : "Apt."} ${apartament}` : ""}</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-2">
                   <input
                     className="col-span-2 rounded-xl border border-border p-3 text-sm"
-                    placeholder="Квартал *"
+                    placeholder={isBg ? "Квартал *" : "District *"}
                     value={district}
                     onChange={e => setDistrict(e.target.value)}
                   />
                   <input
                     className="rounded-xl border border-border p-3 text-sm"
-                    placeholder="Блок *"
+                    placeholder={isBg ? "Блок *" : "Block *"}
                     value={blok}
                     onChange={e => setBlok(e.target.value)}
                   />
                   <input
                     className="rounded-xl border border-border p-3 text-sm"
-                    placeholder="Вход *"
+                    placeholder={isBg ? "Вход *" : "Entrance *"}
                     value={vhod}
                     onChange={e => setVhod(e.target.value)}
                   />
                   <input
                     className="rounded-xl border border-border p-3 text-sm"
-                    placeholder="Етаж"
+                    placeholder={isBg ? "Етаж" : "Floor"}
                     value={etaj}
                     onChange={e => setEtaj(e.target.value)}
                   />
                   <input
                     className="rounded-xl border border-border p-3 text-sm"
-                    placeholder="Апартамент"
+                    placeholder={isBg ? "Апартамент" : "Apartment"}
                     value={apartament}
                     onChange={e => setApartament(e.target.value)}
                   />
@@ -410,8 +408,8 @@ export default function Subscription() {
             <div className="rounded-2xl bg-blue-600 p-5 text-white space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-blue-100 text-sm">Избран план</p>
-                  <p className="font-bold text-lg">{TYPE_LABELS[type]} — {visits} посещения</p>
+                  <p className="text-blue-100 text-sm">{isBg ? "Избран план" : "Selected plan"}</p>
+                  <p className="font-bold text-lg">{TYPE_LABELS[type]} — {visits} {isBg ? "посещения" : "visits"}</p>
                   <p className="text-blue-200 text-sm">{SLOT_LABELS[timeSlot]}</p>
                 </div>
                 <div className="text-right">
@@ -422,7 +420,7 @@ export default function Subscription() {
                     </div>
                   )}
                   <p className="text-3xl font-black">€{price.toFixed(2)}</p>
-                  <p className="text-blue-200 text-xs">/месец</p>
+                  <p className="text-blue-200 text-xs">/{isBg ? "месец" : "month"}</p>
                 </div>
               </div>
               <Button
@@ -431,11 +429,11 @@ export default function Subscription() {
                 onClick={handleSubscribe}
               >
                 {createCheckout.isPending
-                  ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Зареждане...</>
-                  : <><ChevronRight className="w-4 h-4 mr-1" />Абонирай се</>
+                  ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />{isBg ? "Зареждане..." : "Loading..."}</>
+                  : <><ChevronRight className="w-4 h-4 mr-1" />{isBg ? "Абонирай се" : "Subscribe"}</>
                 }
               </Button>
-              <p className="text-blue-200 text-xs text-center">Автоматично подновяване · Отказ по всяко време</p>
+              <p className="text-blue-200 text-xs text-center">{isBg ? "Автоматично подновяване · Отказ по всяко време" : "Auto-renewal · Cancel anytime"}</p>
             </div>
           </div>
         )}
@@ -443,21 +441,21 @@ export default function Subscription() {
         {/* Subscription history */}
         {allSubs.filter(s => s.status !== "active").length > 0 && (
           <div className="space-y-3">
-            <p className="text-sm font-semibold text-muted-foreground">История на абонаменти</p>
+            <p className="text-sm font-semibold text-muted-foreground">{isBg ? "История на абонаменти" : "Subscription history"}</p>
             {allSubs.filter(s => s.status !== "active").map(sub => (
               <div key={sub.id} className="rounded-2xl border border-border p-4 space-y-1">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">{TYPE_LABELS[sub.type]} — {sub.visits} посещения</span>
+                  <span className="text-sm font-medium">{TYPE_LABELS[sub.type]} — {sub.visits} {isBg ? "посещения" : "visits"}</span>
                   <Badge className={`${STATUS_LABELS[sub.status]?.color ?? "bg-gray-100 text-gray-600"} border-0 text-xs`}>
                     {STATUS_LABELS[sub.status]?.label ?? sub.status}
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {sub.district}, Бл. {sub.blok}, Вх. {sub.vhod} · {SLOT_LABELS[sub.timeSlot]}
+                  {sub.district}, {isBg ? "Бл." : "Bl."} {sub.blok}, {isBg ? "Вх." : "Entr."} {sub.vhod} · {SLOT_LABELS[sub.timeSlot]}
                 </p>
                 {sub.cancelledAt && (
                   <p className="text-xs text-muted-foreground">
-                    Отказан: {new Date(sub.cancelledAt).toLocaleDateString("bg-BG")}
+                    {isBg ? "Отказан:" : "Cancelled:"} {new Date(sub.cancelledAt).toLocaleDateString(isBg ? "bg-BG" : "en-GB")}
                     {sub.cancellationNote ? ` — ${sub.cancellationNote}` : ""}
                   </p>
                 )}
@@ -470,9 +468,9 @@ export default function Subscription() {
         <div className="rounded-2xl bg-secondary border border-border p-4 flex gap-3">
           <AlertCircle className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
           <div className="text-sm text-muted-foreground space-y-1">
-            <p className="font-medium text-foreground">Как работи абонаментът?</p>
-            <p>Работник ще посети вашия адрес в избрания часови слот за всяко посещение от плана ви.</p>
-            <p>Плащането е месечно и се подновява автоматично. Можете да откажете по всяко време.</p>
+            <p className="font-medium text-foreground">{isBg ? "Как работи абонаментът?" : "How does the subscription work?"}</p>
+            <p>{isBg ? "Работник ще посети вашия адрес в избрания часови слот за всяко посещение от плана ви." : "A worker will visit your address in the selected time slot for every visit in your plan."}</p>
+            <p>{isBg ? "Плащането е месечно и се подновява автоматично. Можете да откажете по всяко време." : "Payment is monthly and renews automatically. You can cancel at any time."}</p>
           </div>
         </div>
       </div>
