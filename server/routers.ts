@@ -973,18 +973,33 @@ export const appRouter = router({
   // ── Credits & Payments ────────────────────────────────────────────────────
   credits: router({
     // Return credit package definitions
-    packages: publicProcedure.query(() => ({
-      standard: [
-        { id: "std_1", credits: 1, bonus: 0, total: 1, price: 0.69, label: "1 кредит", highlight: false },
-        { id: "std_10", credits: 10, bonus: 2, total: 12, price: 6.90, label: "10 + 2 безплатни", highlight: true, save: "Спестяваш 2 кредита" },
-        { id: "std_20", credits: 20, bonus: 5, total: 25, price: 13.80, label: "20 + 5 безплатни", highlight: false, save: "Спестяваш 5 кредита" },
-      ],
-      recycling: [
-        { id: "rec_1", credits: 1, bonus: 0, total: 1, price: 0.99, label: "1 кредит", highlight: false },
-        { id: "rec_10", credits: 10, bonus: 1, total: 11, price: 9.90, label: "10 + 1 безплатен", highlight: true, save: "Спестяваш 1 кредит" },
-        { id: "rec_20", credits: 20, bonus: 3, total: 23, price: 19.80, label: "20 + 3 безплатни", highlight: false, save: "Спестяваш 3 кредита" },
-      ],
-    })),
+    packages: publicProcedure.query(async () => {
+      const s = await getAllSettings();
+      const std1 = parseFloat(s["price_std_1"] ?? "0.69");
+      const std10 = parseFloat(s["price_std_10"] ?? "6.90");
+      const std20 = parseFloat(s["price_std_20"] ?? "13.80");
+      const std1Old = parseFloat(s["price_std_1_old"] ?? "0.90");
+      const std10Old = parseFloat(s["price_std_10_old"] ?? "8.60");
+      const std20Old = parseFloat(s["price_std_20_old"] ?? "17.20");
+      const rec1 = parseFloat(s["price_rec_1"] ?? "0.99");
+      const rec10 = parseFloat(s["price_rec_10"] ?? "9.90");
+      const rec20 = parseFloat(s["price_rec_20"] ?? "19.80");
+      const rec1Old = parseFloat(s["price_rec_1_old"] ?? "1.30");
+      const rec10Old = parseFloat(s["price_rec_10_old"] ?? "12.40");
+      const rec20Old = parseFloat(s["price_rec_20_old"] ?? "24.70");
+      return {
+        standard: [
+          { id: "std_1", credits: 1, bonus: 0, total: 1, price: std1, oldPrice: std1Old, label: "1 кредит", highlight: false },
+          { id: "std_10", credits: 10, bonus: 2, total: 12, price: std10, oldPrice: std10Old, label: "10 + 2 безплатни", highlight: true, save: "Спестяваш 2 кредита" },
+          { id: "std_20", credits: 20, bonus: 5, total: 25, price: std20, oldPrice: std20Old, label: "20 + 5 безплатни", highlight: false, save: "Спестяваш 5 кредита" },
+        ],
+        recycling: [
+          { id: "rec_1", credits: 1, bonus: 0, total: 1, price: rec1, oldPrice: rec1Old, label: "1 кредит", highlight: false },
+          { id: "rec_10", credits: 10, bonus: 1, total: 11, price: rec10, oldPrice: rec10Old, label: "10 + 1 безплатен", highlight: true, save: "Спестяваш 1 кредит" },
+          { id: "rec_20", credits: 20, bonus: 3, total: 23, price: rec20, oldPrice: rec20Old, label: "20 + 3 безплатни", highlight: false, save: "Спестяваш 3 кредита" },
+        ],
+      };
+    }),
 
     // Create Stripe Checkout session
     createCheckout: protectedProcedure
@@ -1001,6 +1016,13 @@ export const appRouter = router({
         const stripeKey = process.env.STRIPE_SECRET_KEY;
         if (!stripeKey) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Stripe не е конфигуриран." });
         const stripe = new Stripe(stripeKey, { apiVersion: "2026-02-25.clover" });
+        // Validate price from settings
+        const s = await getAllSettings();
+        const priceKey = `price_${input.packageId}`;
+        const expectedPrice = parseFloat(s[priceKey] ?? "0");
+        if (expectedPrice > 0 && Math.abs(input.price - expectedPrice) > 0.01) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Невалидна цена. Моля опреснете страницата." });
+        }
         const session = await stripe.checkout.sessions.create({
           payment_method_types: ["card"],
           mode: "payment",
@@ -1025,7 +1047,7 @@ export const appRouter = router({
                 name: `TRASHit — ${input.creditType === "standard" ? "Стандартни" : "Рециклиращи"} кредити (${input.total} бр.)`,
                 description: input.bonus > 0 ? `${input.credits} кредита + ${input.bonus} безплатни = ${input.total} общо` : `${input.credits} кредита`,
               },
-              unit_amount: Math.round(input.price * 100),
+              unit_amount: Math.round(input.price * 100), // price validated below
             },
             quantity: 1,
           }],
@@ -2605,6 +2627,17 @@ export const appRouter = router({
         } else if (input.status === "past_due" || input.status === "unpaid") {
           await updateSubscriptionStripe(sub.id, { status: "expired" });
         }
+        return { success: true };
+      }),
+  }),
+  settings: router({
+    getAll: adminProcedure.query(async () => {
+      return getAllSettings();
+    }),
+    update: adminProcedure
+      .input(z.object({ key: z.string(), value: z.string() }))
+      .mutation(async ({ input }) => {
+        await upsertSetting(input.key, input.value);
         return { success: true };
       }),
   }),
