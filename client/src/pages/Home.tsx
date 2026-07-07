@@ -386,8 +386,8 @@ export default function Home() {
             </div>
             <div className="px-4 pb-4 space-y-2 text-sm text-muted-foreground">
               <ul className="space-y-2 pl-2">
-                <li>🏠 <strong>Стандартен битов отпадък</strong> — Един чувал до 3 кг и 40–45 л — вземаме го от входа ти до контейнера. Заявява се с кредит или абонамент.</li>
-                <li>♻️ <strong>Разделно събиране</strong> — До 3 чувала до 4 кг общо, разделени по вид. Заявява се с кредит или абонамент.</li>
+                <li>🏠 <strong>Стандартен битов отпадък</strong> — Един чувал смесен (Стандартен) до ~3 кг и 40–45 л — вземаме го от входната Ви врата до контейнера. 1 кредит = 1 чувал. Заявява се с <Link href="/credits" onClick={closeServicesPopup} className="text-primary underline">кредит</Link> или <Link href="/subscription" onClick={closeServicesPopup} className="text-primary underline">абонамент</Link>.</li>
+                <li>♻️ <strong>Разделно събиране</strong> — До 3 чувала по 15л. до ~4 кг общо, разделени по вид. Вземаме го от входната Ви врата до контейнера. 1 кредит = 1 чувал. Заявява се с <Link href="/credits" onClick={closeServicesPopup} className="text-primary underline">кредит</Link> или <Link href="/subscription" onClick={closeServicesPopup} className="text-primary underline">абонамент</Link>.</li>
                 <li>📦 <strong>Нестандартен отпадък</strong> — Мебели, електроуреди, кашони и едрогабаритни предмети. Изпрати снимка — нашият AI оценява обема и правим оферта.</li>
                 <li>🏗️ <strong>Строителен отпадък</strong> — Отпадъци от ремонт или събаряне. Изпрати снимка — нашият AI оценява обема и правим оферта.</li>
               </ul>
