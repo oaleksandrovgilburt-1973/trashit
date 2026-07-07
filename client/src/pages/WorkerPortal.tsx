@@ -415,14 +415,16 @@ function RequestCard({
     <WorkerQuotePanel requestId={req.id} deviceToken={deviceToken} isBg={isBg} />
   )}
   <div className="flex gap-2">
-    <Button
-      size="sm"
-      className="flex-1 rounded-xl bg-primary text-white text-xs"
-      onClick={() => onComplete(req.id)}
-    >
-      <CheckCircle className="w-3 h-3 mr-1" />
-      {isBg ? "Приключи" : "Complete"}
-    </Button>
+    {(req.type !== "nonstandard" && req.type !== "construction") && (
+      <Button
+        size="sm"
+        className="flex-1 rounded-xl bg-primary text-white text-xs"
+        onClick={() => onComplete(req.id)}
+      >
+        <CheckCircle className="w-3 h-3 mr-1" />
+        {isBg ? "Приключи" : "Complete"}
+      </Button>
+    )}
     <Button
       size="sm"
       variant="outline"
@@ -953,15 +955,17 @@ function WorkerAssignmentsTab({ deviceToken }: { deviceToken: string }) {
                 </p>
               </div>
               <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  className="rounded-xl text-xs bg-green-600 hover:bg-green-700 text-white h-8 px-3"
-                  disabled={completeEntranceMutation.isPending || reqs.length === 0}
-                  onClick={() => completeEntranceMutation.mutate({ district: a.district, blok: a.blok, vhod: a.vhod, deviceToken })}
-                >
-                  <CheckCircle className="w-3 h-3 mr-1" />
-                  {isBg ? "Приключи" : "Complete"}
-                </Button>
+                {reqs.some(r => r.type === "standard" || r.type === "recycling") && (
+                  <Button
+                    size="sm"
+                    className="rounded-xl text-xs bg-green-600 hover:bg-green-700 text-white h-8 px-3"
+                    disabled={completeEntranceMutation.isPending}
+                    onClick={() => completeEntranceMutation.mutate({ district: a.district, blok: a.blok, vhod: a.vhod, deviceToken })}
+                  >
+                    <CheckCircle className="w-3 h-3 mr-1" />
+                    {isBg ? "Приключи" : "Complete"}
+                  </Button>
+                )}
                 <Button
                   size="sm"
                   variant="outline"
