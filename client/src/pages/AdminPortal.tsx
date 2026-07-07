@@ -2120,7 +2120,7 @@ function ReportsTab() {
 }
 function SubscriptionsTab() {
   const { data: subs, refetch } = trpc.subscriptions.adminList.useQuery();
-  const { data: allUsers = [] } = trpc.admin.list.useQuery();
+  const { data: allUsers = [] } = trpc.users.list.useQuery();
   const { data: allDistricts = [] } = trpc.districts.list.useQuery();
 
   const [searchUser, setSearchUser] = React.useState("");
