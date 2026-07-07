@@ -77,9 +77,11 @@ export default function Home() {
     descriptions.forEach((d: any) => { descMap[d.activityKey] = d.description; });
   }
   const profile = profileQuery.data;
-
   const creditsStandard = profile?.creditsStandard ?? "0.00";
   const creditsRecycling = profile?.creditsRecycling ?? "0.00";
+  const { data: activeSubscription } = trpc.subscriptions.myActive.useQuery(undefined, {
+    enabled: !!user,
+  });
   const services = [
     { href: "/waste-disposal?type=standard", key: "standard", icon: <Trash2 className="w-6 h-6 text-primary" />, label: t.serviceStandard, active: true },
     { href: "/waste-disposal?type=recycling", key: "recycling", icon: <Recycle className="w-6 h-6 text-primary" />, label: t.serviceRecycling, active: true },
@@ -166,6 +168,19 @@ export default function Home() {
                       </div>
                     </div>
                   </Link>
+                  {activeSubscription && (
+                    <Link href="/subscription">
+                      <div className="flex items-center gap-1.5 bg-white/20 backdrop-blur-sm rounded-xl px-3 py-1.5 cursor-pointer hover:bg-white/30 transition-colors">
+                        <CalendarDays className="w-3.5 h-3.5 text-white" />
+                        <span className="text-white text-[11px] font-semibold">
+                          {activeSubscription.type === "standard" ? "Стандартен" : "Разделно"} абонамент
+                          {activeSubscription.currentPeriodEnd
+                            ? ` до ${new Date(activeSubscription.currentPeriodEnd).toLocaleDateString("bg-BG", { day: "2-digit", month: "short" })}`
+                            : ""}
+                        </span>
+                      </div>
+                    </Link>
+                  )}
                 </div>
               </div>
             ) : (

@@ -2261,14 +2261,14 @@ function SubscriptionsTab() {
           </div>
           {/* Етаж */}
           <div className="space-y-1">
-            <label className="text-xs text-gray-500">Етаж (незадължително)</label>
+            <label className="text-xs text-gray-500">Етаж</label>
             <input value={newEtaj} onChange={e => setNewEtaj(e.target.value)}
               placeholder="напр. 3"
               className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none" />
           </div>
           {/* Апартамент */}
           <div className="space-y-1">
-            <label className="text-xs text-gray-500">Апартамент (незадължително)</label>
+            <label className="text-xs text-gray-500">Апартамент</label>
             <input value={newApartament} onChange={e => setNewApartament(e.target.value)}
               placeholder="напр. 12"
               className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none" />
@@ -2277,7 +2277,7 @@ function SubscriptionsTab() {
 
         <Button
           className="w-full rounded-xl bg-primary text-white"
-          disabled={!selectedUserOpenId || !newDistrict || !newBlok || !newVhod || adminCreate.isPending}
+          disabled={!selectedUserOpenId || !newDistrict || !newBlok || !newVhod || !newEtaj || !newApartament || adminCreate.isPending}
           onClick={() => adminCreate.mutate({
             userOpenId: selectedUserOpenId,
             type: newType,
