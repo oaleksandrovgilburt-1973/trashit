@@ -385,11 +385,12 @@ export default function Home() {
               </button>
             </div>
             <div className="px-4 pb-4 space-y-2 text-sm text-muted-foreground">
+              <div className="px-4 pb-4 space-y-2 text-sm text-muted-foreground">
               <ul className="space-y-2 pl-2">
-                <li>🏠 <strong>Стандартен битов отпадък</strong> — Един чувал смесен (Стандартен) до ~3 кг и 40–45 л — вземаме го от входната Ви врата до контейнера. 1 кредит = 1 чувал. Заявява се с <Link href="/credits" onClick={closeServicesPopup} className="text-primary underline">кредит</Link> или <Link href="/subscription" onClick={closeServicesPopup} className="text-primary underline">абонамент</Link>.</li>
-                <li>♻️ <strong>Разделно събиране</strong> — До 3 чувала по 15л. до ~4 кг общо, разделени по вид. Вземаме го от входната Ви врата до контейнера. 1 кредит = 1 чувал. Заявява се с <Link href="/credits" onClick={closeServicesPopup} className="text-primary underline">кредит</Link> или <Link href="/subscription" onClick={closeServicesPopup} className="text-primary underline">абонамент</Link>.</li>
-                <li>📦 <strong>Нестандартен отпадък</strong> — Мебели, електроуреди, кашони и едрогабаритни предмети. Изпрати снимка — нашият AI оценява обема и правим оферта.</li>
-                <li>🏗️ <strong>Строителен отпадък</strong> — Отпадъци от ремонт или събаряне. Изпрати снимка — нашият AI оценява обема и правим оферта.</li>
+                <li>🏠 <strong>{isBg ? "Стандартен битов отпадък" : "Standard Household Waste"}</strong> — {isBg ? "Един чувал смесен (Стандартен) до ~3 кг и 40–45 л — вземаме го от входната Ви врата до контейнера. 1 кредит = 1 чувал. Заявява се с " : "One mixed waste bag up to ~3 kg and 40–45 L — we collect it from your door to the bin. 1 credit = 1 bag. Order with "}<Link href="/credits" onClick={closeServicesPopup} className="text-primary underline">{isBg ? "кредит" : "credits"}</Link> {isBg ? "или" : "or"} <Link href="/subscription" onClick={closeServicesPopup} className="text-primary underline">{isBg ? "абонамент" : "subscription"}</Link>.</li>
+                <li>♻️ <strong>{isBg ? "Разделно събиране" : "Recycling Collection"}</strong> — {isBg ? "До 3 чувала по 15л. до ~4 кг общо, разделени по вид. Вземаме го от входната Ви врата до контейнера. 1 кредит = 1 чувал. Заявява се с " : "Up to 3 bags of 15L up to ~4 kg total, sorted by type. Collected from your door to the bin. 1 credit = 1 bag. Order with "}<Link href="/credits" onClick={closeServicesPopup} className="text-primary underline">{isBg ? "кредит" : "credits"}</Link> {isBg ? "или" : "or"} <Link href="/subscription" onClick={closeServicesPopup} className="text-primary underline">{isBg ? "абонамент" : "subscription"}</Link>.</li>
+                <li>📦 <strong>{isBg ? "Нестандартен отпадък" : "Non-standard Waste"}</strong> — {isBg ? "Мебели, електроуреди, кашони и едрогабаритни предмети. Изпрати снимка — нашият AI оценява обема и правим оферта." : "Furniture, appliances, boxes and bulky items. Send a photo — our AI estimates the volume and we provide a quote."}</li>
+                <li>🏗️ <strong>{isBg ? "Строителен отпадък" : "Construction Waste"}</strong> — {isBg ? "Отпадъци от ремонт или събаряне. Изпрати снимка — нашият AI оценява обема и правим оферта." : "Waste from renovation or demolition. Send a photo — our AI estimates the volume and we provide a quote."}</li>
               </ul>
               <button
                 onClick={closeServicesPopup}
@@ -404,9 +405,9 @@ export default function Home() {
     {/* Footer */}
       <footer className="border-t py-6 mt-8">
         <div className="max-w-2xl mx-auto px-4 flex flex-wrap justify-center gap-4 text-xs text-muted-foreground">
-          <a href="/terms" className="hover:text-primary transition-colors">Общи условия</a>
-          <a href="/privacy" className="hover:text-primary transition-colors">Политика за поверителност</a>
-          <a href="/refund" className="hover:text-primary transition-colors">Политика за възстановяване</a>
+          <a href="/terms" className="hover:text-primary transition-colors">{isBg ? "Общи условия" : "Terms & Conditions"}</a>
+          <a href="/privacy" className="hover:text-primary transition-colors">{isBg ? "Политика за поверителност" : "Privacy Policy"}</a>
+          <a href="/refund" className="hover:text-primary transition-colors">{isBg ? "Политика за възстановяване" : "Refund Policy"}</a>
           <a href="mailto:support@trashit.bg" className="hover:text-primary transition-colors">support@trashit.bg</a>
         </div>
       </footer>
