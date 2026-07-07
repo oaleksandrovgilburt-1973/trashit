@@ -20,6 +20,9 @@ import MyRequests from "./pages/MyRequests";
 import WorkerRequests from "./pages/WorkerRequests";
 import Credits from "./pages/Credits";
 import Subscription from "./pages/Subscription";
+import TermsPage from "./pages/TermsPage";
+import PrivacyPage from "./pages/PrivacyPage";
+import RefundPage from "./pages/RefundPage";
 import PWAInstallBanner from "./components/PWAInstallBanner";
 import { UpdateBanner } from "./components/UpdateBanner";
 import { FCMProvider } from "./components/FCMProvider";
@@ -51,6 +54,11 @@ function Router() {
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin" component={AdminPortal} />
       <Route path="/subadmin" component={SubAdminPortal} />
+
+      {/* Legal */}
+      <Route path="/terms" component={TermsPage} />
+      <Route path="/privacy" component={PrivacyPage} />
+      <Route path="/refund" component={RefundPage} />
 
       {/* Fallback */}
       <Route path="/404" component={NotFound} />

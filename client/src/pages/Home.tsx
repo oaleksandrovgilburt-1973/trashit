@@ -388,6 +388,15 @@ export default function Home() {
           </div>
         </div>
       )}
+    {/* Footer */}
+      <footer className="border-t py-6 mt-8">
+        <div className="max-w-2xl mx-auto px-4 flex flex-wrap justify-center gap-4 text-xs text-muted-foreground">
+          <a href="/terms" className="hover:text-primary transition-colors">Общи условия</a>
+          <a href="/privacy" className="hover:text-primary transition-colors">Политика за поверителност</a>
+          <a href="/refund" className="hover:text-primary transition-colors">Политика за възстановяване</a>
+          <a href="mailto:support@trashit.bg" className="hover:text-primary transition-colors">support@trashit.bg</a>
+        </div>
+      </footer>
     </MainLayout>
   );
 }
