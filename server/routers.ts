@@ -2515,10 +2515,14 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         const currentPeriodEnd = new Date();
         currentPeriodEnd.setDate(currentPeriodEnd.getDate() + 30);
+        const user = await getUserByOpenId(input.userOpenId);
+        if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "Потребителят не е намерен." });
         await createSubscription({
           userOpenId: input.userOpenId,
+          userId: user.id,
           type: input.type,
-          visits: input.visits,
+          visits: String(input.visits) as "15" | "30",
+          visitDays: "all",
           district: input.district,
           blok: input.blok,
           vhod: input.vhod,
