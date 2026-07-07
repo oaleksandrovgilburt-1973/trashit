@@ -24,7 +24,7 @@ export default function PrivacyPage() {
 
           <h2 className="text-lg font-bold mt-6">{isBg ? "I. Въведение" : "I. Introduction"}</h2>
           <p>{isBg
-            ? "Настоящата Политика описва начина, по който „Трашит" ЕООД събира, обработва, съхранява и защитава личните данни на потребителите на мобилното приложение Trashit и уеб платформата www.trashit.bg."
+            ? "Настоящата Политика описва начина, по който Трашит ЕООД събира, обработва, съхранява и защитава личните данни на потребителите на мобилното приложение Trashit и уеб платформата www.trashit.bg."
             : "This Policy describes how Trashit Ltd. collects, processes, stores and protects the personal data of users of the Trashit mobile application and web platform www.trashit.bg."}</p>
           <p>{isBg
             ? "Политиката е изготвена в съответствие с Регламент (ЕС) 2016/679 (GDPR), Закона за защита на личните данни и приложимото законодателство."
@@ -32,7 +32,7 @@ export default function PrivacyPage() {
 
           <h2 className="text-lg font-bold mt-6">{isBg ? "II. Администратор на лични данни" : "II. Data Controller"}</h2>
           <p>{isBg
-            ? "Администратор е „Трашит" ЕООД. За въпроси, свързани с обработването на лични данни, можете да се свържете с нас на:"
+            ? "Администратор е Трашит ЕООД. За въпроси, свързани с обработването на лични данни, можете да се свържете с нас на:"
             : "The data controller is Trashit Ltd. For questions regarding the processing of personal data, please contact us at:"} <a href="mailto:support@trashit.bg" className="text-primary">support@trashit.bg</a></p>
 
           <h2 className="text-lg font-bold mt-6">{isBg ? "III. Какви лични данни се събират" : "III. What Personal Data We Collect"}</h2>
