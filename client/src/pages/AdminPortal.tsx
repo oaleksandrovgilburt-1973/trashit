@@ -681,20 +681,18 @@ function PricesTab() {
     { key: "price_rec_20", label: "Рециклиращ — 20 кредита", oldKey: "price_rec_20_old" },
   ];
 
-  const defaults: Record<string, string> = {
-    price_std_1: "0.69", price_std_1_old: "0.90",
-    price_std_10: "6.90", price_std_10_old: "8.60",
-    price_std_20: "13.80", price_std_20_old: "17.20",
-    price_rec_1: "0.99", price_rec_1_old: "1.30",
-    price_rec_10: "9.90", price_rec_10_old: "12.40",
-    price_rec_20: "19.80", price_rec_20_old: "24.70",
-  };
-
   const [vals, setVals] = React.useState<Record<string, string>>({});
 
   React.useEffect(() => {
     if (allSettings) {
-      const merged: Record<string, string> = { ...defaults };
+      const merged: Record<string, string> = {
+        price_std_1: "0.69", price_std_1_old: "0.90",
+        price_std_10: "6.90", price_std_10_old: "8.60",
+        price_std_20: "13.80", price_std_20_old: "17.20",
+        price_rec_1: "0.99", price_rec_1_old: "1.30",
+        price_rec_10: "9.90", price_rec_10_old: "12.40",
+        price_rec_20: "19.80", price_rec_20_old: "24.70",
+      };
       Object.entries(allSettings).forEach(([k, v]) => { merged[k] = v; });
       setVals(merged);
     }
