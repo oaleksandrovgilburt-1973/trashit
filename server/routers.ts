@@ -2105,7 +2105,8 @@ export const appRouter = router({
         // Enrich each assignment with active requests (pending OR assigned)
         const allActive = await getAllRequests();
         const activeFiltered = allActive.filter(
-          r => r.status === "pending" || r.status === "assigned"
+          r => (r.status === "pending" || r.status === "assigned") &&
+               r.type !== "nonstandard" && r.type !== "construction"
         );
         return assignments.map(a => ({
           ...a,
