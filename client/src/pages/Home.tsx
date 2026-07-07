@@ -402,7 +402,7 @@ export default function Home() {
           </div>
         </div>
       )}
-    {/* Footer */}
+      {/* Footer */}
       <footer className="border-t py-6 mt-8">
         <div className="max-w-2xl mx-auto px-4 flex flex-wrap justify-center gap-4 text-xs text-muted-foreground">
           <a href="/terms" className="hover:text-primary transition-colors">{isBg ? "Общи условия" : "Terms & Conditions"}</a>
