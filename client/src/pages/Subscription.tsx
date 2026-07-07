@@ -95,13 +95,14 @@ export default function Subscription() {
     onError: (err) => toast.error(err.message),
   });
 
+  const utils = trpc.useUtils();
   const cancelSub = trpc.subscriptions.cancel.useMutation({
     onSuccess: () => {
       toast.success("Абонаментът е отказан.");
       setShowCancelForm(false);
       setCancelNote("");
-      activeSubQ.refetch();
-      allSubsQ.refetch();
+      utils.subscriptions.myActive.invalidate();
+      utils.subscriptions.myList.invalidate();
     },
     onError: (err) => toast.error(err.message),
   });
