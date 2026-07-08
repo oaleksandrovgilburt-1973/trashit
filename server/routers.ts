@@ -2575,6 +2575,24 @@ export const appRouter = router({
         await cancelSubscription(input.id, input.note);
         return { success: true };
       }),
+    generateTodayVisits: adminProcedure.mutation(async () => {
+      const today = new Date().toISOString().slice(0, 10);
+      const allSubs = await getAllSubscriptions();
+      const activeSubs = allSubs.filter(s => s.status === "active");
+      let created = 0;
+      for (const sub of activeSubs) {
+        const visitDays = (sub as any).visitDays ?? "all";
+        const dayOfMonth = new Date(today).getUTCDate();
+        const shouldVisit = visitDays === "all" ||
+          (visitDays === "even" && dayOfMonth % 2 === 0) ||
+          (visitDays === "odd" && dayOfMonth % 2 !== 0);
+        if (shouldVisit) {
+          await createDailyVisitsForSubscription(sub.id, today);
+          created++;
+        }
+      }
+      return { success: true, created, date: today };
+    }),
     todayVisits: publicProcedure
       .input(z.object({ deviceToken: z.string() }))
       .query(async ({ input }) => {

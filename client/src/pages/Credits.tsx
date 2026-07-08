@@ -132,15 +132,16 @@ export default function Credits() {
   const recyclingPkgs = packages?.recycling ?? [];
   const currentPkgs = creditTypeTab === "standard" ? standardPkgs : recyclingPkgs;
 
-  // Promo: old prices and discount % per package id
-  const promoData: Record<string, { oldPrice: number; discount: number }> = {
-    std_1:  { oldPrice: 0.90, discount: 23 },
-    std_10: { oldPrice: 8.90, discount: 22 },
-    std_20: { oldPrice: 17.90, discount: 23 },
-    rec_1:  { oldPrice: 1.30, discount: 24 },
-    rec_10: { oldPrice: 12.90, discount: 23 },
-    rec_20: { oldPrice: 25.90, discount: 24 },
-  };
+  // Promo: built from packages endpoint (oldPrice from settings)
+  const promoData: Record<string, { oldPrice: number; discount: number }> = {};
+  [...(packages?.standard ?? []), ...(packages?.recycling ?? [])].forEach((pkg: any) => {
+    if (pkg.oldPrice && pkg.oldPrice > pkg.price) {
+      promoData[pkg.id] = {
+        oldPrice: pkg.oldPrice,
+        discount: Math.round((1 - pkg.price / pkg.oldPrice) * 100),
+      };
+    }
+  });
 
   return (
     <MainLayout>
@@ -226,7 +227,7 @@ export default function Credits() {
               {creditTypeTab === "standard" ? (
                 <>
                   <p className="font-bold text-green-800">🗑️ Стандартни кредити</p>
-                  <p className="text-green-700 mt-1">Използват се за изхвърляне на стандартен битов отпадък. 1 кредит = 1 плик до ~3кг. или до 60л.</p>
+                  <p className="text-green-700 mt-1">Използват се за изхвърляне на стандартен битов отпадък. 1 кредит = 1 плик до ~3кг. или до 45л.</p>
                 </>
               ) : (
                 <>

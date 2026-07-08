@@ -11,6 +11,23 @@ function shouldVisitToday(visitDays: string, todayDate: string): boolean {
 }
 
 export function startCronJobs(): void {
+// On startup: generate today's visits if not already done
+  (async () => {
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const allSubs = await getAllSubscriptions();
+      const activeSubs = allSubs.filter(s => s.status === "active");
+      for (const sub of activeSubs) {
+        const visitDays = (sub as any).visitDays ?? "all";
+        if (shouldVisitToday(visitDays, today)) {
+          await createDailyVisitsForSubscription(sub.id, today);
+        }
+      }
+      console.log(`[Startup] Today's subscription visits ensured for ${today}`);
+    } catch (err) {
+      console.error("[Startup] Error ensuring today's visits:", err);
+    }
+  })();
   cron.schedule("1 0 * * *", async () => {
     try {
       const today = new Date().toISOString().slice(0, 10);

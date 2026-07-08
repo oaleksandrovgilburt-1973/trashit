@@ -2219,6 +2219,10 @@ function ReportsTab() {
   );
 }
 function SubscriptionsTab() {
+  const generateVisits = trpc.subscriptions.generateTodayVisits.useMutation({
+    onSuccess: (data) => toast.success(`Генерирани ${data.created} посещения за ${data.date}!`),
+    onError: (e: any) => toast.error(e.message),
+  });
   const { data: subs, refetch } = trpc.subscriptions.adminList.useQuery();
   const { data: allUsers = [] } = trpc.users.list.useQuery();
   const { data: allDistricts = [] } = trpc.districts.list.useQuery();
@@ -2268,9 +2272,21 @@ function SubscriptionsTab() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-gray-900">Абонаменти</h2>
-        <p className="text-sm text-gray-500 mt-0.5">Активни: {active.length} | Неактивни: {cancelled.length}</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">Абонаменти</h2>
+          <p className="text-sm text-gray-500 mt-0.5">Активни: {active.length} | Неактивни: {cancelled.length}</p>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          className="rounded-xl text-green-600 border-green-200 hover:bg-green-50 text-xs"
+          onClick={() => generateVisits.mutate()}
+          disabled={generateVisits.isPending}
+        >
+          <CalendarDays className="w-3.5 h-3.5 mr-1" />
+          {generateVisits.isPending ? "Генерира..." : "Генерирай посещения за днес"}
+        </Button>
       </div>
 
       {/* Форма за създаване */}
