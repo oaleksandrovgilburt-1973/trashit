@@ -13,17 +13,34 @@ import {
 } from "lucide-react";
 import { Link } from "wouter";
 
-const PRICES: Record<string, Record<string, number>> = {
+const PRICES_DEFAULT: Record<string, Record<string, number>> = {
   standard: { "15": 8.99, "30": 17.99 },
   recycling: { "15": 11.99, "30": 21.99 },
-};
-const OLD_PRICES: Record<string, Record<string, { old: number; discount: number }>> = {
-  standard: { "15": { old: 11.90, discount: 24 }, "30": { old: 23.90, discount: 25 } },
-  recycling: { "15": { old: 15.90, discount: 25 }, "30": { old: 28.90, discount: 24 } },
 };
 
 export default function Subscription() {
   const { user, loading: authLoading } = useAuth();
+  const { data: subPrices } = trpc.subscriptions.prices.useQuery();
+  const PRICES = {
+    standard: {
+      "15": subPrices?.standard["15"]?.price ?? PRICES_DEFAULT.standard["15"],
+      "30": subPrices?.standard["30"]?.price ?? PRICES_DEFAULT.standard["30"],
+    },
+    recycling: {
+      "15": subPrices?.recycling["15"]?.price ?? PRICES_DEFAULT.recycling["15"],
+      "30": subPrices?.recycling["30"]?.price ?? PRICES_DEFAULT.recycling["30"],
+    },
+  };
+  const OLD_PRICES = {
+    standard: {
+      "15": { old: subPrices?.standard["15"]?.oldPrice ?? 11.90, discount: subPrices?.standard["15"] ? Math.round((1 - subPrices.standard["15"].price / subPrices.standard["15"].oldPrice) * 100) : 24 },
+      "30": { old: subPrices?.standard["30"]?.oldPrice ?? 23.90, discount: subPrices?.standard["30"] ? Math.round((1 - subPrices.standard["30"].price / subPrices.standard["30"].oldPrice) * 100) : 25 },
+    },
+    recycling: {
+      "15": { old: subPrices?.recycling["15"]?.oldPrice ?? 15.90, discount: subPrices?.recycling["15"] ? Math.round((1 - subPrices.recycling["15"].price / subPrices.recycling["15"].oldPrice) * 100) : 25 },
+      "30": { old: subPrices?.recycling["30"]?.oldPrice ?? 28.90, discount: subPrices?.recycling["30"] ? Math.round((1 - subPrices.recycling["30"].price / subPrices.recycling["30"].oldPrice) * 100) : 24 },
+    },
+  };
   const { language } = useLanguage();
   const isBg = language === "bg";
   const [, navigate] = useLocation();

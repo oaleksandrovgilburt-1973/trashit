@@ -2409,6 +2409,19 @@ export const appRouter = router({
   }),
 
   subscriptions: router({
+    prices: publicProcedure.query(async () => {
+      const s = await getAllSettings();
+      return {
+        standard: {
+          "15": { price: parseFloat(s["price_sub_std_15"] ?? "8.99"), oldPrice: parseFloat(s["price_sub_std_15_old"] ?? "11.90") },
+          "30": { price: parseFloat(s["price_sub_std_30"] ?? "17.99"), oldPrice: parseFloat(s["price_sub_std_30_old"] ?? "23.90") },
+        },
+        recycling: {
+          "15": { price: parseFloat(s["price_sub_rec_15"] ?? "11.99"), oldPrice: parseFloat(s["price_sub_rec_15_old"] ?? "15.90") },
+          "30": { price: parseFloat(s["price_sub_rec_30"] ?? "21.99"), oldPrice: parseFloat(s["price_sub_rec_30_old"] ?? "28.90") },
+        },
+      };
+    }),
     myList: protectedProcedure.query(async ({ ctx }) => {
       return getSubscriptionsByUser(ctx.user.openId);
     }),
@@ -2433,9 +2446,16 @@ export const appRouter = router({
         if (!stripeKey) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Stripe не е конфигуриран." });
         const existing = await getActiveSubscriptionByUser(ctx.user.openId);
         if (existing) throw new TRPCError({ code: "BAD_REQUEST", message: "Вече имате активен абонамент." });
+        const s = await getAllSettings();
         const priceMap: Record<string, Record<string, number>> = {
-          standard: { "15": 899, "30": 1799 },
-          recycling: { "15": 1199, "30": 2199 },
+          standard: {
+            "15": Math.round(parseFloat(s["price_sub_std_15"] ?? "8.99") * 100),
+            "30": Math.round(parseFloat(s["price_sub_std_30"] ?? "17.99") * 100),
+          },
+          recycling: {
+            "15": Math.round(parseFloat(s["price_sub_rec_15"] ?? "11.99") * 100),
+            "30": Math.round(parseFloat(s["price_sub_rec_30"] ?? "21.99") * 100),
+          },
         };
         const unitAmount = priceMap[input.type][input.visits];
         const labelMap: Record<string, Record<string, string>> = {

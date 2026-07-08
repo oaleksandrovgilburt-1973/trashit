@@ -676,12 +676,19 @@ function PricesTab() {
   });
 
   const prices = [
-    { key: "price_std_1", label: "Стандартен — 1 кредит", oldKey: "price_std_1_old" },
-    { key: "price_std_10", label: "Стандартен — 10 кредита", oldKey: "price_std_10_old" },
-    { key: "price_std_20", label: "Стандартен — 20 кредита", oldKey: "price_std_20_old" },
-    { key: "price_rec_1", label: "Рециклиращ — 1 кредит", oldKey: "price_rec_1_old" },
-    { key: "price_rec_10", label: "Рециклиращ — 10 кредита", oldKey: "price_rec_10_old" },
-    { key: "price_rec_20", label: "Рециклиращ — 20 кредита", oldKey: "price_rec_20_old" },
+    { key: "price_std_1", label: "Стандартен кредит — 1 бр.", oldKey: "price_std_1_old" },
+    { key: "price_std_10", label: "Стандартен кредит — 10 бр.", oldKey: "price_std_10_old" },
+    { key: "price_std_20", label: "Стандартен кредит — 20 бр.", oldKey: "price_std_20_old" },
+    { key: "price_rec_1", label: "Рециклиращ кредит — 1 бр.", oldKey: "price_rec_1_old" },
+    { key: "price_rec_10", label: "Рециклиращ кредит — 10 бр.", oldKey: "price_rec_10_old" },
+    { key: "price_rec_20", label: "Рециклиращ кредит — 20 бр.", oldKey: "price_rec_20_old" },
+  ];
+
+  const subPrices = [
+    { key: "price_sub_std_15", label: "Абонамент Стандартен — 15 посещения", oldKey: "price_sub_std_15_old" },
+    { key: "price_sub_std_30", label: "Абонамент Стандартен — 30 посещения", oldKey: "price_sub_std_30_old" },
+    { key: "price_sub_rec_15", label: "Абонамент Рециклиращ — 15 посещения", oldKey: "price_sub_rec_15_old" },
+    { key: "price_sub_rec_30", label: "Абонамент Рециклиращ — 30 посещения", oldKey: "price_sub_rec_30_old" },
   ];
 
   const [vals, setVals] = React.useState<Record<string, string>>({});
@@ -695,6 +702,10 @@ function PricesTab() {
         price_rec_1: "0.99", price_rec_1_old: "1.30",
         price_rec_10: "9.90", price_rec_10_old: "12.40",
         price_rec_20: "19.80", price_rec_20_old: "24.70",
+        price_sub_std_15: "8.99", price_sub_std_15_old: "11.90",
+        price_sub_std_30: "17.99", price_sub_std_30_old: "23.90",
+        price_sub_rec_15: "11.99", price_sub_rec_15_old: "15.90",
+        price_sub_rec_30: "21.99", price_sub_rec_30_old: "28.90",
       };
       Object.entries(allSettings).forEach(([k, v]) => { merged[k] = v; });
       setVals(merged);
@@ -743,6 +754,43 @@ function PricesTab() {
                     onChange={e => setVals(v => ({ ...v, [key]: e.target.value }))}
                     className="w-full border rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   />
+                </div>
+                <div className="flex items-end gap-2">
+                  <span className={`text-sm font-bold ${discount > 0 ? "text-red-500" : "text-gray-400"}`}>
+                    {discount > 0 ? `-${discount}%` : "—"}
+                  </span>
+                  <Button size="sm" className="rounded-lg bg-primary text-white text-xs"
+                    onClick={() => handleSave(key, oldKey)}
+                    disabled={updateSetting.isPending}>
+                    Запази
+                  </Button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <h3 className="font-semibold text-gray-800 mt-6">Абонаментни цени</h3>
+      <div className="space-y-4">
+        {subPrices.map(({ key, label, oldKey }) => {
+          const price = parseFloat(vals[key] ?? "0");
+          const oldPrice = parseFloat(vals[oldKey] ?? "0");
+          const discount = oldPrice > 0 && price > 0 && price < oldPrice ? Math.round((1 - price / oldPrice) * 100) : 0;
+          return (
+            <div key={key} className="border border-gray-100 rounded-xl p-3 space-y-2">
+              <p className="text-sm font-medium text-gray-700">{label}</p>
+              <div className="grid grid-cols-3 gap-2 items-end">
+                <div>
+                  <label className="text-xs text-gray-500">Оригинална цена (€)</label>
+                  <input type="number" step="0.01" min="0" value={vals[oldKey] ?? ""}
+                    onChange={e => setVals(v => ({ ...v, [oldKey]: e.target.value }))}
+                    className="w-full border rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500">Крайна цена (€)</label>
+                  <input type="number" step="0.01" min="0" value={vals[key] ?? ""}
+                    onChange={e => setVals(v => ({ ...v, [key]: e.target.value }))}
+                    className="w-full border rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
                 </div>
                 <div className="flex items-end gap-2">
                   <span className={`text-sm font-bold ${discount > 0 ? "text-red-500" : "text-gray-400"}`}>
