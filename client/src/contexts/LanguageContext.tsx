@@ -189,7 +189,7 @@ export interface Translations {
 
 const bg: Translations = {
   appName: "TRASHit",
-  appTagline: "Управление на отпадъци и почистване",
+  appTagline: "Управление на отпадъци ",
   home: "Начало",
   back: "Назад",
   langBg: "БГ",
@@ -354,7 +354,7 @@ const bg: Translations = {
 
 const en: Translations = {
   appName: "TRASHit",
-  appTagline: "Waste Management & Cleaning",
+  appTagline: "Waste Management ",
   home: "Home",
   back: "Back",
   langBg: "BG",
