@@ -151,7 +151,7 @@ export default function Home() {
                       className="flex items-center gap-1.5 bg-white/20 backdrop-blur-sm rounded-xl px-3 py-1.5 hover:bg-red-500/60 transition-colors group"
                     >
                       <LogOut className="w-4 h-4 text-white" />
-                      <span className="text-white text-xs font-semibold uppercase tracking-wide">Изход</span>
+                      <span className="text-white text-xs font-semibold uppercase tracking-wide">{isBg ? "Изход" : "Logout"}</span>
                     </button>
                   </div>
                   <Link href="/credits">
@@ -159,13 +159,13 @@ export default function Home() {
                       <div className="flex items-center gap-1">
                         <StandardCoin size={20} />
                         <span className="text-white font-black text-sm leading-none">{parseFloat(creditsStandard || "0").toFixed(0)}</span>
-                        <span className="text-white/70 text-[10px] font-medium">ст.</span>
+                        <span className="text-white/70 text-[10px] font-medium">{isBg ? "ст." : "std."}</span>
                       </div>
                       <div className="w-px h-4 bg-white/30" />
                       <div className="flex items-center gap-1">
                         <RecyclingCoin size={20} />
                         <span className="text-white font-black text-sm leading-none">{parseFloat(creditsRecycling || "0").toFixed(0)}</span>
-                        <span className="text-white/70 text-[10px] font-medium">рец.</span>
+                        <span className="text-white/70 text-[10px] font-medium">{isBg ? "рец." : "rec."}</span>
                       </div>
                     </div>
                   </Link>
@@ -174,9 +174,9 @@ export default function Home() {
                       <div className="flex items-center gap-1.5 bg-white/20 backdrop-blur-sm rounded-xl px-3 py-1.5 cursor-pointer hover:bg-white/30 transition-colors">
                         <CalendarDays className="w-3.5 h-3.5 text-white" />
                         <span className="text-white text-[11px] font-semibold">
-                          {activeSubscription.type === "standard" ? "Стандартен" : "Разделно"} абонамент
+                          {activeSubscription.type === "standard" ? (isBg ? "Стандартен" : "Standard") : (isBg ? "Разделно" : "Recycling")} {isBg ? "абонамент" : "subscription"}
                           {activeSubscription.currentPeriodEnd
-                            ? ` до ${new Date(activeSubscription.currentPeriodEnd).toLocaleDateString("bg-BG", { day: "2-digit", month: "short" })}`
+                            ? ` ${isBg ? "до" : "until"} ${new Date(activeSubscription.currentPeriodEnd).toLocaleDateString(isBg ? "bg-BG" : "en-GB", { day: "2-digit", month: "short" })}`
                             : ""}
                         </span>
                       </div>
@@ -202,8 +202,8 @@ export default function Home() {
             )}
             {user && (
               <div className="mt-4 space-y-1">
-                <p className="text-white font-bold text-lg leading-snug">"Боклукът излиза.<br/>Ти си оставаш вкъщи."</p>
-                <p className="text-white/75 text-sm leading-snug">TRASHit е твоята модерна услуга за лесно и удобно изхвърляне на отпадъци от дома. Спести време и усилия – ние се грижим за всичко.</p>
+                <p className="text-white font-bold text-lg leading-snug">{isBg ? "\"Боклукът излиза.\u00a0Ти си оставаш вкъщи.\"" : "\"The trash leaves.\u00a0You stay home.\""}</p>
+                <p className="text-white/75 text-sm leading-snug">{isBg ? "TRASHit е твоята модерна услуга за лесно и удобно изхвърляне на отпадъци от дома. Спести време и усилия – ние се грижим за всичко." : "TRASHit is your modern service for easy and convenient waste disposal from home. Save time and effort – we take care of everything."}</p>
                 <div className="flex items-center gap-2">
                   <Leaf className="w-4 h-4 text-white/70" />
                   <p className="text-white/70 text-sm">{t.appTagline}</p>
@@ -229,7 +229,7 @@ export default function Home() {
               onClick={() => setShowServicesPopup(true)}
               className="flex items-center gap-1.5 bg-primary text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-primary/90 transition-colors"
             >
-              ℹ️ Описание на услугите
+              ℹ️ {isBg ? "Описание на услугите" : "Service description"}
             </button>
           </div>
           {/* Flow illustration for guests — temporarily hidden */}
@@ -344,7 +344,7 @@ export default function Home() {
             onClick={() => setShowHomeTermsModal(true)}
             className="text-xs text-muted-foreground underline hover:text-foreground transition-colors"
           >
-            Общи условия
+            {isBg ? "Кратки ОУ" : "Brief T&C"}
           </button>
         </div>
       </div>
@@ -354,7 +354,7 @@ export default function Home() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-background rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col">
             <div className="flex items-center justify-between p-4 border-b border-border">
-              <h2 className="text-base font-bold text-foreground">Общи условия</h2>
+              <h2 className="text-base font-bold text-foreground">{isBg ? "Кратки Общи условия" : "Brief Terms & Conditions"}</h2>
               <button
                 onClick={() => setShowHomeTermsModal(false)}
                 className="p-1.5 rounded-lg hover:bg-secondary transition-colors"
@@ -376,7 +376,7 @@ export default function Home() {
             <div className="flex items-start justify-between p-4 pb-2">
               <div className="flex items-center gap-2">
                 <span className="text-2xl">🗑️</span>
-                <h2 className="text-base font-bold text-foreground">Добре дошли в TRASHit!</h2>
+                <h2 className="text-base font-bold text-foreground">{isBg ? "Добре дошли в TRASHit!" : "Welcome to TRASHit!"}</h2>
               </div>
               <button
                 onClick={closeServicesPopup}
@@ -396,7 +396,7 @@ export default function Home() {
                 onClick={closeServicesPopup}
                 className="w-full mt-3 py-2.5 rounded-xl bg-primary text-white font-semibold text-sm hover:bg-primary/90 transition-all"
               >
-                Разбрах
+                {isBg ? "Разбрах" : "Got it"}
               </button>
             </div>
           </div>
