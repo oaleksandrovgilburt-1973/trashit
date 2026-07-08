@@ -9,6 +9,7 @@ import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useState, useEffect } from "react";
 import { requestFCMToken } from "@/lib/firebase";
+import { TERMS_TEXT, TERMS_TEXT_EN } from "@/lib/termsContent";
 
 export default function Home() {
   const { user, loading, logout } = useAuth();
@@ -363,7 +364,7 @@ export default function Home() {
               </button>
             </div>
             <div className="overflow-y-auto p-4 flex-1">
-              <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{TERMS_TEXT}</p>
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{isBg ? TERMS_TEXT : TERMS_TEXT_EN}</p>
             </div>
           </div>
         </div>

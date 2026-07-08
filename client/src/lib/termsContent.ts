@@ -16,7 +16,7 @@ export const TERMS_TEXT = `ОБЩИ УСЛОВИЯ
 
 2.1. Извозване на битов отпадък — един запечатан чувал до 3 кг и 40–45 л, от входната врата до контейнерите. Заявява се с Кредит или Абонамент.
 
-2.2. Разделно събиране — до 3 чувала по 4 кг, разделени по вид отпадък.
+2.2. Разделно събиране — до 3 чувала до 4 кг, разделени по вид отпадък.
 
 2.3. Извозване на нестандартен битов отпадък — едрогабаритни предмети (мебели, електроуреди и др.). Изисква снимка и индивидуална оферта.
 
@@ -89,3 +89,92 @@ export const TERMS_TEXT = `ОБЩИ УСЛОВИЯ
 Настоящите ОУ се уреждат от българското законодателство. Спорове се решават от компетентния български съд или чрез извънсъдебни способи.
 
 За контакт: support@trashit.bg`;
+
+export const TERMS_TEXT_EN = `TERMS & CONDITIONS
+For use of the mobile application and website for waste collection services
+
+1. General Provisions
+
+1.1. These Terms & Conditions govern the relationship between Trashit Ltd. and any person using the Trashit mobile application or web platform www.trashit.bg ("the Platform") for waste collection services.
+
+1.2. By registering and/or using the Platform, the User declares that they have read these Terms, accept them and agree to comply with them.
+
+1.3. Services are provided only in locations where the Company has officially announced operations. Currently — Sofia, Bulgaria.
+
+2. Types of Services
+
+2.1. Household waste collection — one sealed bag up to 3 kg and 40–45 L, from your door to the bins. Ordered with a Credit or Subscription.
+
+2.2. Recycling collection — up to 3 bags up to 4 kg, sorted by waste type.
+
+2.3. Non-standard waste collection — bulky items (furniture, appliances, etc.). Requires a photo and individual quote.
+
+2.4. Construction waste collection — waste from renovation/demolition. Requires a photo and individual quote.
+
+2.5. The Platform does not accept: liquid waste, organic waste of animal origin, hazardous substances (medicines, chemicals, asbestos, radioactive materials, etc.).
+
+3. Registration and Profile
+
+3.1. Registration is required to use the services. The following data is required: name, phone, email and service address.
+
+3.2. The User declares that all provided data is accurate and up to date.
+
+3.3. Each user may have only one active profile.
+
+3.4. The Company reserves the right to refuse or close a profile for violation of these Terms, false data or abuse.
+
+4. Prices and Payment
+
+4.1. Prices are published in the Platform. All prices include VAT where applicable.
+
+4.2. Payments are processed via Stripe. Bank cards accepted; cash is not accepted.
+
+4.3. The Company does not process or store bank card data.
+
+4.4. Credits cannot be transferred, exchanged for cash, or used outside the Platform.
+
+5. Cancellation and Refunds
+
+5.1. Prior to contract conclusion, the request may be withdrawn free of charge.
+
+5.2. After confirmation, cancellation is possible no later than the agreed deadline before performance.
+
+5.3. The Company refunds in cases of: inability to perform due to its fault, lawfully exercised right of withdrawal, upheld complaint or technical error.
+
+5.4. No refund is issued when the service was not performed due to the Client's fault, lack of access, or waste discrepancy.
+
+5.5. Refunds are made via the same payment method within 14 days.
+
+6. User Obligations
+
+6.1. Provide accurate information about the address, type and quantity of waste.
+
+6.2. Ensure free and safe access to the address within the agreed time slot.
+
+6.3. Prepare the waste according to requirements (packaging, weight, type).
+
+6.4. Not provide prohibited waste.
+
+6.5. Not make offensive or threatening statements to Company staff.
+
+7. Limitation of Liability
+
+7.1. The Company is not liable for non-performance due to: false data from the User, lack of access, force majeure or third-party actions.
+
+7.2. The Company's liability for a specific request cannot exceed the price paid for the service.
+
+8. Personal Data
+
+8.1. The Company processes personal data in accordance with the Privacy Policy available on the Platform.
+
+8.2. Location data is processed only upon explicit activation by the User.
+
+9. Amendments
+
+The Company may amend these Terms. Changes take effect upon publication. Continued use of the Platform constitutes acceptance.
+
+10. Governing Law
+
+These Terms are governed by Bulgarian law. Disputes shall be resolved by the competent Bulgarian court or through alternative dispute resolution.
+
+Contact: support@trashit.bg`;
