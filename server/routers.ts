@@ -865,7 +865,7 @@ export const appRouter = router({
                 },
                 {
                   type: "text",
-                  text: "Analyze this image. Focus ONLY on the main waste object in the center - ignore the floor, walls, furniture and background. Return ONLY a valid JSON object (no markdown, no explanations) with exactly these fields:\n{\n  \"object\": \"what the item is\",\n  \"volume\": \"volume of the object only in liters as string, e.g. '~50 litres'\",\n  \"description\": \"brief description in Bulgarian (1-2 sentences) about the object only\",\n  \"serviceType\": \"standard or nonstandard or construction\"\n}",
+                  text: "IMPORTANT SAFETY CHECK: First, examine if this image contains any of the following: human bodies or body parts, human remains, gore, wounds, blood, internal organs, animal carcasses, animal remains, or any graphic/disturbing medical content. If YES - respond ONLY with this exact JSON: {\"rejected\": true, \"reason\": \"Неподходящо съдържание. Моля качете снимка на отпадъка.\"}. If NO - analyze the waste object. Focus ONLY on the main waste object - ignore floor, walls, furniture and background. Return ONLY a valid JSON object with exactly these fields:\n{\n  \"object\": \"what the item is\",\n  \"volume\": \"volume of the object only in liters as string, e.g. '~50 litres'\",\n  \"description\": \"brief description in Bulgarian (1-2 sentences) about the object only\",\n  \"serviceType\": \"standard or nonstandard or construction\"\n}",
                 },
               ],
             },
@@ -892,7 +892,15 @@ export const appRouter = router({
         volume?: string;
         description?: string;
         serviceType?: string;
+        rejected?: boolean;
+        reason?: string;
       };
+      if (parsed.rejected) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: parsed.reason ?? "Неподходящо съдържание. Моля качете снимка на отпадъка.",
+        });
+      }
       return {
         volume: parsed.volume ?? fallback.volume,
         description: parsed.description ?? fallback.description,
