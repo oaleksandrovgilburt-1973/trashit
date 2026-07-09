@@ -571,7 +571,9 @@ function GroupedRequestsView({ deviceToken }: { deviceToken: string }) {
         const isClaimed = status?.claimedByMe || status?.claimedByOther;
         // If claimed, only keep nonstandard/construction requests (they need quotes, not claim)
         const visibleReqs = isClaimed
-          ? reqs.filter(r => r.type === "nonstandard" || r.type === "construction")
+          ? acceptsNonstandard
+            ? reqs.filter(r => r.type === "nonstandard" || r.type === "construction")
+            : []
           : acceptsNonstandard
             ? reqs
             : reqs.filter(r => r.type !== "nonstandard" && r.type !== "construction");
@@ -694,7 +696,15 @@ function GroupedRequestsView({ deviceToken }: { deviceToken: string }) {
                                         deviceToken={deviceToken}
                                         onComplete={(id) => completeMutation.mutate({ requestId: id, deviceToken })}
                                         onProblem={(r) => setProblemReq(r)}
-                                        onClaim={(district, blok, vhod) => claimMutation.mutate({ district, blok, vhod, deviceToken })}
+                                        onClaim={(district, blok, vhod) => {
+                          const entranceReqs = filteredGroupedData[district]?.[blok]?.[vhod] ?? [];
+                          const hasStandard = entranceReqs.some(r => r.type === "standard" || r.type === "recycling");
+                          if (!hasStandard) {
+                            toast.error(isBg ? "Не може да се приеме вход само с нестандартни заявки." : "Cannot claim entrance with only non-standard requests.");
+                            return;
+                          }
+                          claimMutation.mutate({ district, blok, vhod, deviceToken });
+                        }}
                                       />
                                     ))}
                                   </div>
