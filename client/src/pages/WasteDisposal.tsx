@@ -581,8 +581,11 @@ if (selectedType !== "nonstandard" && selectedType !== "construction") {
             {/* GPS */}
             <div className="space-y-1.5">
               <Label className="text-sm font-semibold">
-                {isBg ? "GPS локация (незадължително)" : "GPS location (optional)"}
+                {isBg ? "GPS локация" : "GPS location"}
               </Label>
+              <p className="text-xs text-muted-foreground">
+                {isBg ? "📍 За по-бърза обработка на заявката, засечете локацията си. Работникът ще може да намери адреса ви по-лесно." : "📍 For faster processing, share your location. This helps the worker find your address more easily."}
+              </p>
               <Button
                 type="button"
                 variant="outline"
