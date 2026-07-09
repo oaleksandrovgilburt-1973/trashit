@@ -453,7 +453,17 @@ if (selectedType !== "nonstandard" && selectedType !== "construction") {
                 >
                   {imagePreview ? (
                     <div className="space-y-2">
-                      <img src={imagePreview} alt="preview" className="max-h-40 mx-auto rounded-lg object-contain" />
+                      <div className="relative">
+                        <img src={imagePreview} alt="preview" className={`max-h-40 mx-auto rounded-lg object-contain ${moderateImageMutation.isPending ? "opacity-50" : ""}`} />
+                        {moderateImageMutation.isPending && (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="bg-black/50 rounded-xl px-3 py-2 flex items-center gap-2">
+                              <Loader2 className="w-4 h-4 text-white animate-spin" />
+                              <span className="text-white text-xs font-medium">{isBg ? "Проверка..." : "Checking..."}</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                       <p className="text-xs text-gray-500">{isBg ? "Кликнете за смяна" : "Click to change"}</p>
                     </div>
                   ) : (
