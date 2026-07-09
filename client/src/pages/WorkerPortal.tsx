@@ -791,10 +791,6 @@ function WorkerSubscriptionsTab({ deviceToken, isBg }: { deviceToken: string; is
     onSuccess: () => { todayQ.refetch(); toast.success(isBg ? "Посещението е отбелязано!" : "Visit marked!"); },
     onError: (e: { message: string }) => toast.error(e.message),
   });
-  const markVisited = trpc.subscriptions.markVisited.useMutation({
-    onSuccess: () => { todayQ.refetch(); toast.success(isBg ? "Посещението е отбелязано!" : "Visit marked!"); },
-    onError: (e: { message: string }) => toast.error(e.message),
-  });
   const [expandedBlocks, setExpandedBlocks] = useState<Set<string>>(new Set());
   const accepting = prefQ.data?.acceptsSubscriptions ?? false;
   const morning = todayQ.data?.morning ?? [];
