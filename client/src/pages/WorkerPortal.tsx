@@ -447,6 +447,10 @@ function GroupedRequestsView({ deviceToken }: { deviceToken: string }) {
   const { data: grouped = {}, isLoading, refetch } = trpc.workerDistricts.getRequestsForMyDistricts.useQuery(
     { deviceToken }, { enabled: !!deviceToken, refetchInterval: 30000 }
   );
+  const { data: workerPrefs } = trpc.subscriptions.getWorkerPref.useQuery(
+    { deviceToken }, { enabled: !!deviceToken }
+  );
+  const acceptsNonstandard = workerPrefs?.acceptsNonstandard ?? false;
 
   // Build entrance list for batch claim status
   const groupedData0 = grouped as Record<string, Record<string, Record<string, Request[]>>>;
@@ -564,7 +568,9 @@ function GroupedRequestsView({ deviceToken }: { deviceToken: string }) {
         // If claimed, only keep nonstandard/construction requests (they need quotes, not claim)
         const visibleReqs = isClaimed
           ? reqs.filter(r => r.type === "nonstandard" || r.type === "construction")
-          : reqs;
+          : acceptsNonstandard
+            ? reqs
+            : reqs.filter(r => r.type !== "nonstandard" && r.type !== "construction");
         if (visibleReqs.length === 0) continue;
         if (!filteredGroupedData[district]) filteredGroupedData[district] = {};
         if (!filteredGroupedData[district][blok]) filteredGroupedData[district][blok] = {};
@@ -776,12 +782,17 @@ function WorkerSubscriptionsTab({ deviceToken, isBg }: { deviceToken: string; is
     onSuccess: () => { prefQ.refetch(); toast.success(isBg ? "Настройката е запазена!" : "Setting saved!"); },
     onError: (e: { message: string }) => toast.error(e.message),
   });
+  const toggleNonstandard = trpc.subscriptions.setWorkerPref.useMutation({
+    onSuccess: () => { prefQ.refetch(); toast.success(isBg ? "Настройката е запазена!" : "Setting saved!"); },
+    onError: (e: { message: string }) => toast.error(e.message),
+  });
   const markVisited = trpc.subscriptions.markVisited.useMutation({
     onSuccess: () => { todayQ.refetch(); toast.success(isBg ? "Посещението е отбелязано!" : "Visit marked!"); },
     onError: (e: { message: string }) => toast.error(e.message),
   });
   const [expandedBlocks, setExpandedBlocks] = useState<Set<string>>(new Set());
   const accepting = prefQ.data?.acceptsSubscriptions ?? false;
+  const acceptingNonstandard = prefQ.data?.acceptsNonstandard ?? false;
   const morning = todayQ.data?.morning ?? [];
   const evening = todayQ.data?.evening ?? [];
   return (
@@ -797,6 +808,16 @@ function WorkerSubscriptionsTab({ deviceToken, isBg }: { deviceToken: string; is
         >
           {toggleAccept.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CalendarDays className="w-4 h-4" />}
           {accepting ? (isBg ? "Приемам абонаменти" : "Accepting subs") : (isBg ? "Не приемам" : "Not accepting")}
+        </button>
+        <button
+          onClick={() => toggleNonstandard.mutate({ deviceToken, acceptsSubscriptions: accepting, acceptsNonstandard: !acceptingNonstandard })}
+          disabled={toggleNonstandard.isPending}
+          className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-semibold transition-all border-2 ${
+            acceptingNonstandard ? "bg-orange-50 border-orange-400 text-orange-700" : "bg-gray-50 border-gray-300 text-gray-500"
+          }`}
+        >
+          {toggleNonstandard.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Package className="w-4 h-4" />}
+          {acceptingNonstandard ? (isBg ? "Приемам нестандартен" : "Accepting non-std") : (isBg ? "Не приемам нестандартен" : "Not accepting non-std")}
         </button>
       </div>
       {!accepting && (

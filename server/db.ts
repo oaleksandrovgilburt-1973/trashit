@@ -925,18 +925,20 @@ export async function createDailyVisitsForSubscription(subscriptionId: number, t
 
 // ─── Worker Subscription Preferences ─────────────────────────────────────────
 
-export async function getWorkerSubscriptionPref(workerId: number): Promise<boolean> {
+export async function getWorkerSubscriptionPref(workerId: number): Promise<{ acceptsSubscriptions: boolean; acceptsNonstandard: boolean }> {
   const db = await getDb();
-  if (!db) return false;
+  if (!db) return { acceptsSubscriptions: false, acceptsNonstandard: false };
   const result = await db.select().from(workerSubscriptionPrefs).where(eq(workerSubscriptionPrefs.workerId, workerId)).limit(1);
-  return result[0]?.acceptsSubscriptions ?? false;
+  return {
+    acceptsSubscriptions: result[0]?.acceptsSubscriptions ?? false,
+    acceptsNonstandard: (result[0] as any)?.acceptsNonstandard ?? false,
+  };
 }
-
-export async function setWorkerSubscriptionPref(workerId: number, acceptsSubscriptions: boolean): Promise<void> {
+export async function setWorkerSubscriptionPref(workerId: number, acceptsSubscriptions: boolean, acceptsNonstandard: boolean = false): Promise<void> {
   const db = await getDb();
   if (!db) return;
-  await db.insert(workerSubscriptionPrefs).values({ workerId, acceptsSubscriptions })
-    .onDuplicateKeyUpdate({ set: { acceptsSubscriptions } });
+  await db.insert(workerSubscriptionPrefs).values({ workerId, acceptsSubscriptions, acceptsNonstandard } as any)
+    .onDuplicateKeyUpdate({ set: { acceptsSubscriptions, acceptsNonstandard } as any });
 }
 // ─── Request Messages (bidirectional chat thread) ─────────────────────────────
 
