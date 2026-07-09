@@ -385,6 +385,7 @@ export const workerSubscriptionPrefs = mysqlTable("worker_subscription_prefs", {
   id: int("id").autoincrement().primaryKey(),
   workerId: int("workerId").notNull().unique(),
   acceptsSubscriptions: boolean("acceptsSubscriptions").default(false).notNull(),
+  acceptsNonstandard: boolean("acceptsNonstandard").default(false).notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 export type WorkerSubscriptionPref = typeof workerSubscriptionPrefs.$inferSelect;
