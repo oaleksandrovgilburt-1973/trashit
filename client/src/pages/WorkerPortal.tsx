@@ -451,6 +451,10 @@ function GroupedRequestsView({ deviceToken }: { deviceToken: string }) {
     { deviceToken }, { enabled: !!deviceToken }
   );
   const acceptsNonstandard = workerPrefs?.acceptsNonstandard ?? false;
+  const toggleNonstandard = trpc.subscriptions.setWorkerPref.useMutation({
+    onSuccess: () => { toast.success(isBg ? "Настройката е запазена!" : "Setting saved!"); },
+    onError: (e) => toast.error(e.message),
+  });
 
   // Build entrance list for batch claim status
   const groupedData0 = grouped as Record<string, Record<string, Record<string, Request[]>>>;
@@ -597,6 +601,19 @@ function GroupedRequestsView({ deviceToken }: { deviceToken: string }) {
 
   return (
     <div className="space-y-3">
+      {/* Nonstandard toggle */}
+      <div className="flex justify-end">
+        <button
+          onClick={() => toggleNonstandard.mutate({ deviceToken, acceptsSubscriptions: workerPrefs?.acceptsSubscriptions ?? false, acceptsNonstandard: !acceptsNonstandard })}
+          disabled={toggleNonstandard.isPending}
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border-2 ${
+            acceptsNonstandard ? "bg-orange-50 border-orange-400 text-orange-700" : "bg-gray-50 border-gray-300 text-gray-500"
+          }`}
+        >
+          <Package className="w-3.5 h-3.5" />
+          {acceptsNonstandard ? (isBg ? "Приемам нестандартен" : "Accepting non-std") : (isBg ? "Не приемам нестандартен" : "Not accepting non-std")}
+        </button>
+      </div>
       {districts.map(district => {
         const blocks = filteredGroupedData[district];
         const totalInDistrict = Object.values(blocks).flatMap(b => Object.values(b)).flat().length;
@@ -808,16 +825,6 @@ function WorkerSubscriptionsTab({ deviceToken, isBg }: { deviceToken: string; is
         >
           {toggleAccept.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CalendarDays className="w-4 h-4" />}
           {accepting ? (isBg ? "Приемам абонаменти" : "Accepting subs") : (isBg ? "Не приемам" : "Not accepting")}
-        </button>
-        <button
-          onClick={() => toggleNonstandard.mutate({ deviceToken, acceptsSubscriptions: accepting, acceptsNonstandard: !acceptingNonstandard })}
-          disabled={toggleNonstandard.isPending}
-          className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-semibold transition-all border-2 ${
-            acceptingNonstandard ? "bg-orange-50 border-orange-400 text-orange-700" : "bg-gray-50 border-gray-300 text-gray-500"
-          }`}
-        >
-          {toggleNonstandard.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Package className="w-4 h-4" />}
-          {acceptingNonstandard ? (isBg ? "Приемам нестандартен" : "Accepting non-std") : (isBg ? "Не приемам нестандартен" : "Not accepting non-std")}
         </button>
       </div>
       {!accepting && (
