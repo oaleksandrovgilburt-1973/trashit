@@ -120,6 +120,7 @@ export default function WasteDisposal() {
   const [gpsLoading, setGpsLoading] = useState(false);
   const [imageUrl, setImageUrl] = useState("");
   const [estimatedVolume, setEstimatedVolume] = useState("");
+  const [isImageApproved, setIsImageApproved] = useState(false);
   const [estimatedVolumeDescription, setEstimatedVolumeDescription] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -173,14 +174,14 @@ export default function WasteDisposal() {
   });
 
   const moderateImageMutation = trpc.requests.estimateVolume.useMutation({
-    onSuccess: (data) => {
-      // Successfully passed moderation — do nothing, image is already set
+    onSuccess: () => {
+      setIsImageApproved(true);
     },
     onError: (err) => {
-      // Content rejected — clear the image
       setImagePreview(null);
       setImageUrl("");
-      toast.error(err.message);
+      setIsImageApproved(false);
+      toast.error(isBg ? "⚠️ Тази снимка не е разрешена. Моля качете снимка само на отпадъка без хора или животни." : "⚠️ This image is not allowed. Please upload a photo of waste only, without people or animals.");
     },
   });
 
@@ -223,8 +224,9 @@ export default function WasteDisposal() {
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  const file = e.target.files?.[0];
-  if (!file) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsImageApproved(false);
   const canvas = document.createElement("canvas");
   const img = new Image();
   const reader = new FileReader();
@@ -253,6 +255,10 @@ export default function WasteDisposal() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedType) return;
+    if ((selectedType === "nonstandard" || selectedType === "construction") && imageUrl && !isImageApproved) {
+      toast.error(isBg ? "Моля изчакайте проверката на снимката." : "Please wait for image verification.");
+      return;
+    }
     if (!isAuthenticated) {
       toast.error(isBg ? "Трябва да влезете в акаунта си" : "You must be logged in");
       navigate("/auth");
