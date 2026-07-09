@@ -818,7 +818,7 @@ function RequestsTab() {
   const [openDates, setOpenDates] = useState<Set<string>>(new Set());
   const { data: allRequests } = trpc.requests.listAll.useQuery();
   const cancelRequest = trpc.requests.adminCancel.useMutation({
-    onSuccess: () => { toast.success("Заявката е отказана"); },
+    onSuccess: () => { toast.success("Заявката е отказана"); refetchRequests(); },
     onError: (e: any) => toast.error(e.message),
   });
 
@@ -1527,7 +1527,7 @@ function ProblemsTab() {
 // ─── Tab: Clients ─────────────────────────────────────────────────────────────
 function ClientsTab() {
   const { data: clients, isLoading } = trpc.users.listClients.useQuery();
-  const { data: allRequests } = trpc.requests.listAll.useQuery();
+  const { data: allRequests, refetch: refetchRequests } = trpc.requests.listAll.useQuery();
   const [search, setSearch] = useState("");
   const [expandedClient, setExpandedClient] = useState<string | null>(null);
   const [creditAmounts, setCreditAmounts] = useState<Record<string, string>>({});
