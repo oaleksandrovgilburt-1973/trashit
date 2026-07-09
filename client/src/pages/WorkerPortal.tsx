@@ -447,12 +447,12 @@ function GroupedRequestsView({ deviceToken }: { deviceToken: string }) {
   const { data: grouped = {}, isLoading, refetch } = trpc.workerDistricts.getRequestsForMyDistricts.useQuery(
     { deviceToken }, { enabled: !!deviceToken, refetchInterval: 30000 }
   );
-  const { data: workerPrefs } = trpc.subscriptions.getWorkerPref.useQuery(
+  const { data: workerPrefs, refetch: refetchPrefs } = trpc.subscriptions.getWorkerPref.useQuery(
     { deviceToken }, { enabled: !!deviceToken }
   );
   const acceptsNonstandard = workerPrefs?.acceptsNonstandard ?? false;
   const toggleNonstandard = trpc.subscriptions.setWorkerPref.useMutation({
-    onSuccess: () => { toast.success(isBg ? "Настройката е запазена!" : "Setting saved!"); },
+    onSuccess: () => { refetchPrefs(); toast.success(isBg ? "Настройката е запазена!" : "Setting saved!"); },
     onError: (e) => toast.error(e.message),
   });
 
