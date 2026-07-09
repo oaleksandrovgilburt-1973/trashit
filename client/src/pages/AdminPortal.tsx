@@ -2285,6 +2285,7 @@ function SubscriptionsTab() {
   const [newEtaj, setNewEtaj] = React.useState("");
   const [newApartament, setNewApartament] = React.useState("");
   const [newSlot, setNewSlot] = React.useState<"morning" | "evening">("morning");
+  const [newVisitDays, setNewVisitDays] = React.useState<"even" | "odd" | "all">("all");
 
   const adminCreate = trpc.subscriptions.adminCreate.useMutation({
     onSuccess: () => {
