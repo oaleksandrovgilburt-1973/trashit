@@ -364,6 +364,8 @@ function RequestCard({
         <WorkerChatPanel requestId={req.id} deviceToken={deviceToken} isBg={isBg} />
       )}
 
+      
+
       {hasGps && (
         <div>
           <Button
@@ -1080,18 +1082,6 @@ function WorkerAssignmentsTab({ deviceToken }: { deviceToken: string }) {
                     {req.imageUrl && (
                       <img src={req.imageUrl} alt="waste" className="max-h-32 w-auto object-contain rounded-xl" />
                     )}
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      {req.contactPhone && (
-                        <a href={`tel:${req.contactPhone}`} className="flex items-center gap-1 hover:text-primary transition-colors">
-                          <Phone className="w-3 h-3" />{req.contactPhone}
-                        </a>
-                      )}
-                      {req.contactEmail && (
-                        <a href={`mailto:${req.contactEmail}`} className="flex items-center gap-1 hover:text-primary transition-colors">
-                          <Mail className="w-3 h-3" />{req.contactEmail}
-                        </a>
-                      )}
-                    </div>
                   </div>
                 ))}
                 {/* Nonstandard/Construction — отделна секция */}
