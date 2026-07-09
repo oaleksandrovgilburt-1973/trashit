@@ -909,6 +909,9 @@ export const appRouter = router({
         serviceType: (parsed.serviceType as "standard" | "nonstandard" | "construction") ?? fallback.serviceType,
       };
     } catch (err) {
+      if (err instanceof TRPCError) {
+        throw err;
+      }
       console.error("[estimateVolume] Claude Vision error:", err);
       return fallback;
     }
