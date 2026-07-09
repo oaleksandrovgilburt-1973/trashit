@@ -817,6 +817,10 @@ function RequestsTab() {
   const adminSession = typeof window !== "undefined" ? localStorage.getItem("admin_session") : null;
   const [openDates, setOpenDates] = useState<Set<string>>(new Set());
   const { data: allRequests } = trpc.requests.listAll.useQuery();
+  const cancelRequest = trpc.requests.adminCancel.useMutation({
+    onSuccess: () => { toast.success("Заявката е отказана"); },
+    onError: (e: any) => toast.error(e.message),
+  });
 
   const active = allRequests?.filter(r => r.status === "pending") ?? [];
   const completed = allRequests?.filter(r => r.status === "completed") ?? [];
@@ -916,9 +920,33 @@ function RequestsTab() {
                             {/* Image for nonstandard/construction */}
                             {(r.type === "nonstandard" || r.type === "construction") && (r as any).imageUrl && (
                               <a href={(r as any).imageUrl} target="_blank" rel="noopener noreferrer" className="mt-1.5 block">
-                                <img src={(r as any).imageUrl} alt="Снимка" className="rounded-lg max-h-32 w-full object-cover border border-gray-200 hover:opacity-90 transition-opacity" />
+                                <img src={(r as any).imageUrl} alt="Снимка" className="rounded-lg max-h-20 w-auto object-contain border border-gray-200 hover:opacity-90 transition-opacity cursor-pointer" onClick={() => window.open((r as any).imageUrl, '_blank')} />
                               </a>
                             )}
+                            {/* Contact info */}
+                            <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
+                              {r.contactPhone && (
+                                <a href={`tel:${r.contactPhone}`} className="flex items-center gap-1 hover:text-primary">
+                                  <Phone className="w-3 h-3" />{r.contactPhone}
+                                </a>
+                              )}
+                              {r.contactEmail && (
+                                <a href={`mailto:${r.contactEmail}`} className="flex items-center gap-1 hover:text-primary">
+                                  <Mail className="w-3 h-3" />{r.contactEmail}
+                                </a>
+                              )}
+                            </div>
+                            {/* Cancel button */}
+                            <button
+                              onClick={() => {
+                                if (confirm(`Откажи заявка #${r.id}?`)) {
+                                  cancelRequest.mutate({ requestId: r.id });
+                                }
+                              }}
+                              className="mt-2 text-xs text-red-500 hover:text-red-700 underline"
+                            >
+                              Откажи заявката
+                            </button>
                             {/* Admin quote panel */}
                             {(r.type === "nonstandard" || r.type === "construction") && r.status === "pending" && (
                               <AdminQuotePanel requestId={r.id} />

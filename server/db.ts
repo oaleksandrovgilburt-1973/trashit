@@ -320,6 +320,12 @@ export async function getRequestById(id: number) {
   return result[0];
 }
 
+export async function updateRequestStatus(id: number, status: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(requests).set({ status } as any).where(eq(requests.id, id));
+}
+
 export async function updateRequestProblem(id: number, hasProblem: boolean, problemDescription?: string): Promise<void> {
   const db = await getDb();
   if (!db) return;

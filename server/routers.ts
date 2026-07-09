@@ -29,7 +29,7 @@ import {
   // Requests
   createRequest, getRequestsByUser, getAllRequests,
   getPendingRequests, getRequestById,
-  completeRequest, completeRequestPendingPayment, completeRequestsByEntrance, cancelRequest, updateRequestProblem,
+  completeRequest, completeRequestPendingPayment, completeRequestsByEntrance, cancelRequest, updateRequestProblem, updateRequestStatus,
   // Cleaning
   createCleaningRequest, getCleaningRequestsByUser, getAllCleaningRequests,
   updateCleaningRequestStatus,
@@ -817,7 +817,14 @@ export const appRouter = router({
 
     // Admin: list all requests
     listAll: adminProcedure.query(async () => getAllRequests()),
-
+    adminCancel: adminProcedure
+      .input(z.object({ requestId: z.number() }))
+      .mutation(async ({ input }) => {
+        const req = await getRequestById(input.requestId);
+        if (!req) throw new TRPCError({ code: "NOT_FOUND", message: "Заявката не е намерена." });
+        await updateRequestStatus(input.requestId, "cancelled");
+        return { success: true };
+      }),
     estimateVolume: protectedProcedure
       .input(z.object({ imageUrl: z.string().url("Невалиден URL на снимка") }))
       .mutation(async ({ ctx, input }) => {
