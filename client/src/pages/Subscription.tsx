@@ -12,6 +12,7 @@ import {
   Sun, Moon, Trash2, Recycle, AlertCircle, X
 } from "lucide-react";
 import { Link } from "wouter";
+import { normalizeEntrance } from "../../../shared/bgAlphabet";
 
 const PRICES_DEFAULT: Record<string, Record<string, number>> = {
   standard: { "15": 8.99, "30": 17.99 },
@@ -134,7 +135,7 @@ export default function Subscription() {
       visitDays: visits === "15" ? visitDays : "all",
       district: district.trim(),
       blok: blok.trim(),
-      vhod: vhod.trim(),
+      vhod: normalizeEntrance(vhod.trim()),
       etaj: etaj.trim() || undefined,
       apartament: apartament.trim() || undefined,
       origin: window.location.origin,
