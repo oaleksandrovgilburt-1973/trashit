@@ -244,8 +244,8 @@ export default function WasteDisposal() {
       const compressed = canvas.toDataURL("image/jpeg", 0.7);
       setImagePreview(compressed);
       setImageUrl(compressed);
-      // Auto-moderate: estimate volume triggers content check
-      estimateVolumeMutation.mutate({ imageUrl: compressed });
+      // Auto-moderate: check for inappropriate content
+      moderateImageMutation.mutate({ imageUrl: compressed });
     };
     img.src = reader.result as string;
   };
