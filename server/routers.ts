@@ -2572,6 +2572,7 @@ export const appRouter = router({
         etaj: z.string().optional(),
         apartament: z.string().optional(),
         timeSlot: z.enum(["morning", "evening"]),
+        visitDays: z.enum(["even", "odd", "all"]).default("all"),
       }))
       .mutation(async ({ input }) => {
         const currentPeriodEnd = new Date();
@@ -2583,7 +2584,7 @@ export const appRouter = router({
           userId: user.id,
           type: input.type,
           visits: String(input.visits) as "15" | "30",
-          visitDays: "all",
+          visitDays: input.visitDays,
           district: input.district,
           blok: input.blok,
           vhod: input.vhod,
