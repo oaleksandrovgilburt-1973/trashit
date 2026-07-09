@@ -586,17 +586,34 @@ function GroupedRequestsView({ deviceToken }: { deviceToken: string }) {
   }
 
   const districts = Object.keys(filteredGroupedData);
-
+  
+  const nonstandardToggle = (
+    <div className="flex justify-end mb-2">
+      <button
+        onClick={() => toggleNonstandard.mutate({ deviceToken, acceptsSubscriptions: workerPrefs?.acceptsSubscriptions ?? false, acceptsNonstandard: !acceptsNonstandard })}
+        disabled={toggleNonstandard.isPending}
+        className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border-2 ${
+          acceptsNonstandard ? "bg-orange-50 border-orange-400 text-orange-700" : "bg-gray-50 border-gray-300 text-gray-500"
+        }`}
+      >
+        <Package className="w-3.5 h-3.5" />
+        {acceptsNonstandard ? (isBg ? "Приемам нестандартен" : "Accepting non-std") : (isBg ? "Не приемам нестандартен" : "Not accepting non-std")}
+      </button>
+    </div>
+  );
   if (districts.length === 0) {
     return (
-      <div className="text-center py-12 text-muted-foreground">
-        <CheckCircle className="w-12 h-12 mx-auto mb-3 text-green-400" />
-        <p className="font-medium">{isBg ? "Няма активни заявки" : "No active requests"}</p>
-        <p className="text-sm mt-1">
-          {isBg
-            ? "Всички заявки са приключени, приети, или не сте избрали квартали."
-            : "All requests are completed, claimed, or no districts selected."}
-        </p>
+      <div>
+        {nonstandardToggle}
+        <div className="text-center py-12 text-muted-foreground">
+          <CheckCircle className="w-12 h-12 mx-auto mb-3 text-green-400" />
+          <p className="font-medium">{isBg ? "Няма активни заявки" : "No active requests"}</p>
+          <p className="text-sm mt-1">
+            {isBg
+              ? "Всички заявки са приключени, приети, или не сте избрали квартали."
+              : "All requests are completed, claimed, or no districts selected."}
+          </p>
+        </div>
       </div>
     );
   }
