@@ -1,3 +1,4 @@
+import { normalizeEntrance } from "../../../shared/bgAlphabet";
 import React, { useState } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -2489,7 +2490,7 @@ function SubscriptionsTab() {
             visits: newVisits,
             district: newDistrict,
             blok: newBlok,
-            vhod: newVhod,
+            vhod: normalizeEntrance(newVhod),
             etaj: newEtaj || undefined,
             apartament: newApartament || undefined,
             timeSlot: newSlot,

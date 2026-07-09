@@ -791,6 +791,11 @@ function WorkerSubscriptionsTab({ deviceToken, isBg }: { deviceToken: string; is
     onSuccess: () => { todayQ.refetch(); toast.success(isBg ? "Посещението е отбелязано!" : "Visit marked!"); },
     onError: (e: { message: string }) => toast.error(e.message),
   });
+  const markVisited = trpc.subscriptions.markVisited.useMutation({
+    onSuccess: () => { todayQ.refetch(); toast.success(isBg ? "Посещението е отбелязано!" : "Visit marked!"); },
+    onError: (e: { message: string }) => toast.error(e.message),
+  });
+  const [expandedBlocks, setExpandedBlocks] = useState<Set<string>>(new Set());
   const accepting = prefQ.data?.acceptsSubscriptions ?? false;
   const morning = todayQ.data?.morning ?? [];
   const evening = todayQ.data?.evening ?? [];
@@ -828,31 +833,67 @@ function WorkerSubscriptionsTab({ deviceToken, isBg }: { deviceToken: string; is
             {morning.length === 0 ? (
               <p className="text-sm text-muted-foreground pl-6">{isBg ? "Няма адреси за днес" : "No addresses today"}</p>
             ) : (
-              morning.map((visit) => {
-                const sub = (visit as any).subscription;
-                const isCompleted = (visit as any).status === "completed";
-                return (
-                  <div key={visit.id} className={`flex items-center justify-between p-3 rounded-2xl border ${isCompleted ? "bg-green-50 border-green-200" : "bg-white border-border"}`}>
-                    <div>
-                      <p className="text-sm font-medium">{sub?.district}, Бл. {sub?.blok}, Вх. {sub?.vhod}</p>
-                      {(sub?.etaj || sub?.apartament) && (
-                        <p className="text-xs text-muted-foreground">
-                          {sub?.etaj ? `Ет. ${sub.etaj}` : ""}{sub?.etaj && sub?.apartament ? ", " : ""}{sub?.apartament ? `Ап. ${sub.apartament}` : ""}
-                        </p>
+              (() => {
+                const grouped: Record<string, typeof morning> = {};
+                morning.forEach(visit => {
+                  const sub = (visit as any).subscription;
+                  const key = `${sub?.district}|${sub?.blok}|${sub?.vhod}`;
+                  if (!grouped[key]) grouped[key] = [];
+                  grouped[key].push(visit);
+                });
+                return Object.entries(grouped).map(([key, visits]) => {
+                  const sub = (visits[0] as any).subscription;
+                  const isExpanded = expandedBlocks.has(`morning_${key}`);
+                  const allCompleted = visits.every(v => (v as any).status === "completed");
+                  return (
+                    <div key={key} className="rounded-2xl border overflow-hidden">
+                      <div
+                        className={`flex items-center justify-between p-3 cursor-pointer ${allCompleted ? "bg-green-50 border-green-200" : "bg-white"}`}
+                        onClick={() => {
+                          setExpandedBlocks(prev => {
+                            const next = new Set(prev);
+                            next.has(`morning_${key}`) ? next.delete(`morning_${key}`) : next.add(`morning_${key}`);
+                            return next;
+                          });
+                        }}
+                      >
+                        <div>
+                          <p className="text-sm font-medium">{sub?.district}, Бл. {sub?.blok}, Вх. {sub?.vhod}</p>
+                          <p className="text-xs text-muted-foreground">{visits.length} {isBg ? "апартамента" : "apartments"}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {allCompleted && <Badge className="bg-green-100 text-green-700 border-0 text-xs"><CheckCircle className="w-3 h-3 mr-1" />{isBg ? "Всички посетени" : "All visited"}</Badge>}
+                          {isExpanded ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
+                        </div>
+                      </div>
+                      {isExpanded && (
+                        <div className="border-t divide-y">
+                          {visits.map(visit => {
+                            const s = (visit as any).subscription;
+                            const isCompleted = (visit as any).status === "completed";
+                            return (
+                              <div key={visit.id} className={`flex items-center justify-between px-4 py-2.5 ${isCompleted ? "bg-green-50" : "bg-gray-50"}`}>
+                                <p className="text-xs text-muted-foreground">
+                                  {s?.etaj ? `Ет. ${s.etaj}` : ""}{s?.etaj && s?.apartament ? ", " : ""}{s?.apartament ? `Ап. ${s.apartament}` : ""}
+                                </p>
+                                {isCompleted ? (
+                                  <Badge className="bg-green-100 text-green-700 border-0 text-xs"><CheckCircle className="w-3 h-3 mr-1" />{isBg ? "Посетен" : "Visited"}</Badge>
+                                ) : (
+                                  <Button size="sm" className="rounded-xl bg-green-600 hover:bg-green-700 text-white text-xs h-7"
+                                    disabled={markVisited.isPending}
+                                    onClick={() => markVisited.mutate({ deviceToken, visitId: visit.id })}>
+                                    <CheckCircle className="w-3 h-3 mr-1" />{isBg ? "Посетен" : "Visited"}
+                                  </Button>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
                       )}
                     </div>
-                    {isCompleted ? (
-                      <Badge className="bg-green-100 text-green-700 border-0 text-xs"><CheckCircle className="w-3 h-3 mr-1" />{isBg ? "Посетен" : "Visited"}</Badge>
-                    ) : (
-                      <Button size="sm" className="rounded-xl bg-green-600 hover:bg-green-700 text-white text-xs h-8"
-                        disabled={markVisited.isPending}
-                        onClick={() => markVisited.mutate({ deviceToken, visitId: visit.id })}>
-                        <CheckCircle className="w-3 h-3 mr-1" />{isBg ? "Посетен" : "Visited"}
-                      </Button>
-                    )}
-                  </div>
-                );
-              })
+                  );
+                });
+              })()
             )}
           </div>
           <div className="space-y-2">
@@ -864,31 +905,67 @@ function WorkerSubscriptionsTab({ deviceToken, isBg }: { deviceToken: string; is
             {evening.length === 0 ? (
               <p className="text-sm text-muted-foreground pl-6">{isBg ? "Няма адреси за днес" : "No addresses today"}</p>
             ) : (
-              evening.map((visit) => {
-                const sub = (visit as any).subscription;
-                const isCompleted = (visit as any).status === "completed";
-                return (
-                  <div key={visit.id} className={`flex items-center justify-between p-3 rounded-2xl border ${isCompleted ? "bg-green-50 border-green-200" : "bg-white border-border"}`}>
-                    <div>
-                      <p className="text-sm font-medium">{sub?.district}, Бл. {sub?.blok}, Вх. {sub?.vhod}</p>
-                      {(sub?.etaj || sub?.apartament) && (
-                        <p className="text-xs text-muted-foreground">
-                          {sub?.etaj ? `Ет. ${sub.etaj}` : ""}{sub?.etaj && sub?.apartament ? ", " : ""}{sub?.apartament ? `Ап. ${sub.apartament}` : ""}
-                        </p>
+              (() => {
+                const grouped: Record<string, typeof evening> = {};
+                evening.forEach(visit => {
+                  const sub = (visit as any).subscription;
+                  const key = `${sub?.district}|${sub?.blok}|${sub?.vhod}`;
+                  if (!grouped[key]) grouped[key] = [];
+                  grouped[key].push(visit);
+                });
+                return Object.entries(grouped).map(([key, visits]) => {
+                  const sub = (visits[0] as any).subscription;
+                  const isExpanded = expandedBlocks.has(`evening_${key}`);
+                  const allCompleted = visits.every(v => (v as any).status === "completed");
+                  return (
+                    <div key={key} className="rounded-2xl border overflow-hidden">
+                      <div
+                        className={`flex items-center justify-between p-3 cursor-pointer ${allCompleted ? "bg-green-50 border-green-200" : "bg-white"}`}
+                        onClick={() => {
+                          setExpandedBlocks(prev => {
+                            const next = new Set(prev);
+                            next.has(`evening_${key}`) ? next.delete(`evening_${key}`) : next.add(`evening_${key}`);
+                            return next;
+                          });
+                        }}
+                      >
+                        <div>
+                          <p className="text-sm font-medium">{sub?.district}, Бл. {sub?.blok}, Вх. {sub?.vhod}</p>
+                          <p className="text-xs text-muted-foreground">{visits.length} {isBg ? "апартамента" : "apartments"}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {allCompleted && <Badge className="bg-green-100 text-green-700 border-0 text-xs"><CheckCircle className="w-3 h-3 mr-1" />{isBg ? "Всички посетени" : "All visited"}</Badge>}
+                          {isExpanded ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
+                        </div>
+                      </div>
+                      {isExpanded && (
+                        <div className="border-t divide-y">
+                          {visits.map(visit => {
+                            const s = (visit as any).subscription;
+                            const isCompleted = (visit as any).status === "completed";
+                            return (
+                              <div key={visit.id} className={`flex items-center justify-between px-4 py-2.5 ${isCompleted ? "bg-green-50" : "bg-gray-50"}`}>
+                                <p className="text-xs text-muted-foreground">
+                                  {s?.etaj ? `Ет. ${s.etaj}` : ""}{s?.etaj && s?.apartament ? ", " : ""}{s?.apartament ? `Ап. ${s.apartament}` : ""}
+                                </p>
+                                {isCompleted ? (
+                                  <Badge className="bg-green-100 text-green-700 border-0 text-xs"><CheckCircle className="w-3 h-3 mr-1" />{isBg ? "Посетен" : "Visited"}</Badge>
+                                ) : (
+                                  <Button size="sm" className="rounded-xl bg-green-600 hover:bg-green-700 text-white text-xs h-7"
+                                    disabled={markVisited.isPending}
+                                    onClick={() => markVisited.mutate({ deviceToken, visitId: visit.id })}>
+                                    <CheckCircle className="w-3 h-3 mr-1" />{isBg ? "Посетен" : "Visited"}
+                                  </Button>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
                       )}
                     </div>
-                    {isCompleted ? (
-                      <Badge className="bg-green-100 text-green-700 border-0 text-xs"><CheckCircle className="w-3 h-3 mr-1" />{isBg ? "Посетен" : "Visited"}</Badge>
-                    ) : (
-                      <Button size="sm" className="rounded-xl bg-green-600 hover:bg-green-700 text-white text-xs h-8"
-                        disabled={markVisited.isPending}
-                        onClick={() => markVisited.mutate({ deviceToken, visitId: visit.id })}>
-                        <CheckCircle className="w-3 h-3 mr-1" />{isBg ? "Посетен" : "Visited"}
-                      </Button>
-                    )}
-                  </div>
-                );
-              })
+                  );
+                });
+              })()
             )}
           </div>
         </>
