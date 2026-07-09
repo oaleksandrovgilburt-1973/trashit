@@ -2398,6 +2398,18 @@ function SubscriptionsTab() {
               <option value="evening">20:00–00:00</option>
             </select>
           </div>
+          {/* Дати */}
+          {newVisits === 15 && (
+            <div className="space-y-1">
+              <label className="text-xs text-gray-500">Дати на посещения</label>
+              <select value={newVisitDays} onChange={e => setNewVisitDays(e.target.value as "even" | "odd" | "all")}
+                className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none">
+                <option value="all">Всеки ден</option>
+                <option value="even">Четни дати (2, 4, 6...)</option>
+                <option value="odd">Нечетни дати (1, 3, 5...)</option>
+              </select>
+            </div>
+          )}
           {/* Квартал */}
           <div className="space-y-1">
             <label className="text-xs text-gray-500">Квартал</label>
@@ -2452,6 +2464,7 @@ function SubscriptionsTab() {
             etaj: newEtaj || undefined,
             apartament: newApartament || undefined,
             timeSlot: newSlot,
+            visitDays: newVisits === 15 ? newVisitDays : "all",
           })}
         >
           {adminCreate.isPending ? "Създава се..." : "Създай абонамент"}
