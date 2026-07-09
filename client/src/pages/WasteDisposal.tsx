@@ -172,6 +172,18 @@ export default function WasteDisposal() {
     },
   });
 
+  const moderateImageMutation = trpc.requests.estimateVolume.useMutation({
+    onSuccess: (data) => {
+      // Successfully passed moderation — do nothing, image is already set
+    },
+    onError: (err) => {
+      // Content rejected — clear the image
+      setImagePreview(null);
+      setImageUrl("");
+      toast.error(err.message);
+    },
+  });
+
   const handleTypeSelect = (type: WasteType) => {
     setSelectedType(type);
     const wt = WASTE_TYPES.find(w => w.id === type);
@@ -230,6 +242,8 @@ export default function WasteDisposal() {
       const compressed = canvas.toDataURL("image/jpeg", 0.7);
       setImagePreview(compressed);
       setImageUrl(compressed);
+      // Auto-moderate: estimate volume triggers content check
+      estimateVolumeMutation.mutate({ imageUrl: compressed });
     };
     img.src = reader.result as string;
   };
@@ -658,7 +672,7 @@ if (selectedType !== "nonstandard" && selectedType !== "construction") {
               <Button onClick={() => navigate("/my-requests")} className="rounded-2xl bg-primary hover:bg-primary/90">
                 {isBg ? "Моите заявки" : "My Requests"}
               </Button>
-              <Button variant="outline" onClick={() => { setStep("select"); setSelectedType(null); setShowSaveAddress(false); }} className="rounded-2xl">
+              <Button variant="outline" onClick={() => navigate("/")} className="rounded-2xl">
                 {isBg ? "Нова заявка" : "New Request"}
               </Button>
               <Button variant="ghost" onClick={() => navigate("/")} className="rounded-2xl">

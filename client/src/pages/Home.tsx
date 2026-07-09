@@ -341,34 +341,11 @@ export default function Home() {
 
         {/* Footer links */}
         <div className="container py-6 text-center">
-          <button
-            onClick={() => setShowHomeTermsModal(true)}
-            className="text-xs text-muted-foreground underline hover:text-foreground transition-colors"
-          >
-            {isBg ? "Кратки ОУ" : "Brief T&C"}
-          </button>
+          <Link href="/terms" className="text-xs text-muted-foreground underline hover:text-foreground transition-colors">
+            {isBg ? "Общи условия" : "Terms & Conditions"}
+          </Link>
         </div>
       </div>
-
-      {/* Terms modal (accessible from home page footer) */}
-      {showHomeTermsModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-background rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col">
-            <div className="flex items-center justify-between p-4 border-b border-border">
-              <h2 className="text-base font-bold text-foreground">{isBg ? "Кратки Общи условия" : "Brief Terms & Conditions"}</h2>
-              <button
-                onClick={() => setShowHomeTermsModal(false)}
-                className="p-1.5 rounded-lg hover:bg-secondary transition-colors"
-              >
-                <X className="w-5 h-5 text-muted-foreground" />
-              </button>
-            </div>
-            <div className="overflow-y-auto p-4 flex-1">
-              <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{isBg ? TERMS_TEXT : TERMS_TEXT_EN}</p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Services popup — shown once per session */}
       {showServicesPopup && (
