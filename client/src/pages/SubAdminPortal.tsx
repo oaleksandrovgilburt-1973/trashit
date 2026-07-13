@@ -1147,7 +1147,7 @@ function SubscriptionsViewTab() {
                     <Badge variant="outline" className="text-xs">{slotLabel(sub.timeSlot)}</Badge>
                   </div>
                   <p className="text-sm text-gray-600">{sub.district}, Бл. {sub.blok}, Вх. {sub.vhod}{sub.etaj ? `, Ет. ${sub.etaj}` : ""}{sub.apartament ? `, Ап. ${sub.apartament}` : ""}</p>
-                  <p className="text-xs text-gray-400">Потребител: {sub.userOpenId} | Създаден: {new Date(sub.createdAt).toLocaleDateString("bg-BG")}{sub.currentPeriodEnd ? ` | До: ${new Date(sub.currentPeriodEnd).toLocaleDateString("bg-BG")}` : ""}</p>
+                  <p className="text-xs text-gray-400">{(sub as any).clientName ?? sub.userOpenId} | Създаден: {new Date(sub.createdAt).toLocaleDateString("bg-BG")}{sub.currentPeriodEnd ? ` | До: ${new Date(sub.currentPeriodEnd).toLocaleDateString("bg-BG")}` : ""}</p>
                 </div>
               </div>
             ))}

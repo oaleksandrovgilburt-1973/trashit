@@ -1929,8 +1929,8 @@ const ALL_PERMISSION_TABS: { id: string; label: string }[] = [
   { id: "content", label: "Съдържание" },
   { id: "descriptions", label: "Описания" },
   { id: "problems", label: "Проблеми" },
+  { id: "subscriptions", label: "Абонаменти" },
 ];
-
 function SubAdminsTab() {
   const utils = trpc.useUtils();
   const [showCreate, setShowCreate] = useState(false);
