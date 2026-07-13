@@ -457,10 +457,6 @@ function GroupedRequestsView({ deviceToken }: { deviceToken: string }) {
   const { data: grouped = {}, isLoading, refetch } = trpc.workerDistricts.getRequestsForMyDistricts.useQuery(
     { deviceToken }, { enabled: !!deviceToken, refetchInterval: 30000 }
   );
-  const { data: workerPrefs, refetch: refetchPrefs } = trpc.subscriptions.getWorkerPref.useQuery(
-    { deviceToken }, { enabled: !!deviceToken }
-  );
-  const acceptsNonstandard = workerPrefs?.acceptsNonstandard ?? false;
   const toggleNonstandard = trpc.subscriptions.setWorkerPref.useMutation({
     onSuccess: () => { refetchPrefs(); toast.success(isBg ? "Настройката е запазена!" : "Setting saved!"); },
     onError: (e) => toast.error(e.message),
@@ -592,26 +588,10 @@ function GroupedRequestsView({ deviceToken }: { deviceToken: string }) {
   }
 
   const districts = Object.keys(filteredGroupedData);
-  
-  const nonstandardToggle = (
-    <div className="flex justify-end mb-2">
-      <button
-        onClick={() => toggleNonstandard.mutate({ deviceToken, acceptsSubscriptions: workerPrefs?.acceptsSubscriptions ?? false, acceptsNonstandard: !acceptsNonstandard })}
-        disabled={toggleNonstandard.isPending}
-        className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border-2 ${
-          acceptsNonstandard ? "bg-orange-50 border-orange-400 text-orange-700" : "bg-gray-50 border-gray-300 text-gray-500"
-        }`}
-      >
-        <Package className="w-3.5 h-3.5" />
-        {acceptsNonstandard ? (isBg ? "Приемам нестандартен" : "Accepting non-std") : (isBg ? "Не приемам нестандартен" : "Not accepting non-std")}
-      </button>
-    </div>
-  );
+ 
   if (districts.length === 0) {
     return (
-      <div>
-        {nonstandardToggle}
-        <div className="text-center py-12 text-muted-foreground">
+      <div className="text-center py-12 text-muted-foreground">
           <CheckCircle className="w-12 h-12 mx-auto mb-3 text-green-400" />
           <p className="font-medium">{isBg ? "Няма активни заявки" : "No active requests"}</p>
           <p className="text-sm mt-1">
@@ -626,7 +606,6 @@ function GroupedRequestsView({ deviceToken }: { deviceToken: string }) {
 
   return (
     <div className="space-y-3">
-      {nonstandardToggle}
       {districts.map(district => {
         const blocks = filteredGroupedData[district];
         const totalInDistrict = Object.values(blocks).flatMap(b => Object.values(b)).flat().length;
@@ -1013,6 +992,10 @@ function WorkerQuotesTab({ deviceToken, isBg }: { deviceToken: string; isBg: boo
   const { data: requests = [], isLoading, refetch } = trpc.workerDistricts.getRequestsForMyDistricts.useQuery(
     { deviceToken }, { enabled: !!deviceToken, refetchInterval: 30000 }
   );
+  const { data: workerPrefs, refetch: refetchPrefs } = trpc.subscriptions.getWorkerPref.useQuery(
+    { deviceToken }, { enabled: !!deviceToken }
+  );
+  const acceptsNonstandard = workerPrefs?.acceptsNonstandard ?? false;
   const completeMutation = trpc.workerDistricts.completeRequest.useMutation({
     onSuccess: () => { toast.success(isBg ? "Заявката е приключена!" : "Request completed!"); refetch(); },
     onError: (e) => toast.error(e.message),
@@ -1037,6 +1020,18 @@ function WorkerQuotesTab({ deviceToken, isBg }: { deviceToken: string; isBg: boo
 
   return (
     <div className="space-y-3">
+      <div className="flex justify-end">
+        <button
+          onClick={() => toggleNonstandard.mutate({ deviceToken, acceptsSubscriptions: workerPrefs?.acceptsSubscriptions ?? false, acceptsNonstandard: !acceptsNonstandard })}
+          disabled={toggleNonstandard.isPending}
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border-2 ${
+            acceptsNonstandard ? "bg-orange-50 border-orange-400 text-orange-700" : "bg-gray-50 border-gray-300 text-gray-500"
+          }`}
+        >
+          <Package className="w-3.5 h-3.5" />
+          {acceptsNonstandard ? (isBg ? "Приемам нестандартен" : "Accepting non-std") : (isBg ? "Не приемам нестандартен" : "Not accepting non-std")}
+        </button>
+      </div>
       {allNonstandard.map(req => (
         <div key={req.id} className={`border rounded-2xl p-4 space-y-3 ${
           req.status === "assigned" || req.status === "pending_payment" ? "border-blue-200 bg-blue-50" : "border-orange-200 bg-orange-50"

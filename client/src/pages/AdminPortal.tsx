@@ -1049,6 +1049,18 @@ function RequestsTab() {
                 )}
                 {r.contactPhone && <p className="text-xs text-gray-500 mt-1">📞 {r.contactPhone}</p>}
                 {r.contactEmail && <p className="text-xs text-gray-500">✉️ {r.contactEmail}</p>}
+                <div className="flex gap-2 mt-2">
+                  <button
+                    onClick={() => {
+                      if (confirm(`Освободи задължението за заявка #${r.id}?`)) {
+                        cancelRequest.mutate({ requestId: r.id });
+                      }
+                    }}
+                    className="text-xs text-red-500 hover:text-red-700 underline"
+                  >
+                    Освободи задължението
+                  </button>
+                </div>
               </div>
             ))
           )}
