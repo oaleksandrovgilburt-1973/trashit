@@ -93,9 +93,9 @@ export default function Home() {
     { href: "/subscription", key: "subscription_standard", icon: <CalendarDays className="w-6 h-6 text-primary" />, label: t.serviceSubscription, active: true },
     { href: "/waste-disposal?type=nonstandard", key: "nonstandard", icon: <Package className="w-6 h-6 text-primary" />, label: t.serviceNonstandard, active: true },
     { href: "/waste-disposal?type=construction", key: "construction", icon: <HardHat className="w-6 h-6 text-primary" />, label: t.serviceConstruction, active: true },
-    { href: "/cleaning?type=entrance", key: "entrances", icon: <Building2 className="w-6 h-6 text-gray-400" />, label: "Почистване на вход", active: false },
-    { href: "/cleaning?type=residence", key: "residence", icon: <HomeIcon className="w-6 h-6 text-gray-400" />, label: "Жилища", active: false },
-    { href: "/cleaning?type=other", key: "other", icon: <MoreHorizontal className="w-6 h-6 text-gray-400" />, label: "Друго", active: false },
+    { href: "/cleaning?type=entrance", key: "entrances", icon: <Building2 className="w-6 h-6 text-gray-400" />, label: isBg ? "Почистване на вход" : "Entrance cleaning", active: false },
+    { href: "/cleaning?type=residence", key: "residence", icon: <HomeIcon className="w-6 h-6 text-gray-400" />, label: isBg ? "Жилища" : "Residences", active: false },
+    { href: "/cleaning?type=other", key: "other", icon: <MoreHorizontal className="w-6 h-6 text-gray-400" />, label: isBg ? "Друго" : "Other", active: false },
   ];
 
   return (
