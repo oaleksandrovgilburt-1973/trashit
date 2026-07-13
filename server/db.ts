@@ -382,7 +382,8 @@ export async function completeRequestsByEntrance(
       eq(requests.district, district),
       eq(requests.blok, blok),
       eq(requests.vhod, vhod),
-      or(eq(requests.status, "pending"), eq(requests.status, "assigned"))
+      or(eq(requests.status, "pending"), eq(requests.status, "assigned")),
+      notInArray(requests.type, ["nonstandard", "construction"])
     )
   );
   return active.length;
