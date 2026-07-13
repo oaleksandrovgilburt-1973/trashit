@@ -871,9 +871,10 @@ function RequestsTab() {
             className={`rounded-xl ${view === "active" ? "bg-green-600 hover:bg-green-700" : ""}`}>
             Активни ({active.length})
           </Button>
-          <Button variant={view === "completed" ? "default" : "outline"} size="sm" onClick={() => setView("completed")}
-            className={`rounded-xl ${view === "completed" ? "bg-green-600 hover:bg-green-700" : ""}`}>
-            Завършени ({completed.length})
+          <Button variant={view === "pending_payment" ? "default" : "outline"} size="sm" onClick={() => setView("pending_payment" as any)}
+            className={`rounded-xl ${view === "pending_payment" ? "bg-red-600 hover:bg-red-700" : ""}`}>
+            ⚠️ Задължения ({allRequests?.filter(r => r.status === "pending_payment").length ?? 0})
+          </Button>
           </Button>
         </div>
       </div>
@@ -1023,6 +1024,29 @@ function RequestsTab() {
               <CheckCircle className="w-12 h-12 mx-auto mb-3 opacity-30" />
               <p>Няма завършени заявки</p>
             </div>
+      )}
+      {(view as string) === "pending_payment" && (
+        <div className="space-y-3">
+          {(allRequests?.filter(r => r.status === "pending_payment") ?? []).length === 0 ? (
+            <div className="text-center py-12 text-gray-400">
+              <CheckCircle className="w-12 h-12 mx-auto mb-3 opacity-30" />
+              <p>Няма неплатени заявки</p>
+            </div>
+          ) : (
+            allRequests?.filter(r => r.status === "pending_payment").map(r => (
+              <div key={r.id} className="bg-white rounded-2xl border border-red-200 p-4 shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs bg-red-100 text-red-700 font-bold px-2 py-0.5 rounded-full">⚠️ Неплатена</span>
+                    <span className="text-sm font-medium">{typeLabel[r.type] ?? r.type}</span>
+                  </div>
+                  <span className="text-xs text-gray-400">{new Date(r.createdAt).toLocaleDateString("bg-BG")}</span>
+                </div>
+                <p className="text-sm text-gray-700">{r.district}, Бл. {r.blok}, Вх. {r.vhod}, Ет. {r.etaj}, Ап. {r.apartament}</p>
+                {r.contactPhone && <p className="text-xs text-gray-500 mt-1">📞 {r.contactPhone}</p>}
+                {r.contactEmail && <p className="text-xs text-gray-500">✉️ {r.contactEmail}</p>}
+              </div>
+            ))
           )}
         </div>
       )}

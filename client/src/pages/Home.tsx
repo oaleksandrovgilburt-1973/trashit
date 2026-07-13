@@ -84,6 +84,10 @@ export default function Home() {
   const { data: activeSubscription } = trpc.subscriptions.myActive.useQuery(undefined, {
     enabled: !!user,
   });
+  const { data: myRequests } = trpc.requests.myList.useQuery(undefined, {
+    enabled: !!user,
+  });
+  const pendingPaymentReqs = myRequests?.filter(r => r.status === "pending_payment") ?? [];
   const services = [
     { href: "/waste-disposal?type=standard", key: "standard", icon: <Trash2 className="w-6 h-6 text-primary" />, label: t.serviceStandard, active: true },
     { href: "/waste-disposal?type=recycling", key: "recycling", icon: <Recycle className="w-6 h-6 text-primary" />, label: t.serviceRecycling, active: true },
@@ -222,6 +226,30 @@ export default function Home() {
             )}
           </div>
         </section>
+
+        {/* Pending payment banner */}
+        {pendingPaymentReqs.length > 0 && (
+          <div className="container pt-4">
+            <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <AlertTriangle className="w-5 h-5 text-red-500 shrink-0" />
+                <div>
+                  <p className="text-sm font-bold text-red-800">
+                    {isBg ? `Имате ${pendingPaymentReqs.length} неплатена заявка` : `You have ${pendingPaymentReqs.length} unpaid request`}
+                  </p>
+                  <p className="text-xs text-red-600">
+                    {isBg ? "Моля платете за да приключите услугата." : "Please pay to complete the service."}
+                  </p>
+                </div>
+              </div>
+              <Link href="/my-requests">
+                <button className="bg-red-600 text-white text-xs font-bold px-4 py-2 rounded-xl hover:bg-red-700 transition-colors whitespace-nowrap">
+                  {isBg ? "Плати сега" : "Pay now"}
+                </button>
+              </Link>
+            </div>
+          </div>
+        )}
 
         {/* Services */}
         <section className="container py-6">
