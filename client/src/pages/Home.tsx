@@ -4,7 +4,6 @@ import MainLayout from "@/components/MainLayout";
 import { Trash2, Sparkles, LogIn, UserPlus, ChevronRight, Leaf, User, CreditCard, Recycle, LogOut, Bell, BellOff, Package, HardHat, Building2, Home as HomeIcon, MoreHorizontal, CalendarDays, X } from "lucide-react";
 import { StandardCoin, RecyclingCoin } from "@/components/CreditCoin";
 import AppStoreBadges from "@/components/AppStoreBadges";
-import { TERMS_TEXT } from "@/lib/termsContent";
 import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useState, useEffect } from "react";
