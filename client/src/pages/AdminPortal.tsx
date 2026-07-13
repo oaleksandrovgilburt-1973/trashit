@@ -1044,6 +1044,9 @@ function RequestsTab() {
                   <span className="text-xs text-gray-400">{new Date(r.createdAt).toLocaleDateString("bg-BG")}</span>
                 </div>
                 <p className="text-sm text-gray-700">{r.district}, Бл. {r.blok}, Вх. {r.vhod}, Ет. {r.etaj}, Ап. {r.apartament}</p>
+                {(r as any).acceptedQuotePrice && (
+                  <p className="text-sm font-bold text-red-700 mt-1">💰 Дължи: {parseFloat((r as any).acceptedQuotePrice).toFixed(2)} €</p>
+                )}
                 {r.contactPhone && <p className="text-xs text-gray-500 mt-1">📞 {r.contactPhone}</p>}
                 {r.contactEmail && <p className="text-xs text-gray-500">✉️ {r.contactEmail}</p>}
               </div>

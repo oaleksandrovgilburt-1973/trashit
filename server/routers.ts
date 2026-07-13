@@ -816,7 +816,18 @@ export const appRouter = router({
       }),
 
     // Admin: list all requests
-    listAll: adminProcedure.query(async () => getAllRequests()),
+    listAll: adminProcedure.query(async () => {
+      const reqs = await getAllRequests();
+      const enriched = await Promise.all(reqs.map(async r => {
+        let acceptedQuotePrice: string | null = null;
+        if (r.status === "pending_payment" || r.status === "assigned") {
+          const quote = await getAcceptedQuoteForRequest(r.id);
+          acceptedQuotePrice = quote?.price ?? null;
+        }
+        return { ...r, acceptedQuotePrice };
+      }));
+      return enriched;
+    }),
     adminCancel: adminProcedure
       .input(z.object({ requestId: z.number() }))
       .mutation(async ({ input }) => {
