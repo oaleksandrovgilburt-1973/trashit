@@ -360,7 +360,6 @@ export async function completeRequestsByEntrance(
 ): Promise<number> {
   const db = await getDb();
   if (!db) return 0;
-  const { or } = await import("drizzle-orm");
   // Get all pending + assigned requests for this entrance
   const { or, notInArray } = await import("drizzle-orm");
   const active = await db.select().from(requests).where(
