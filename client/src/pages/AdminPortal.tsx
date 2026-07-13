@@ -875,7 +875,6 @@ function RequestsTab() {
             className={`rounded-xl ${view === "pending_payment" ? "bg-red-600 hover:bg-red-700" : ""}`}>
             ⚠️ Задължения ({allRequests?.filter(r => r.status === "pending_payment").length ?? 0})
           </Button>
-          </Button>
         </div>
       </div>
 
