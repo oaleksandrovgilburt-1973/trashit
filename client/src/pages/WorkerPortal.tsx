@@ -1208,51 +1208,6 @@ function WorkerAssignmentsTab({ deviceToken }: { deviceToken: string }) {
                     )}
                   </div>
                 ))}
-                {/* Nonstandard/Construction — от nonstandardRequests */}
-                {nonstandardReqs.length > 0 && (
-                  <div className="mt-2 pt-2 border-t border-orange-200">
-                    <p className="text-xs font-semibold text-orange-600 mb-2 px-1">
-                      {isBg ? "⏳ Чакащи оферта" : "⏳ Pending quotes"}
-                    </p>
-                    {nonstandardReqs.map((req) => (
-                      <div key={req.id} className="border border-orange-200 rounded-xl p-3 space-y-1.5 bg-orange-50 mb-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            {getWasteIcon(req.type)}
-                            <span className="text-sm font-medium">{getWasteLabel(req.type, isBg)}</span>
-                            <Badge variant="outline" className="text-xs">
-                              {isBg ? `Ет. ${req.etaj}, Ап. ${req.apartament}` : `Fl. ${req.etaj}, Apt. ${req.apartament}`}
-                            </Badge>
-                          </div>
-                          <span className="text-xs text-muted-foreground">
-                            {new Date(req.createdAt).toLocaleDateString(isBg ? "bg-BG" : "en-GB")}
-                          </span>
-                        </div>
-                        {req.estimatedVolume && (
-                          <div className="flex items-center gap-1 text-xs text-orange-600 bg-orange-100 rounded-lg px-2 py-1">
-                            <Package className="w-3 h-3" />
-                            {isBg ? `Прогнозен обем: ${req.estimatedVolume}` : `Est. volume: ${req.estimatedVolume}`}
-                          </div>
-                        )}
-                        {req.imageUrl && (
-                          <img src={req.imageUrl} alt="waste" className="max-h-32 w-auto object-contain rounded-xl" />
-                        )}
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                          {req.contactPhone && (
-                            <a href={`tel:${req.contactPhone}`} className="flex items-center gap-1 hover:text-primary transition-colors">
-                              <Phone className="w-3 h-3" />{req.contactPhone}
-                            </a>
-                          )}
-                          {req.contactEmail && (
-                            <a href={`mailto:${req.contactEmail}`} className="flex items-center gap-1 hover:text-primary transition-colors">
-                              <Mail className="w-3 h-3" />{req.contactEmail}
-                            </a>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
             )}
           </div>
