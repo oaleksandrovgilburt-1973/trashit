@@ -1050,6 +1050,7 @@ function WorkerAssignmentsTab({ deviceToken }: { deviceToken: string }) {
     <div className="space-y-4">
       {(assignments as any[]).map((a) => {
         const reqs: Request[] = a.requests ?? [];
+        const nonstandardReqs: Request[] = a.nonstandardRequests ?? [];
         return (
           <div key={`${a.district}|${a.blok}|${a.vhod}`} className="border rounded-2xl overflow-hidden shadow-sm">
             {/* Entrance header */}
@@ -1127,13 +1128,13 @@ function WorkerAssignmentsTab({ deviceToken }: { deviceToken: string }) {
                     )}
                   </div>
                 ))}
-                {/* Nonstandard/Construction — отделна секция */}
-                {reqs.filter(r => r.type === "nonstandard" || r.type === "construction").length > 0 && (
+                {/* Nonstandard/Construction — от nonstandardRequests */}
+                {nonstandardReqs.length > 0 && (
                   <div className="mt-2 pt-2 border-t border-orange-200">
                     <p className="text-xs font-semibold text-orange-600 mb-2 px-1">
                       {isBg ? "⏳ Чакащи оферта" : "⏳ Pending quotes"}
                     </p>
-                    {reqs.filter(r => r.type === "nonstandard" || r.type === "construction").map((req) => (
+                    {nonstandardReqs.map((req) => (
                       <div key={req.id} className="border border-orange-200 rounded-xl p-3 space-y-1.5 bg-orange-50 mb-2">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">

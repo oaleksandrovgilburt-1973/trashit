@@ -2144,13 +2144,20 @@ export const appRouter = router({
         const assignments = await getWorkerAssignments(worker.openId);
         // Enrich each assignment with active requests (pending OR assigned)
         const allActive = await getAllRequests();
-        const activeFiltered = allActive.filter(
+        const standardFiltered = allActive.filter(
           r => (r.status === "pending" || r.status === "assigned") &&
                r.type !== "nonstandard" && r.type !== "construction"
         );
+        const nonstandardFiltered = allActive.filter(
+          r => (r.status === "pending" || r.status === "assigned") &&
+               (r.type === "nonstandard" || r.type === "construction")
+        );
         return assignments.map(a => ({
           ...a,
-          requests: activeFiltered.filter(
+          requests: standardFiltered.filter(
+            r => r.district === a.district && r.blok === a.blok && r.vhod === a.vhod
+          ),
+          nonstandardRequests: nonstandardFiltered.filter(
             r => r.district === a.district && r.blok === a.blok && r.vhod === a.vhod
           ),
         }));
