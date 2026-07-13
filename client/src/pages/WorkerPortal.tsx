@@ -405,6 +405,16 @@ function RequestCard({
     <WorkerQuotePanel requestId={req.id} deviceToken={deviceToken} isBg={isBg} />
   )}
   <div className="flex gap-2">
+    {(req.type === "nonstandard" || req.type === "construction") && req.status === "pending_payment" && (
+      <Button
+        size="sm"
+        className="flex-1 rounded-xl bg-green-600 hover:bg-green-700 text-white text-xs"
+        onClick={() => onComplete(req.id)}
+      >
+        <CheckCircle className="w-3 h-3 mr-1" />
+        {isBg ? "Приключи" : "Complete"}
+      </Button>
+    )}
     {(req.type !== "nonstandard" && req.type !== "construction") && onClaim && (
       <Button
         size="sm"
