@@ -1024,6 +1024,8 @@ function RequestsTab() {
               <CheckCircle className="w-12 h-12 mx-auto mb-3 opacity-30" />
               <p>Няма завършени заявки</p>
             </div>
+          )}
+        </div>
       )}
       {(view as string) === "pending_payment" && (
         <div className="space-y-3">
