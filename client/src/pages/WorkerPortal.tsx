@@ -991,7 +991,6 @@ function WorkerQuotesTab({ deviceToken, isBg }: { deviceToken: string; isBg: boo
     { deviceToken }, { enabled: !!deviceToken }
   );
   const acceptsNonstandard = workerPrefs?.acceptsNonstandard ?? false;
-  const acceptsNonstandard = workerPrefs?.acceptsNonstandard ?? false;
   const toggleNonstandard = trpc.subscriptions.setWorkerPref.useMutation({
     onSuccess: () => { refetchPrefs(); toast.success(isBg ? "Настройката е запазена!" : "Setting saved!"); },
     onError: (e) => toast.error(e.message),
