@@ -599,7 +599,6 @@ function GroupedRequestsView({ deviceToken }: { deviceToken: string }) {
               ? "Всички заявки са приключени, приети, или не сте избрали квартали."
               : "All requests are completed, claimed, or no districts selected."}
           </p>
-        </div>
       </div>
     );
   }
