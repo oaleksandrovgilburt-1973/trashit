@@ -457,10 +457,6 @@ function GroupedRequestsView({ deviceToken }: { deviceToken: string }) {
   const { data: grouped = {}, isLoading, refetch } = trpc.workerDistricts.getRequestsForMyDistricts.useQuery(
     { deviceToken }, { enabled: !!deviceToken, refetchInterval: 30000 }
   );
-  const toggleNonstandard = trpc.subscriptions.setWorkerPref.useMutation({
-    onSuccess: () => { refetchPrefs(); toast.success(isBg ? "Настройката е запазена!" : "Setting saved!"); },
-    onError: (e) => toast.error(e.message),
-  });
 
   // Build entrance list for batch claim status
   const groupedData0 = grouped as Record<string, Record<string, Record<string, Request[]>>>;
