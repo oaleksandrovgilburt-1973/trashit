@@ -581,12 +581,8 @@ function GroupedRequestsView({ deviceToken }: { deviceToken: string }) {
         const isClaimed = status?.claimedByMe || status?.claimedByOther;
         // If claimed, only keep nonstandard/construction requests (they need quotes, not claim)
         const visibleReqs = isClaimed
-          ? acceptsNonstandard
-            ? reqs.filter(r => r.type === "nonstandard" || r.type === "construction")
-            : []
-          : acceptsNonstandard
-            ? reqs
-            : reqs.filter(r => r.type !== "nonstandard" && r.type !== "construction");
+          ? []
+          : reqs.filter(r => r.type !== "nonstandard" && r.type !== "construction");
         if (visibleReqs.length === 0) continue;
         if (!filteredGroupedData[district]) filteredGroupedData[district] = {};
         if (!filteredGroupedData[district][blok]) filteredGroupedData[district][blok] = {};
@@ -1013,6 +1009,86 @@ function WorkerSubscriptionsTab({ deviceToken, isBg }: { deviceToken: string; is
 }
 
 // ─── Worker Assignments Tab ───────────────────────────────────────────────────
+function WorkerQuotesTab({ deviceToken, isBg }: { deviceToken: string; isBg: boolean }) {
+  const { data: requests = [], isLoading, refetch } = trpc.workerDistricts.getRequestsForMyDistricts.useQuery(
+    { deviceToken }, { enabled: !!deviceToken, refetchInterval: 30000 }
+  );
+  const completeMutation = trpc.workerDistricts.completeRequest.useMutation({
+    onSuccess: () => { toast.success(isBg ? "Заявката е приключена!" : "Request completed!"); refetch(); },
+    onError: (e) => toast.error(e.message),
+  });
+
+  // Flatten all requests and filter only nonstandard/construction
+  const groupedData = requests as Record<string, Record<string, Record<string, Request[]>>>;
+  const allNonstandard: Request[] = Object.values(groupedData)
+    .flatMap(blocks => Object.values(blocks))
+    .flatMap(entrances => Object.values(entrances))
+    .flat()
+    .filter(r => r.type === "nonstandard" || r.type === "construction");
+
+  if (isLoading) return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
+
+  if (allNonstandard.length === 0) return (
+    <div className="text-center py-12 text-muted-foreground">
+      <Package className="w-12 h-12 mx-auto mb-3 text-orange-300" />
+      <p className="font-medium">{isBg ? "Няма нестандартни заявки" : "No non-standard requests"}</p>
+    </div>
+  );
+
+  return (
+    <div className="space-y-3">
+      {allNonstandard.map(req => (
+        <div key={req.id} className={`border rounded-2xl p-4 space-y-3 ${
+          req.status === "assigned" || req.status === "pending_payment" ? "border-blue-200 bg-blue-50" : "border-orange-200 bg-orange-50"
+        }`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {getWasteIcon(req.type)}
+              <span className="text-sm font-medium">{getWasteLabel(req.type, isBg)}</span>
+              <Badge variant="outline" className="text-xs">
+                {isBg ? `Ет. ${req.etaj}, Ап. ${req.apartament}` : `Fl. ${req.etaj}, Apt. ${req.apartament}`}
+              </Badge>
+            </div>
+            <span className="text-xs text-muted-foreground">
+              {new Date(req.createdAt).toLocaleDateString(isBg ? "bg-BG" : "en-GB")}
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground">{req.district}, {isBg ? "Бл." : "Bl."} {req.blok}, {isBg ? "Вх." : "Entr."} {req.vhod}</p>
+          {req.estimatedVolume && (
+            <div className="flex items-center gap-1 text-xs text-orange-600 bg-orange-100 rounded-lg px-2 py-1">
+              <Package className="w-3 h-3" />
+              {isBg ? `Прогнозен обем: ${req.estimatedVolume}` : `Est. volume: ${req.estimatedVolume}`}
+            </div>
+          )}
+          {req.imageUrl && (
+            <img src={req.imageUrl} alt="waste" className="max-h-40 w-auto object-contain rounded-xl" />
+          )}
+          {(req.status === "assigned" || req.status === "pending_payment") && (
+            <div className="flex items-center gap-2 bg-blue-100 rounded-xl px-3 py-2">
+              <CheckCircle className="w-4 h-4 text-blue-600" />
+              <span className="text-xs font-semibold text-blue-700">
+                {isBg ? "Офертата е приета — изчаква изпълнение!" : "Quote accepted — awaiting completion!"}
+              </span>
+            </div>
+          )}
+          <WorkerQuotePanel requestId={req.id} deviceToken={deviceToken} isBg={isBg} />
+          <WorkerChatPanel requestId={req.id} deviceToken={deviceToken} isBg={isBg} />
+          {(req.status === "assigned" || req.status === "pending_payment") && (
+            <Button
+              size="sm"
+              className="w-full rounded-xl bg-green-600 hover:bg-green-700 text-white text-xs"
+              onClick={() => completeMutation.mutate({ requestId: req.id, deviceToken })}
+              disabled={completeMutation.isPending}
+            >
+              <CheckCircle className="w-3 h-3 mr-1" />
+              {isBg ? "Приключи" : "Complete"}
+            </Button>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
 function WorkerAssignmentsTab({ deviceToken }: { deviceToken: string }) {
   const { language } = useLanguage();
   const isBg = language === "bg";
@@ -1199,7 +1275,7 @@ export default function WorkerPortal() {
   const [, setLocation] = useLocation();
 
   const [session, setSession] = useState<WorkerSession | null>(null);
-  const [activeTab, setActiveTab] = useState<"requests" | "assignments" | "districts" | "subscriptions" | "profile">("requests");
+  const [activeTab, setActiveTab] = useState<"requests" | "assignments" | "quotes" | "districts" | "subscriptions" | "profile">("requests");
 
   useEffect(() => {
     const stored = localStorage.getItem("trashit_worker_session");
@@ -1293,6 +1369,7 @@ export default function WorkerPortal() {
             {[
               { id: "requests", label: isBg ? "Заявки" : "Requests", icon: <List className="w-4 h-4" /> },
               { id: "assignments", label: isBg ? "Приети" : "Claimed", icon: <ClipboardList className="w-4 h-4" /> },
+              { id: "quotes", label: isBg ? "Оферти" : "Quotes", icon: <Package className="w-4 h-4" /> },
               { id: "districts", label: isBg ? "Квартали" : "Districts", icon: <MapPin className="w-4 h-4" /> },
               { id: "subscriptions", label: isBg ? "Абон." : "Subs", icon: <CalendarDays className="w-4 h-4" /> },
               { id: "profile", label: isBg ? "Профил" : "Profile", icon: <Settings className="w-4 h-4" /> },
@@ -1343,7 +1420,20 @@ export default function WorkerPortal() {
             <WorkerAssignmentsTab deviceToken={session.deviceToken} />
           </div>
         )}
-
+        
+        {activeTab === "quotes" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold">
+                {isBg ? "Нестандартни заявки" : "Non-standard Requests"}
+              </h2>
+              <Badge variant="outline" className="text-xs">
+                {isBg ? "Обновява се на 30с" : "Refreshes every 30s"}
+              </Badge>
+            </div>
+            <WorkerQuotesTab deviceToken={session.deviceToken} isBg={isBg} />
+          </div>
+        )}
         
          {activeTab === "districts" && (
   <DistrictSelector deviceToken={session.deviceToken} />
