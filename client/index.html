@@ -9,7 +9,15 @@
 
     <!-- PWA / Theme -->
     <meta name="theme-color" content="#4CAF50" />
-    <link rel="manifest" href="/manifest.json" />
+    <link rel="manifest" href="/manifest.json" id="pwa-manifest" />
+    <script>
+      if (window.location.pathname.startsWith('/worker')) {
+        document.getElementById('pwa-manifest').setAttribute('href', '/worker-manifest.json');
+        document.querySelector('meta[name="theme-color"]').setAttribute('content', '#FF6D00');
+        document.querySelector('meta[name="apple-mobile-web-app-title"]').setAttribute('content', 'TRASHit Worker');
+        document.title = 'TRASHit Worker';
+      }
+    </script>
 
     <!-- Android Chrome PWA -->
     <meta name="mobile-web-app-capable" content="yes" />
