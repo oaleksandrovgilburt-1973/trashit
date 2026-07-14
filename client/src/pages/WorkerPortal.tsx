@@ -1089,6 +1089,27 @@ function WorkerQuotesTab({ deviceToken, isBg }: { deviceToken: string; isBg: boo
             </span>
           </div>
           <p className="text-xs text-muted-foreground">{req.district}, {isBg ? "Бл." : "Bl."} {req.blok}, {isBg ? "Вх." : "Entr."} {req.vhod}</p>
+          {req.gpsLat && req.gpsLng && (
+            <div className="flex gap-2 flex-wrap">
+              <a href={`https://www.google.com/maps/dir/?api=1&destination=${req.gpsLat},${req.gpsLng}`} target="_blank" rel="noreferrer">
+                <Button size="sm" variant="outline" className="rounded-xl text-xs">
+                  <Map className="w-3 h-3 mr-1" /> Google Maps
+                </Button>
+              </a>
+              <a href={`https://waze.com/ul?ll=${req.gpsLat},${req.gpsLng}&navigate=yes`} target="_blank" rel="noreferrer">
+                <Button size="sm" variant="outline" className="rounded-xl text-xs">
+                  <Navigation className="w-3 h-3 mr-1" /> Waze
+                </Button>
+              </a>
+            </div>
+          )}
+          {/iPad|iPhone|iPod/.test(navigator.userAgent) && (
+                <a href={`maps://maps.apple.com/?daddr=${req.gpsLat},${req.gpsLng}`} target="_blank" rel="noreferrer">
+                  <Button size="sm" variant="outline" className="rounded-xl text-xs">
+                    <Map className="w-3 h-3 mr-1" /> Apple Maps
+                  </Button>
+                </a>
+              )}
           {req.estimatedVolume && (
             <div className="flex items-center gap-1 text-xs text-orange-600 bg-orange-100 rounded-lg px-2 py-1">
               <Package className="w-3 h-3" />
