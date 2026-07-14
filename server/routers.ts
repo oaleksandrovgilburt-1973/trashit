@@ -1651,7 +1651,9 @@ export const appRouter = router({
         if (!session) throw new TRPCError({ code: "UNAUTHORIZED", message: "Невалидна сесия." });
         const allWorkers = await getAllWorkers();
         const worker = allWorkers.find(w => w.id === session.workerId);
-        if (!worker) throw new TRPCError({ code: "NOT_FOUND", message: "Работникът не е намерен." });
+        if (!worker) throw new TRPCError({ code: "NOT_FOUND", message: "Работникът не е намерен." });       
+        const reqBefore = await getRequestById(input.requestId);
+        console.log(`[completeRequest] workerLat: ${input.workerLat}, workerLng: ${input.workerLng}, reqLat: ${reqBefore?.gpsLat}, reqLng: ${reqBefore?.gpsLng}`);
         // GPS verification
         if (input.workerLat && input.workerLng && reqBefore?.gpsLat && reqBefore?.gpsLng) {
           const R = 6371000; // metres
