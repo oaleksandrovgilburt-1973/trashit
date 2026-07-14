@@ -822,6 +822,10 @@ function RequestsTab() {
     onSuccess: () => { toast.success("Заявката е отказана"); refetchRequests(); },
     onError: (e: any) => toast.error(e.message),
   });
+  const adminCompleteRequest = trpc.requests.adminComplete.useMutation({
+    onSuccess: () => { toast.success("Заявката е приключена ръчно!"); refetchRequests(); },
+    onError: (e: any) => toast.error(e.message),
+  });
 
   const active = allRequests?.filter(r => r.status === "pending") ?? [];
   const completed = allRequests?.filter(r => r.status === "completed") ?? [];
@@ -947,6 +951,17 @@ function RequestsTab() {
                               className="mt-2 text-xs text-red-500 hover:text-red-700 underline"
                             >
                               Откажи заявката
+                            </button>
+                            {/* Manual complete button */}
+                            <button
+                              onClick={() => {
+                                if (confirm(`Приключи ръчно заявка #${r.id}? Ще се запише като "Приключена от администратор".`)) {
+                                  adminCompleteRequest.mutate({ requestId: r.id });
+                                }
+                              }}
+                              className="mt-1 text-xs text-green-600 hover:text-green-800 underline"
+                            >
+                              Приключи ръчно
                             </button>
                             {/* Admin quote panel */}
                             {(r.type === "nonstandard" || r.type === "construction") && r.status === "pending" && (

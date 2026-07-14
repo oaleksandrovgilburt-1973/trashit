@@ -836,6 +836,15 @@ export const appRouter = router({
         await updateRequestStatus(input.requestId, "cancelled");
         return { success: true };
       }),
+    adminComplete: adminProcedure
+      .input(z.object({ requestId: z.number() }))
+      .mutation(async ({ input }) => {
+        const req = await getRequestById(input.requestId);
+        if (!req) throw new TRPCError({ code: "NOT_FOUND", message: "Заявката не е намерена." });
+        await completeRequest(input.requestId, "admin", 0);
+        await updateRequestStatus(input.requestId, "completed");
+        return { success: true };
+      }),
     estimateVolume: protectedProcedure
       .input(z.object({ imageUrl: z.string().url("Невалиден URL на снимка") }))
       .mutation(async ({ ctx, input }) => {
