@@ -1631,15 +1631,36 @@ export const appRouter = router({
       }),
     // Worker: complete a single request using deviceToken
     completeRequest: publicProcedure
-      .input(z.object({ deviceToken: z.string(), requestId: z.number() }))
+      .input(z.object({ 
+        deviceToken: z.string(), 
+        requestId: z.number(),
+        workerLat: z.number().optional(),
+        workerLng: z.number().optional(),
+      }))
       .mutation(async ({ input }) => {
         const session = await getWorkerSession(input.deviceToken);
         if (!session) throw new TRPCError({ code: "UNAUTHORIZED", message: "Невалидна сесия." });
         const allWorkers = await getAllWorkers();
         const worker = allWorkers.find(w => w.id === session.workerId);
         if (!worker) throw new TRPCError({ code: "NOT_FOUND", message: "Работникът не е намерен." });
-        const reqBefore = await getRequestById(input.requestId);
-        const needsPayment = reqBefore?.type === "nonstandard" || reqBefore?.type === "construction";
+        // GPS verification
+        if (input.workerLat && input.workerLng && reqBefore?.gpsLat && reqBefore?.gpsLng) {
+          const R = 6371000; // metres
+          const lat1 = parseFloat(reqBefore.gpsLat) * Math.PI / 180;
+          const lat2 = input.workerLat * Math.PI / 180;
+          const dLat = (input.workerLat - parseFloat(reqBefore.gpsLat)) * Math.PI / 180;
+          const dLon = (input.workerLng - parseFloat(reqBefore.gpsLng)) * Math.PI / 180;
+          const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                    Math.cos(lat1) * Math.cos(lat2) *
+                    Math.sin(dLon/2) * Math.sin(dLon/2);
+          const distance = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+          if (distance > 50) {
+            throw new TRPCError({ 
+              code: "BAD_REQUEST", 
+              message: `Не сте на адреса на заявката. Разстояние: ${Math.round(distance)}м (максимум 50м).` 
+            });
+          }
+        }
         // Guard: check if the entrance of this request is claimed by another worker
         if (reqBefore?.district && reqBefore?.blok && reqBefore?.vhod) {
           const existingAssignment = await getAssignmentByEntrance(reqBefore.district, reqBefore.blok, reqBefore.vhod);

@@ -679,7 +679,26 @@ function GroupedRequestsView({ deviceToken }: { deviceToken: string }) {
                                         key={req.id}
                                         req={req}
                                         deviceToken={deviceToken}
-                                        onComplete={(id) => completeMutation.mutate({ requestId: id, deviceToken })}
+                                        onComplete={(id) => {
+                                          if (!navigator.geolocation) {
+                                            completeMutation.mutate({ requestId: id, deviceToken });
+                                            return;
+                                          }
+                                          navigator.geolocation.getCurrentPosition(
+                                            (pos) => {
+                                              completeMutation.mutate({ 
+                                                requestId: id, 
+                                                deviceToken,
+                                                workerLat: pos.coords.latitude,
+                                                workerLng: pos.coords.longitude,
+                                              });
+                                            },
+                                            () => {
+                                              completeMutation.mutate({ requestId: id, deviceToken });
+                                            },
+                                            { timeout: 5000 }
+                                          );
+                                        }}
                                         onProblem={(r) => setProblemReq(r)}
                                         onClaim={(district, blok, vhod) => {
                           const entranceReqs = filteredGroupedData[district]?.[blok]?.[vhod] ?? [];
@@ -1000,6 +1019,28 @@ function WorkerQuotesTab({ deviceToken, isBg }: { deviceToken: string; isBg: boo
     onError: (e) => toast.error(e.message),
   });
 
+  const handleComplete = (requestId: number) => {
+    if (!navigator.geolocation) {
+      completeMutation.mutate({ requestId, deviceToken });
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        completeMutation.mutate({ 
+          requestId, 
+          deviceToken,
+          workerLat: pos.coords.latitude,
+          workerLng: pos.coords.longitude,
+        });
+      },
+      () => {
+        // GPS failed - complete without GPS
+        completeMutation.mutate({ requestId, deviceToken });
+      },
+      { timeout: 5000 }
+    );
+  };
+
   // Flatten all requests and filter only nonstandard/construction
   const groupedData = requests as Record<string, Record<string, Record<string, Request[]>>>;
   const allNonstandard: Request[] = Object.values(groupedData)
@@ -1071,7 +1112,7 @@ function WorkerQuotesTab({ deviceToken, isBg }: { deviceToken: string; isBg: boo
             <Button
               size="sm"
               className="w-full rounded-xl bg-green-600 hover:bg-green-700 text-white text-xs"
-              onClick={() => completeMutation.mutate({ requestId: req.id, deviceToken })}
+              onClick={() => handleComplete(req.id)}
               disabled={completeMutation.isPending}
             >
               <CheckCircle className="w-3 h-3 mr-1" />
