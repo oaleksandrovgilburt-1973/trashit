@@ -262,7 +262,7 @@ export default function Subscription() {
                 </div>
               </div>
             )}
-          </div>
+
           {/* Upgrade options */}
           <div className="mt-4 pt-4 border-t border-green-200">
             <p className="text-xs font-semibold text-green-800 mb-3">{isBg ? "Смени абонамента:" : "Switch subscription:"}</p>
