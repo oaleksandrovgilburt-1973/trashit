@@ -298,6 +298,7 @@ export default function Subscription() {
               ))}
             </div>
           </div>
+          </div>
         ) : (
           /* New subscription form */
           <div className="space-y-5">
