@@ -262,6 +262,40 @@ export default function Subscription() {
                 </div>
               </div>
             )}
+          {/* Upgrade options */}
+          <div className="mt-4 pt-4 border-t border-green-200">
+            <p className="text-xs font-semibold text-green-800 mb-3">{isBg ? "Смени абонамента:" : "Switch subscription:"}</p>
+            <div className="space-y-2">
+              {([
+                { type: "standard", visits: "15" },
+                { type: "standard", visits: "30" },
+                { type: "recycling", visits: "15" },
+                { type: "recycling", visits: "30" },
+              ] as const).filter(p => !(p.type === activeSub.type && p.visits === activeSub.visits)).map(p => (
+                <div key={`${p.type}-${p.visits}`} className="flex items-center justify-between bg-white rounded-xl p-3 border border-green-100">
+                  <div>
+                    <p className="text-sm font-medium">{TYPE_LABELS[p.type]} — {p.visits} {isBg ? "посещения" : "visits"}</p>
+                    <p className="text-xs text-muted-foreground">€{PRICES[p.type][p.visits].toFixed(2)}/{isBg ? "мес" : "mo"}</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="rounded-xl text-xs border-blue-300 text-blue-600 hover:bg-blue-50"
+                    onClick={() => {
+                      if (confirm(isBg ? "Текущият абонамент ще бъде отказан и ще започне нов. Сигурни ли сте?" : "Current subscription will be cancelled and a new one will start. Are you sure?")) {
+                        cancelSub.mutate({ id: activeSub.id });
+                        setType(p.type);
+                        setVisits(p.visits);
+                        setShowCancelForm(false);
+                      }
+                    }}
+                    disabled={cancelSub.isPending}
+                  >
+                    {isBg ? "Премини" : "Switch"}
+                  </Button>
+                </div>
+              ))}
+            </div>
           </div>
         ) : (
           /* New subscription form */
