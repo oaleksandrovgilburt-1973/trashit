@@ -223,46 +223,6 @@ export default function Subscription() {
               )}
             </div>
 
-            {/* Cancel button */}
-            {!showCancelForm ? (
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full text-red-600 border-red-200 hover:bg-red-50"
-                onClick={() => setShowCancelForm(true)}
-              >
-                <X className="w-4 h-4 mr-1" />{isBg ? "Откажи абонамента" : "Cancel subscription"}
-              </Button>
-            ) : (
-              <div className="space-y-2">
-                <textarea
-                  className="w-full rounded-xl border border-border p-3 text-sm resize-none"
-                  rows={2}
-                  placeholder={isBg ? "Причина за отказ (по желание)" : "Reason for cancellation (optional)"}
-                  value={cancelNote}
-                  onChange={e => setCancelNote(e.target.value)}
-                />
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="flex-1"
-                    onClick={() => setShowCancelForm(false)}
-                  >
-                    {isBg ? "Назад" : "Back"}
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="flex-1 bg-red-600 hover:bg-red-700 text-white"
-                    disabled={cancelSub.isPending}
-                    onClick={() => cancelSub.mutate({ id: activeSub.id, note: cancelNote || undefined })}
-                  >
-                    {cancelSub.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : (isBg ? "Потвърди отказа" : "Confirm cancellation")}
-                  </Button>
-                </div>
-              </div>
-            )}
-
           {/* Upgrade options */}
           <div className="mt-4 pt-4 border-t border-green-200">
             <p className="text-xs font-semibold text-green-800 mb-3">{isBg ? "Смени абонамента:" : "Switch subscription:"}</p>
@@ -524,7 +484,7 @@ export default function Subscription() {
           <div className="text-sm text-muted-foreground space-y-1">
             <p className="font-medium text-foreground">{isBg ? "Как работи абонаментът?" : "How does the subscription work?"}</p>
             <p>{isBg ? "Работник ще посети вашия адрес в избрания часови слот за всяко посещение от плана ви." : "A worker will visit your address in the selected time slot for every visit in your plan."}</p>
-            <p>{isBg ? "Плащането е месечно и се подновява автоматично. Можете да откажете по всяко време." : "Payment is monthly and renews automatically. You can cancel at any time."}</p>
+            <p>{isBg ? "Плащането е месечно. Можете да го подновявате ръчно всеки месец или да се подновява автоматично по ваш избор. За отказ на абонамент, моля свържете се с нас на support@trashit.bg." : "Payment is monthly. You can renew manually each month or set it to renew automatically. To cancel your subscription, please contact us at support@trashit.bg."}</p>
           </div>
         </div>
       </div>
