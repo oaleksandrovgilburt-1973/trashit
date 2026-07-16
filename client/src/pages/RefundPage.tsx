@@ -21,8 +21,8 @@ export default function RefundPage() {
 
           <h2 className="text-lg font-bold mt-6">{isBg ? "1. Общи положения" : "1. General"}</h2>
           <p>{isBg
-            ? "Настоящата Политика урежда условията, при които Трашит ЕООД възстановява суми, заплатени чрез мобилното приложение и уеб платформата Trashit. Политиката е неразделна част от Общите условия."
-            : "This Policy governs the conditions under which Trashit Ltd. refunds amounts paid through the Trashit mobile application and web platform. This Policy is an integral part of the Terms & Conditions."}</p>
+            ? "Настоящата Политика урежда условията, при които "Трашит" ЕООД, ЕИК 208887008, гр. София, жк. Дружба, бл. 309, вх. В, ап. 66, ет. 4, възстановява суми, заплатени чрез мобилното приложение и уеб платформата Trashit. Политиката е неразделна част от Общите условия."
+            : "This Policy governs the conditions under which "Trashit" EOOD, EIK 208887008, Sofia, Druzhba, Bl. 309, Entr. V, Apt. 66, Fl. 4, refunds amounts paid through the Trashit mobile application and web platform. This Policy is an integral part of the Terms & Conditions."}</p>
 
           <h2 className="text-lg font-bold mt-6">{isBg ? "2. Кога може да бъде възстановена сума" : "2. When a Refund May Be Issued"}</h2>
           <p>{isBg ? "Дружеството възстановява изцяло или частично заплатени суми в следните случаи:" : "The Company refunds amounts in full or in part in the following cases:"}</p>

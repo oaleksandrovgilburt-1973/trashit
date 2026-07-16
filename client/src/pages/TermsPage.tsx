@@ -26,8 +26,8 @@ export default function TermsPage() {
 
           <h2 className="text-lg font-bold mt-6">{isBg ? "1. Общи разпоредби" : "1. General Provisions"}</h2>
           <p>{isBg
-            ? "Настоящите Общи условия уреждат отношенията между \"Трашит\" ЕООД и всяко лице, което използва мобилното приложение Trashit или уеб платформата www.trashit.bg за заявяване на услуги по извозване на отпадъци."
-            : "These Terms & Conditions govern the relationship between Trashit Ltd. and any person using the Trashit mobile application or web platform www.trashit.bg for waste collection services."}</p>
+            ? "Настоящите Общи условия уреждат отношенията между "Трашит" ЕООД, ЕИК 208887008, със седалище и адрес на управление: гр. София, жк. Дружба, бл. 309, вх. В, ап. 66, ет. 4, представлявано от управителя Орлин Христов Александров, и всяко лице, което използва мобилното приложение Trashit или уеб платформата www.trashit.bg за заявяване на услуги по извозване на отпадъци."
+            : "These Terms & Conditions govern the relationship between Trashit EOOD, EIK 208887008, registered at Sofia, Druzhba, Bl. 309, Entr. V, Apt. 66, Fl. 4, represented by Orlin Hristov Alexandrov, and any person using the Trashit mobile application or web platform www.trashit.bg for waste collection services."}</p>
           <p>{isBg
             ? "Чрез регистрация и/или използване на Платформата Потребителят декларира, че е запознат с настоящите Общи условия, приема ги и се съгласява да ги спазва безусловно."
             : "By registering and/or using the Platform, the User declares that they have read these Terms, accept them and agree to comply with them unconditionally."}</p>
