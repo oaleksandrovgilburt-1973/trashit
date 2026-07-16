@@ -77,6 +77,7 @@ export default function Subscription() {
   // Queries
   const profileQ = trpc.users.getProfile.useQuery(undefined, { enabled: !!user });
   const activeSubQ = trpc.subscriptions.myActive.useQuery(undefined, { enabled: !!user });
+  const nextVisit = nextVisitQ.data;
   const allSubsQ = trpc.subscriptions.myList.useQuery(undefined, { enabled: !!user });
 
   // Pre-fill address from profile
@@ -219,6 +220,17 @@ export default function Subscription() {
                 <div className="col-span-2">
                   <p className="text-muted-foreground text-xs">{isBg ? "Следващо подновяване" : "Next renewal"}</p>
                   <p className="font-medium">{new Date(activeSub.currentPeriodEnd).toLocaleDateString(isBg ? "bg-BG" : "en-GB")}</p>
+                </div>
+              )}
+              {nextVisit && (
+                <div className="col-span-2 bg-blue-50 rounded-xl p-3 border border-blue-200">
+                  <p className="text-blue-800 text-xs font-semibold mb-0.5">📅 {isBg ? "Следващо посещение:" : "Next visit:"}</p>
+                  <p className="text-blue-900 font-bold text-sm">
+                    {new Date(nextVisit.visitDate).toLocaleDateString(isBg ? "bg-BG" : "en-GB", { day: "2-digit", month: "long", year: "numeric" })}
+                  </p>
+                  <p className="text-blue-700 text-xs mt-0.5">
+                    {isBg ? "след" : "after"} {nextVisit.timeSlot === "morning" ? "08:00" : "20:00"} {isBg ? "часа" : "o'clock"}
+                  </p>
                 </div>
               )}
             </div>

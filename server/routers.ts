@@ -2485,8 +2485,23 @@ export const appRouter = router({
     myList: protectedProcedure.query(async ({ ctx }) => {
       return getSubscriptionsByUser(ctx.user.openId);
     }),
-    myActive: protectedProcedure.query(async ({ ctx }) => {
-      return getActiveSubscriptionByUser(ctx.user.openId) ?? null;
+    myNextVisit: protectedProcedure.query(async ({ ctx }) => {
+      const sub = await getActiveSubscriptionByUser(ctx.user.openId);
+      if (!sub) return null;
+      const db = await getDb();
+      if (!db) return null;
+      const today = new Date().toISOString().slice(0, 10);
+      const { gte } = await import("drizzle-orm");
+      const visits = await db.select()
+        .from(subscriptionVisits)
+        .where(and(
+          eq(subscriptionVisits.subscriptionId, sub.id),
+          eq(subscriptionVisits.status, "pending"),
+          gte(subscriptionVisits.visitDate, today)
+        ))
+        .orderBy(asc(subscriptionVisits.visitDate))
+        .limit(1);
+      return visits[0] ?? null;
     }),
     createCheckout: protectedProcedure
       .input(z.object({
