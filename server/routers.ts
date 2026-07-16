@@ -65,7 +65,7 @@ import {
   getAllSubscriptions, updateSubscriptionStripe, cancelSubscription,
   getSubscriptionByStripeId, getTodayVisitsBySlot, markVisitCompleted,
   createDailyVisitsForSubscription, getWorkerSubscriptionPref, setWorkerSubscriptionPref,
-  getSubscriptionById,
+  getSubscriptionById, getNextPendingVisit,
   // Request Messages
   getMessagesByRequestId, addRequestMessage,
   // Web Push
@@ -2489,20 +2489,8 @@ export const appRouter = router({
     myNextVisit: protectedProcedure.query(async ({ ctx }) => {
       const sub = await getActiveSubscriptionByUser(ctx.user.openId);
       if (!sub) return null;
-      const db = await getDb();
-      if (!db) return null;
       const today = new Date().toISOString().slice(0, 10);
-      const { gte, and, eq, asc } = await import("drizzle-orm");
-      const visits = await db.select()
-        .from(subscriptionVisits)
-        .where(and(
-          eq(subscriptionVisits.subscriptionId, sub.id),
-          eq(subscriptionVisits.status, "pending"),
-          gte(subscriptionVisits.visitDate, today)
-        ))
-        .orderBy(asc(subscriptionVisits.visitDate))
-        .limit(1);
-      return visits[0] ?? null;
+      return await getNextPendingVisit(sub.id, today);
     }),
     createCheckout: protectedProcedure
       .input(z.object({
