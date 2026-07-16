@@ -19,20 +19,20 @@ export default function PrivacyPage() {
         </div>
         <div className="prose prose-sm max-w-none text-gray-700 space-y-4">
           <p className="text-xs text-gray-400 mb-6">
-            {isBg ? "Политика за поверителност и бисквитки на "Трашит" ЕООД, ЕИК 208887008" : "Privacy and Cookie Policy of Trashit EOOD, EIK 208887008"}
+            {isBg ? "Политика за поверителност и бисквитки на „Трашит\u201C ЕООД, ЕИК 208887008" : "Privacy and Cookie Policy of Trashit EOOD, EIK 208887008"}
           </p>
 
           <h2 className="text-lg font-bold mt-6">{isBg ? "I. Въведение" : "I. Introduction"}</h2>
           <p>{isBg
-            ? "Настоящата Политика описва начина, по който "Трашит" ЕООД, ЕИК 208887008, със седалище: гр. София, жк. Дружба, бл. 309, вх. В, ап. 66, ет. 4, събира, обработва, съхранява и защитава личните данни на потребителите на мобилното приложение Trashit и уеб платформата www.trashit.bg."
-            : "This Policy describes how Trashit EOOD, EIK 208887008, registered at Sofia, Druzhba, Bl. 309, Entr. V, Apt. 66, Fl. 4, collects, processes, stores and protects the personal data of users of the Trashit mobile application and web platform www.trashit.bg.""}</p>
+            ? "Настоящата Политика описва начина, по който „Трашит\u201C ЕООД, ЕИК 208887008, със седалище: гр. София, жк. Дружба, бл. 309, вх. В, ап. 66, ет. 4, събира, обработва, съхранява и защитава личните данни на потребителите на мобилното приложение Trashit и уеб платформата [www.trashit.bg](https://www.trashit.bg)."
+            : "This Policy describes how Trashit EOOD, EIK 208887008, registered at Sofia, Druzhba, Bl. 309, Entr. V, Apt. 66, Fl. 4, collects, processes, stores and protects the personal data of users of the Trashit mobile application and web platform [www.trashit.bg](https://www.trashit.bg)."}</p>
           <p>{isBg
             ? "Политиката е изготвена в съответствие с Регламент (ЕС) 2016/679 (GDPR), Закона за защита на личните данни и приложимото законодателство."
             : "This Policy is prepared in accordance with Regulation (EU) 2016/679 (GDPR), the Personal Data Protection Act and applicable legislation."}</p>
 
           <h2 className="text-lg font-bold mt-6">{isBg ? "II. Администратор на лични данни" : "II. Data Controller"}</h2>
           <p>{isBg
-            ? "Администратор е "Трашит" ЕООД, ЕИК 208887008, гр. София, жк. Дружба, бл. 309, вх. В, ап. 66, ет. 4, управител: Орлин Христов Александров. За въпроси, свързани с обработването на лични данни, можете да се свържете с нас на:"
+            ? "Администратор е „Трашит\u201C ЕООД, ЕИК 208887008, гр. София, жк. Дружба, бл. 309, вх. В, ап. 66, ет. 4, управител: Орлин Христов Александров. За въпроси, свързани с обработването на лични данни, можете да се свържете с нас на:"
             : "The data controller is Trashit EOOD, EIK 208887008, Sofia, Druzhba, Bl. 309, Entr. V, Apt. 66, Fl. 4, Manager: Orlin Hristov Alexandrov. For questions regarding the processing of personal data, please contact us at:"} <a href="mailto:support@trashit.bg" className="text-primary">support@trashit.bg</a></p>
 
           <h2 className="text-lg font-bold mt-6">{isBg ? "III. Какви лични данни се събират" : "III. What Personal Data We Collect"}</h2>
