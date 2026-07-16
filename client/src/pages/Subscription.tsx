@@ -77,6 +77,7 @@ export default function Subscription() {
   // Queries
   const profileQ = trpc.users.getProfile.useQuery(undefined, { enabled: !!user });
   const activeSubQ = trpc.subscriptions.myActive.useQuery(undefined, { enabled: !!user });
+  const nextVisitQ = trpc.subscriptions.myNextVisit.useQuery(undefined, { enabled: !!user });
   const nextVisit = nextVisitQ.data;
   const allSubsQ = trpc.subscriptions.myList.useQuery(undefined, { enabled: !!user });
 
