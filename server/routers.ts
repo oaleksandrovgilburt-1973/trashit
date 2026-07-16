@@ -2486,6 +2486,9 @@ export const appRouter = router({
     myList: protectedProcedure.query(async ({ ctx }) => {
       return getSubscriptionsByUser(ctx.user.openId);
     }),
+    myActive: protectedProcedure.query(async ({ ctx }) => {
+      return getActiveSubscriptionByUser(ctx.user.openId) ?? null;
+    }),
     myNextVisit: protectedProcedure.query(async ({ ctx }) => {
       const sub = await getActiveSubscriptionByUser(ctx.user.openId);
       if (!sub) return null;
