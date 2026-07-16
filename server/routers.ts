@@ -2492,7 +2492,7 @@ export const appRouter = router({
       const db = await getDb();
       if (!db) return null;
       const today = new Date().toISOString().slice(0, 10);
-      const { gte } = await import("drizzle-orm");
+      const { gte, and, eq, asc } = await import("drizzle-orm");
       const visits = await db.select()
         .from(subscriptionVisits)
         .where(and(
