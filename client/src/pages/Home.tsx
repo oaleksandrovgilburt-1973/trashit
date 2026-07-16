@@ -188,7 +188,8 @@ export default function Home() {
                         </span>
                       </div>
                     </Link>
-                   {nextVisit && (
+                  )}
+                  {nextVisit && (
                     <div className="flex items-center gap-1.5 bg-white/20 backdrop-blur-sm rounded-xl px-3 py-1.5">
                       <span className="text-white text-[11px] font-semibold">
                         📅 {isBg ? "Чакате посещение на" : "Next visit on"} {new Date(nextVisit.visitDate).toLocaleDateString(isBg ? "bg-BG" : "en-GB", { day: "2-digit", month: "short" })} {isBg ? "след" : "after"} {nextVisit.timeSlot === "morning" ? "08:00" : "20:00"}ч.
