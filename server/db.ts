@@ -925,6 +925,20 @@ export async function createDailyVisitsForSubscription(subscriptionId: number, t
   await db.insert(subscriptionVisits).values({ subscriptionId, visitDate: today, timeSlot: sub.timeSlot });
 }
 
+export async function getNextPendingVisit(subscriptionId: number, today: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const visits = await db.select().from(subscriptionVisits)
+    .where(and(
+      eq(subscriptionVisits.subscriptionId, subscriptionId),
+      eq(subscriptionVisits.status, "pending"),
+      gte(subscriptionVisits.visitDate, today)
+    ))
+    .orderBy(asc(subscriptionVisits.visitDate))
+    .limit(1);
+  return visits[0] ?? null;
+}
+
 // ─── Worker Subscription Preferences ─────────────────────────────────────────
 
 export async function getWorkerSubscriptionPref(workerId: number): Promise<{ acceptsSubscriptions: boolean; acceptsNonstandard: boolean }> {
