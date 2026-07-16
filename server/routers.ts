@@ -2741,16 +2741,5 @@ export const appRouter = router({
         return { success: true };
       }),
   }),
-  settings: router({
-    getAll: adminProcedure.query(async () => {
-      return getAllSettings();
-    }),
-    update: adminProcedure
-      .input(z.object({ key: z.string(), value: z.string() }))
-      .mutation(async ({ input }) => {
-        await upsertSetting(input.key, input.value);
-        return { success: true };
-      }),
-  }),
 });
 export type AppRouter = typeof appRouter;
