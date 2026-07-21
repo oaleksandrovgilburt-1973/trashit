@@ -2501,6 +2501,7 @@ export const appRouter = router({
         visits: z.enum(["15", "30"]),
         timeSlot: z.enum(["morning", "evening"]),
         visitDays: z.enum(["even", "odd", "all"]).default("all"),
+        autoRenew: z.boolean().default(true),
         district: z.string().min(1),
         blok: z.string().min(1),
         vhod: z.string().min(1),
@@ -2557,6 +2558,7 @@ export const appRouter = router({
           apartament: input.apartament,
           status: "active",
           stripeCustomerId: customerId,
+          autoRenew: input.autoRenew,
         });
         // Telegram: notify subscriptions channel
         sendTelegramMessage(TELEGRAM_CHATS.subscriptions,
@@ -2580,6 +2582,7 @@ export const appRouter = router({
             user_open_id: ctx.user.openId,
             subscription_id: subId.toString(),
             payment_type: "subscription",
+            auto_renew: input.autoRenew.toString(),
           },
           success_url: `${input.origin}/subscription?sub_success=1&sub_id=${subId}`,
           cancel_url: `${input.origin}/subscription`,

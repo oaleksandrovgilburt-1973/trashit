@@ -874,7 +874,7 @@ export async function getSubscriptionById(id: number): Promise<Subscription | un
   const result = await db.select().from(subscriptions).where(eq(subscriptions.id, id)).limit(1);
   return result[0];
 }
-export async function updateSubscriptionStripe(id: number, data: { stripeSubscriptionId?: string; stripeCustomerId?: string; currentPeriodEnd?: Date; status?: "active" | "cancelled" | "expired" }): Promise<void> {
+export async function updateSubscriptionStripe(id: number, data: { stripeSubscriptionId?: string; stripeCustomerId?: string; currentPeriodEnd?: Date; status?: "active" | "cancelled" | "expired"; autoRenew?: boolean }): Promise<void> {
   const db = await getDb();
   if (!db) return;
   await db.update(subscriptions).set(data).where(eq(subscriptions.id, id));
