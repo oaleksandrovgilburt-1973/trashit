@@ -1,7 +1,7 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
 import MainLayout from "@/components/MainLayout";
-import { Trash2, Sparkles, LogIn, UserPlus, ChevronRight, Leaf, User, CreditCard, Recycle, LogOut, Bell, BellOff, Package, HardHat, Building2, Home as HomeIcon, MoreHorizontal, CalendarDays, X, AlertTriangle } from "lucide-react";
+import { Trash2, Sparkles, LogIn, UserPlus, ChevronRight, Leaf, User, CreditCard, Recycle, LogOut, Bell, BellOff, Package, HardHat, Building2, Home as HomeIcon, MoreHorizontal, CalendarDays, X, AlertTriangle, MapPin, Clock } from "lucide-react";
 import { StandardCoin, RecyclingCoin } from "@/components/CreditCoin";
 import AppStoreBadges from "@/components/AppStoreBadges";
 import { Link, useLocation } from "wouter";
@@ -90,6 +90,19 @@ export default function Home() {
     enabled: !!user,
   });
   const pendingPaymentReqs = myRequests?.filter(r => r.status === "pending_payment") ?? [];
+  const activeReqs = myRequests?.filter(r => r.status === "pending" || r.status === "assigned") ?? [];
+  const getReqIcon = (type: string) => {
+    if (type === "recycling") return <Recycle className="w-4 h-4 text-primary shrink-0" />;
+    if (type === "nonstandard" || type === "construction") return <Package className="w-4 h-4 text-orange-500 shrink-0" />;
+    return <Trash2 className="w-4 h-4 text-primary shrink-0" />;
+  };
+  const getReqSessionLabel = (createdAt: string | Date) => {
+    const hour = new Date(createdAt).getHours();
+    const isEvening = hour >= 8 && hour < 20;
+    return isEvening
+      ? (isBg ? "Очаквайте посещение след 20:00 ч." : "Expect a visit after 8:00 PM")
+      : (isBg ? "Очаквайте посещение след 08:00 ч." : "Expect a visit after 8:00 AM");
+  };
   const services = [
     { href: "/waste-disposal?type=standard", key: "standard", icon: <Trash2 className="w-6 h-6 text-primary" />, label: t.serviceStandard, active: true },
     { href: "/waste-disposal?type=recycling", key: "recycling", icon: <Recycle className="w-6 h-6 text-primary" />, label: t.serviceRecycling, active: true },
@@ -256,6 +269,39 @@ export default function Home() {
                   {isBg ? "Плати сега" : "Pay now"}
                 </button>
               </Link>
+            </div>
+          </div>
+        )}
+
+        {/* Active requests preview */}
+        {activeReqs.length > 0 && (
+          <div className="container pt-4">
+            <h3 className="text-sm font-bold text-foreground mb-2">
+              {isBg ? "Активни заявки" : "Active requests"}
+            </h3>
+            <div className="space-y-2">
+              {activeReqs.map(req => (
+                <div key={req.id} className="bg-white border border-gray-200 rounded-2xl p-3 flex items-center gap-3">
+                  {getReqIcon(req.type)}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <MapPin className="w-3 h-3 shrink-0" />
+                      <span className="truncate">{req.district}, Бл. {req.blok}, Вх. {req.vhod}</span>
+                    </div>
+                    {req.status === "pending" && (req.type === "standard" || req.type === "recycling") && (
+                      <div className="flex items-center gap-1.5 text-xs text-blue-600 font-medium mt-0.5">
+                        <Clock className="w-3 h-3 shrink-0" />
+                        {getReqSessionLabel(req.createdAt)}
+                      </div>
+                    )}
+                    {req.status === "assigned" && (
+                      <p className="text-xs text-green-600 font-medium mt-0.5">
+                        {isBg ? "В изпълнение" : "In progress"}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
