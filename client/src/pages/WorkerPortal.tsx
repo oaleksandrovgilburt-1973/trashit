@@ -301,6 +301,16 @@ function WorkerChatPanel({ requestId, deviceToken, isBg }: { requestId: number; 
 }
 
 // ─── Request Card ─────────────────────────────────────────────────────────────
+function getSessionInfo(createdAt: string | Date, isBg: boolean): { label: string; isEvening: boolean } {
+  const hour = new Date(createdAt).getHours();
+  const isEvening = hour >= 8 && hour < 20;
+  return {
+    isEvening,
+    label: isEvening
+      ? (isBg ? "🌙 Вечерна сесия" : "🌙 Evening session")
+      : (isBg ? "☀️ Сутрешна сесия" : "☀️ Morning session"),
+  };
+}
 function RequestCard({
   req, deviceToken, onComplete, onProblem, onClaim
 }: {
@@ -343,6 +353,12 @@ function RequestCard({
           {new Date(req.createdAt).toLocaleDateString(isBg ? "bg-BG" : "en-GB")}
         </span>
       </div>
+
+      {(req.type === "standard" || req.type === "recycling") && req.status === "pending" && (
+        <Badge className={`text-xs ${getSessionInfo(req.createdAt, isBg).isEvening ? "bg-indigo-100 text-indigo-700" : "bg-amber-100 text-amber-700"}`}>
+          {getSessionInfo(req.createdAt, isBg).label}
+        </Badge>
+      )}
 
       {req.description && (
         <p className="text-xs text-muted-foreground italic">"{req.description}"</p>
@@ -447,6 +463,7 @@ function GroupedRequestsView({ deviceToken }: { deviceToken: string }) {
   const [expandedDistricts, setExpandedDistricts] = useState<Set<string>>(new Set());
   const [expandedBlocks, setExpandedBlocks] = useState<Set<string>>(new Set());
   const [expandedEntrances, setExpandedEntrances] = useState<Set<string>>(new Set());
+  const [sessionFilter, setSessionFilter] = useState<"all" | "morning" | "evening">("all");
   const [problemReq, setProblemReq] = useState<Request | null>(null);
   const [problemDesc, setProblemDesc] = useState("");
   const [problemImagePreview, setProblemImagePreview] = useState<string | null>(null);
@@ -572,9 +589,18 @@ function GroupedRequestsView({ deviceToken }: { deviceToken: string }) {
         const status = claimStatus[key];
         const isClaimed = status?.claimedByMe || status?.claimedByOther;
         // If claimed, only keep nonstandard/construction requests (they need quotes, not claim)
-        const visibleReqs = isClaimed
+        let visibleReqs = isClaimed
           ? []
           : reqs.filter(r => r.type !== "nonstandard" && r.type !== "construction");
+        // Session filter
+        if (sessionFilter !== "all") {
+          visibleReqs = visibleReqs.filter(r => {
+            if (r.type !== "standard" && r.type !== "recycling") return true;
+            const hour = new Date(r.createdAt).getHours();
+            const isEvening = hour >= 8 && hour < 20;
+            return sessionFilter === "evening" ? isEvening : !isEvening;
+          });
+        }
         if (visibleReqs.length === 0) continue;
         if (!filteredGroupedData[district]) filteredGroupedData[district] = {};
         if (!filteredGroupedData[district][blok]) filteredGroupedData[district][blok] = {};
@@ -585,22 +611,56 @@ function GroupedRequestsView({ deviceToken }: { deviceToken: string }) {
 
   const districts = Object.keys(filteredGroupedData);
  
+  const filterButtons = (
+    <div className="flex gap-2">
+      <Button
+        size="sm"
+        variant={sessionFilter === "all" ? "default" : "outline"}
+        className="rounded-xl text-xs flex-1"
+        onClick={() => setSessionFilter("all")}
+      >
+        {isBg ? "Всички" : "All"}
+      </Button>
+      <Button
+        size="sm"
+        variant={sessionFilter === "morning" ? "default" : "outline"}
+        className="rounded-xl text-xs flex-1"
+        onClick={() => setSessionFilter("morning")}
+      >
+        ☀️ {isBg ? "Сутрешна" : "Morning"}
+      </Button>
+      <Button
+        size="sm"
+        variant={sessionFilter === "evening" ? "default" : "outline"}
+        className="rounded-xl text-xs flex-1"
+        onClick={() => setSessionFilter("evening")}
+      >
+        🌙 {isBg ? "Вечерна" : "Evening"}
+      </Button>
+    </div>
+  );
+
   if (districts.length === 0) {
     return (
-      <div className="text-center py-12 text-muted-foreground">
-          <CheckCircle className="w-12 h-12 mx-auto mb-3 text-green-400" />
-          <p className="font-medium">{isBg ? "Няма активни заявки" : "No active requests"}</p>
-          <p className="text-sm mt-1">
-            {isBg
-              ? "Всички заявки са приключени, приети, или не сте избрали квартали."
-              : "All requests are completed, claimed, or no districts selected."}
-          </p>
+      <div className="space-y-3">
+        {filterButtons}
+        <div className="text-center py-12 text-muted-foreground">
+            <CheckCircle className="w-12 h-12 mx-auto mb-3 text-green-400" />
+            <p className="font-medium">{isBg ? "Няма активни заявки" : "No active requests"}</p>
+            <p className="text-sm mt-1">
+              {isBg
+                ? "Всички заявки са приключени, приети, или не сте избрали квартали."
+                : "All requests are completed, claimed, or no districts selected."}
+            </p>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-3">
+      {filterButtons}
+
       {districts.map(district => {
         const blocks = filteredGroupedData[district];
         const totalInDistrict = Object.values(blocks).flatMap(b => Object.values(b)).flat().length;

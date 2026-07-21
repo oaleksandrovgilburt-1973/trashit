@@ -28,7 +28,16 @@ const STATUS_LABELS: Record<string, { bg: string; en: string; icon: React.ReactN
   pending_payment: { bg: "Очаква плащане", en: "Awaiting payment", icon: <CreditCard className="w-4 h-4" />, color: "bg-purple-100 text-purple-700" },
   paid: { bg: "Платено", en: "Paid", icon: <CheckCircle2 className="w-4 h-4" />, color: "bg-emerald-100 text-emerald-700" },
 };
-
+function getExpectedSession(createdAt: string | Date, isBg: boolean): string {
+  const hour = new Date(createdAt).getHours();
+  // 08:00–19:59 -> вечерна сесия (след 20:00)
+  // 20:00–07:59 -> сутрешна сесия (след 08:00)
+  const isEveningSession = hour >= 8 && hour < 20;
+  if (isEveningSession) {
+    return isBg ? "Очаквайте посещение след 20:00 ч." : "Expect a visit after 8:00 PM";
+  }
+  return isBg ? "Очаквайте посещение след 08:00 ч." : "Expect a visit after 8:00 AM";
+}
 /** Bidirectional chat panel for client */
 function ClientChatPanel({ requestId, isBg }: { requestId: number; isBg: boolean }) {
   const utils = trpc.useUtils();
@@ -393,6 +402,14 @@ export default function MyRequests() {
                 {/* Bidirectional chat for nonstandard/construction */}
                 {(req.type === "nonstandard" || req.type === "construction") && (
                   <ClientChatPanel requestId={req.id} isBg={isBg} />
+                )}
+
+                {/* Expected session for pending requests */}
+                {req.status === "pending" && (req.type === "standard" || req.type === "recycling") && (
+                  <div className="mt-3 flex items-center gap-1.5 bg-blue-50 border border-blue-100 rounded-xl px-3 py-2 text-sm text-blue-700 font-medium">
+                    <Clock className="w-4 h-4 flex-shrink-0" />
+                    {getExpectedSession(req.createdAt, isBg)}
+                  </div>
                 )}
 
                 {/* Assigned worker info + expected date */}
