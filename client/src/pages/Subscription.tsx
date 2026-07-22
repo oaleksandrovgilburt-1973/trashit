@@ -73,6 +73,7 @@ export default function Subscription() {
   const [apartament, setApartament] = useState("");
   const [cancelNote, setCancelNote] = useState("");
   const [showCancelForm, setShowCancelForm] = useState(false);
+  const [autoRenew, setAutoRenew] = useState(true);
 
   // Queries
   const profileQ = trpc.users.getProfile.useQuery(undefined, { enabled: !!user });
@@ -141,6 +142,7 @@ export default function Subscription() {
       etaj: etaj.trim() || undefined,
       apartament: apartament.trim() || undefined,
       origin: window.location.origin,
+      autoRenew,
     });
   };
 
@@ -450,6 +452,17 @@ export default function Subscription() {
                   <p className="text-blue-200 text-xs">/{isBg ? "месец" : "month"}</p>
                 </div>
               </div>
+              <label className="flex items-center gap-2 bg-white/10 rounded-xl px-3 py-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={autoRenew}
+                  onChange={(e) => setAutoRenew(e.target.checked)}
+                  className="w-4 h-4 rounded accent-white"
+                />
+                <span className="text-sm text-white">
+                  {isBg ? "Автоматично подновяване всеки месец" : "Automatically renew every month"}
+                </span>
+              </label>
               <Button
                 className="w-full bg-white text-blue-700 hover:bg-blue-50 font-bold rounded-xl"
                 disabled={createCheckout.isPending}
@@ -460,7 +473,11 @@ export default function Subscription() {
                   : <><ChevronRight className="w-4 h-4 mr-1" />{isBg ? "Абонирай се" : "Subscribe"}</>
                 }
               </Button>
-              <p className="text-blue-200 text-xs text-center">{isBg ? "Автоматично подновяване · Отказ по всяко време" : "Auto-renewal · Cancel anytime"}</p>
+              <p className="text-blue-200 text-xs text-center">
+                {autoRenew
+                  ? (isBg ? "Ще се подновява автоматично всеки месец · Отказ по всяко време" : "Renews automatically each month · Cancel anytime")
+                  : (isBg ? "Няма да се поднови автоматично след края на периода" : "Will not renew automatically after this period")}
+              </p>
             </div>
           </div>
         )}

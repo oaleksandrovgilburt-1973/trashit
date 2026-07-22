@@ -21,7 +21,7 @@ import {
   getWorkerByUsername, getWorkerSession, getWorkerSessionCount,
   addWorkerSession, removeOldestWorkerSession,
   initAdminConfig, updateAdminConfig, updateAdminTokenHash,
-  updateUserCredits, updateUserFcmToken, updateUserProfile, updateUserRole,
+  updateUserCredits, updateUserFcmToken, updateUserProfile, updateUserRole, anonymizeAndDeleteUser,
   updateWorkerLastSignedIn, updateWorkerPassword,
   upsertSetting, upsertUser, createWorker,
   // Districts
@@ -484,7 +484,23 @@ export const appRouter = router({
         await updateUserProfile(ctx.user.openId, input);
         return { success: true };
       }),
-
+    deleteAccount: protectedProcedure
+      .mutation(async ({ ctx }) => {
+        // Cancel any active Stripe subscription first
+        const activeSub = await getActiveSubscriptionByUser(ctx.user.openId);
+        if (activeSub?.stripeSubscriptionId) {
+          const stripeKey = process.env.STRIPE_SECRET_KEY;
+          if (stripeKey) {
+            try {
+              const stripe = new Stripe(stripeKey, { apiVersion: "2026-02-25.clover" });
+              await stripe.subscriptions.cancel(activeSub.stripeSubscriptionId);
+            } catch {}
+          }
+          await cancelSubscription(activeSub.id, "Акаунтът е изтрит от потребителя");
+        }
+        await anonymizeAndDeleteUser(ctx.user.openId);
+        return { success: true };
+      }),
     list: adminProcedure.query(async () => getAllUsers()),
     listWorkers: adminProcedure.query(async () => getUsersByRole("worker")),
     listClients: adminProcedure.query(async () => getUsersByRole("user")),

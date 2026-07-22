@@ -125,8 +125,26 @@ export async function updateUserProfile(openId: string, data: Partial<{
   if (!db) return;
   await db.update(users).set(data).where(eq(users.openId, openId));
 }
-
-// ─── Workers ──────────────────────────────────────────────────────────────────
+export async function anonymizeAndDeleteUser(openId: string) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(users).set({
+    name: "Изтрит потребител",
+    email: null,
+    phone: null,
+    passwordHash: null,
+    addressKvartal: null,
+    addressBlok: null,
+    addressVhod: null,
+    addressEtaj: null,
+    addressApartament: null,
+    addressCity: null,
+    fcmToken: null,
+    isDeleted: true,
+    deletedAt: new Date(),
+  }).where(eq(users.openId, openId));
+}
+// ─── Workers ───────────────────────────────────────────────────────────────
 
 export async function createWorker(data: InsertWorker) {
   const db = await getDb();

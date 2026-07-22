@@ -22,6 +22,7 @@ export default function UserProfile() {
   const [editingProfile, setEditingProfile] = useState(false);
   const [editingAddress, setEditingAddress] = useState(false);
   const [editingPassword, setEditingPassword] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
     newPassword: "",
@@ -36,7 +37,13 @@ export default function UserProfile() {
     },
     onError: (err) => toast.error(err.message),
   });
-
+  const deleteAccountMutation = trpc.users.deleteAccount.useMutation({
+    onSuccess: () => {
+      toast.success("Акаунтът е изтрит успешно.");
+      navigate("/auth");
+    },
+    onError: (err) => toast.error(err.message),
+  });
   const [profileForm, setProfileForm] = useState({
     name: "",
     phone: "",
@@ -460,6 +467,41 @@ export default function UserProfile() {
                 </button>
               </div>
             )}
+
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              {!showDeleteConfirm ? (
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="w-full py-2.5 rounded-xl border border-red-300 text-red-600 text-sm font-semibold hover:bg-red-50 transition-colors"
+                >
+                  Изтрий акаунта
+                </button>
+              ) : (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4 space-y-3">
+                  <p className="text-sm font-semibold text-red-800">
+                    Сигурни ли сте, че искате да изтриете акаунта си?
+                  </p>
+                  <p className="text-xs text-red-600">
+                    Това действие е необратимо. Личните ви данни (име, имейл, телефон, адрес) ще бъдат трайно изтрити. Активни абонаменти ще бъдат прекратени автоматично.
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setShowDeleteConfirm(false)}
+                      className="flex-1 py-2 rounded-xl border border-gray-300 text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-colors"
+                    >
+                      Отказ
+                    </button>
+                    <button
+                      onClick={() => deleteAccountMutation.mutate()}
+                      disabled={deleteAccountMutation.isPending}
+                      className="flex-1 py-2 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors disabled:opacity-50"
+                    >
+                      {deleteAccountMutation.isPending ? "Изтрива се..." : "Да, изтрий акаунта"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

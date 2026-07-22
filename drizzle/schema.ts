@@ -41,7 +41,8 @@ export const users = mysqlTable("users", {
 
   /** Firebase Cloud Messaging token for push notifications */
   fcmToken: varchar("fcmToken", { length: 512 }),
-
+  isDeleted: boolean("isDeleted").default(false).notNull(),
+  deletedAt: timestamp("deletedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
@@ -356,6 +357,7 @@ export const subscriptions = mysqlTable("subscriptions", {
   status: mysqlEnum("status", ["active", "cancelled", "expired"]).default("active").notNull(),
   stripeSubscriptionId: varchar("stripeSubscriptionId", { length: 256 }),
   stripeCustomerId: varchar("stripeCustomerId", { length: 256 }),
+  autoRenew: boolean("autoRenew").default(true).notNull(),
   cancelledAt: timestamp("cancelledAt"),
   cancellationNote: text("cancellationNote"),
   currentPeriodEnd: timestamp("currentPeriodEnd"),
