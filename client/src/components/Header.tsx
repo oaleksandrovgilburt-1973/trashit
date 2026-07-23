@@ -5,7 +5,10 @@ export default function Header() {
   const { language, setLanguage, t } = useLanguage();
 
   return (
-    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-border shadow-sm">
+    <header
+  className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-border shadow-sm"
+  style={{ paddingTop: "env(safe-area-inset-top)" }}
+    >
       <div className="container flex items-center justify-between h-16">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 group">
