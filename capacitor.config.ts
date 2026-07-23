@@ -4,6 +4,10 @@ const config: CapacitorConfig = {
   appId: 'bg.trashit.app',
   appName: 'TRASHit',
   webDir: 'dist/public',
+  server: {
+    url: 'https://trashit.bg',
+    cleartext: false
+  },
   plugins: {
     CapacitorHttp: {
       enabled: false
