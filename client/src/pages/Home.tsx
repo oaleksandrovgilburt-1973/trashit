@@ -118,7 +118,7 @@ export default function Home() {
     <MainLayout>
       <div className="page-enter">
         {/* Hero / Account Section */}
-        <section className="bg-gradient-to-br from-primary via-primary to-[#388E3C] relative overflow-hidden">
+        <section className="bg-gradient-to-br from-primary via-primary to-[#388E3C] relative overflow-hidden" style={{ paddingTop: "env(safe-area-inset-top)" }}>
           <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/4" />
           <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/4" />
 
