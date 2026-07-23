@@ -15,7 +15,7 @@ const redirectToLoginIfUnauthorized = (error: unknown) => {
   if (!(error instanceof TRPCClientError)) return;
   if (typeof window === "undefined") return;
 
-  // Admin and worker routes use custom auth (not Manus OAuth) — never redirect them
+  // Admin and worker routes use custom auth — never redirect them
   const pathname = window.location.pathname;
   if (pathname.startsWith("/admin") || pathname.startsWith("/worker")) return;
 
