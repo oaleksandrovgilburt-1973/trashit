@@ -1,6 +1,7 @@
 import { startCronJobs } from "../cron";
 import "dotenv/config";
 import express from "express";
+import cors from "cors";
 import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
@@ -31,6 +32,17 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 async function startServer() {
   const app = express();
   const server = createServer(app);
+  // Allow cross-origin requests from native mobile apps (Capacitor)
+  app.use(
+    cors({
+      origin: [
+        "capacitor://localhost",
+        "http://localhost",
+        "https://trashit.bg",
+      ],
+      credentials: true,
+    })
+  );
   // Stripe webhook — MUST be registered before express.json(), needs raw body for signature verification
   const { handleStripeWebhook } = await import("../stripeWebhook");
   app.post("/api/stripe-webhook", express.raw({ type: "application/json" }), handleStripeWebhook);
