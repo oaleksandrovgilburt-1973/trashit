@@ -81,6 +81,12 @@ export default function Subscription() {
   const nextVisitQ = trpc.subscriptions.myNextVisit.useQuery(undefined, { enabled: !!user });
   const nextVisit = nextVisitQ.data;
   const allSubsQ = trpc.subscriptions.myList.useQuery(undefined, { enabled: !!user });
+  const normalizedVhod = vhod ? normalizeEntrance(vhod) : "";
+  const { data: entranceCheck } = trpc.entranceAccess.check.useQuery(
+    { district, blok, vhod: normalizedVhod },
+    { enabled: !!(district && blok && normalizedVhod), refetchInterval: 10000 }
+  );
+  const registerEntrance = trpc.entranceAccess.register.useMutation();
 
   // Pre-fill address from profile
   useEffect(() => {
@@ -133,6 +139,15 @@ export default function Subscription() {
       toast.error(isBg ? "Моля попълнете квартал, блок и вход." : "Please fill in district, block and entrance.");
       return;
     }
+    if (entranceCheck !== undefined && !entranceCheck.approved) {
+      toast.error(isBg
+        ? "За този вход все още нямаме осигурен достъп. Свържете се с нас на trashit.bg@gmail.com за да го осигурим."
+        : "We do not yet have access to this entrance. Contact us at trashit.bg@gmail.com to arrange it.",
+        { duration: 8000 }
+      );
+      return;
+    }
+    registerEntrance.mutate({ district, blok, vhod: normalizedVhod });
     createCheckout.mutate({
       type, visits, timeSlot,
       visitDays: visits === "15" ? visitDays : "all",
@@ -411,12 +426,20 @@ export default function Subscription() {
                     value={blok}
                     onChange={e => setBlok(e.target.value)}
                   />
-                  <input
-                    className="rounded-xl border border-border p-3 text-sm"
-                    placeholder={isBg ? "Вход *" : "Entrance *"}
-                    value={vhod}
-                    onChange={e => setVhod(e.target.value)}
-                  />
+                  <div>
+                    <input
+                      className={`w-full rounded-xl border p-3 text-sm ${district && blok && normalizedVhod && entranceCheck?.approved ? "border-green-400" : "border-border"}`}
+                      placeholder={isBg ? "Вход *" : "Entrance *"}
+                      value={vhod}
+                      onChange={e => setVhod(normalizeEntrance(e.target.value))}
+                    />
+                    {district && blok && normalizedVhod && entranceCheck?.approved && (
+                      <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                        <CheckCircle className="w-3 h-3" />
+                        {isBg ? "Достъпът е осигурен" : "Access confirmed"}
+                      </p>
+                    )}
+                  </div>
                   <input
                     className="rounded-xl border border-border p-3 text-sm"
                     placeholder={isBg ? "Етаж" : "Floor"}
