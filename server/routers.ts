@@ -1502,13 +1502,15 @@ export const appRouter = router({
         district: z.string().min(1),
         blok: z.string().min(1),
         vhod: z.string().min(1),
+        contactPhone: z.string().optional(),
+        contactEmail: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
         const existing = await getEntranceAccess(input.district, input.blok, input.vhod);
         const isNewEntrance = !existing;
         // Only auto-register if not already in the system
         if (!existing?.isApproved) {
-          await upsertEntranceAccess(input.district, input.blok, input.vhod, false);
+          await upsertEntranceAccess(input.district, input.blok, input.vhod, false, input.contactPhone, input.contactEmail);
         }
         // Notify admin only when a brand-new entrance is registered
         if (isNewEntrance) {

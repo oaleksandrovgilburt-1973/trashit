@@ -282,14 +282,18 @@ export default function WasteDisposal() {
     }
     // Register entrance in DB on submit (only writes to DB here, not on every keystroke)
     if (district && blok && normalizedVhod) {
-      registerEntrance.mutate({ district, blok, vhod: normalizedVhod });
+      registerEntrance.mutate({
+        district, blok, vhod: normalizedVhod,
+        contactPhone: contactPhone || undefined,
+        contactEmail: contactEmail || undefined,
+      });
     }
     // Check entrance access — block submission if not approved (skip for nonstandard/construction)
 if (selectedType !== "nonstandard" && selectedType !== "construction") {
   if (district && blok && normalizedVhod && entranceCheck !== undefined && !entranceCheck.approved) {
     toast.error(isBg
-      ? "За този вход все още нямаме осигурен достъп. Свържете се с нас на trashit.bg@gmail.com за да го осигурим."
-      : "We do not yet have access to this entrance. Contact us at trashit.bg@gmail.com to arrange it.",
+      ? "За този вход все още нямаме осигурен достъп. Ще се свържем с вас скоро на посочения телефон/имейл, за да го осигурим."
+      : "We do not yet have access to this entrance. We will contact you shortly at the phone/email you provided to arrange it.",
       { duration: 8000 }
     );
     return;

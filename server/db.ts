@@ -14,7 +14,7 @@ import {
   workerDistricts,
   workerQuotes, InsertWorkerQuote, WorkerQuote,
   activityDescriptions,
-  entranceAccess, EntranceAccess,
+  entranceAccess, EntranceAccess, InsertEntranceAccess,
   subAdmins, SubAdmin, InsertSubAdmin,
   subscriptions, subscriptionVisits, workerSubscriptionPrefs,
   Subscription, InsertSubscription, SubscriptionVisit,
@@ -747,15 +747,18 @@ export async function getEntranceAccess(district: string, blok: string, vhod: st
   return result[0];
 }
 
-export async function upsertEntranceAccess(district: string, blok: string, vhod: string, isApproved: boolean): Promise<void> {
+export async function upsertEntranceAccess(district: string, blok: string, vhod: string, isApproved: boolean, contactPhone?: string, contactEmail?: string): Promise<void> {
   const db = await getDb();
   if (!db) return;
   // Check if record already exists
   const existing = await getEntranceAccess(district, blok, vhod);
   if (existing) {
-    // Update the existing record's isApproved value
+    // Update the existing record's isApproved value, and contact info only if newly provided
+    const updateSet: Partial<InsertEntranceAccess> = { isApproved };
+    if (contactPhone) updateSet.contactPhone = contactPhone;
+    if (contactEmail) updateSet.contactEmail = contactEmail;
     await db.update(entranceAccess)
-      .set({ isApproved })
+      .set(updateSet)
       .where(and(
         eq(entranceAccess.district, district),
         eq(entranceAccess.blok, blok),
@@ -764,8 +767,8 @@ export async function upsertEntranceAccess(district: string, blok: string, vhod:
   } else {
     // Insert new record (unique index prevents duplicates)
     await db.insert(entranceAccess)
-      .values({ district, blok, vhod, isApproved })
-      .onDuplicateKeyUpdate({ set: { isApproved } });
+      .values({ district, blok, vhod, isApproved, contactPhone, contactEmail })
+      .onDuplicateKeyUpdate({ set: { isApproved, contactPhone, contactEmail } });
   }
 }
 

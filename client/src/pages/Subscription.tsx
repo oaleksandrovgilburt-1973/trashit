@@ -141,13 +141,17 @@ export default function Subscription() {
     }
     if (entranceCheck !== undefined && !entranceCheck.approved) {
       toast.error(isBg
-        ? "За този вход все още нямаме осигурен достъп. Свържете се с нас на trashit.bg@gmail.com за да го осигурим."
-        : "We do not yet have access to this entrance. Contact us at trashit.bg@gmail.com to arrange it.",
+        ? "За този вход все още нямаме осигурен достъп. Ще се свържем с вас скоро на посочения телефон/имейл, за да го осигурим."
+        : "We do not yet have access to this entrance. We will contact you shortly at the phone/email you provided to arrange it.",
         { duration: 8000 }
       );
       return;
     }
-    registerEntrance.mutate({ district, blok, vhod: normalizedVhod });
+    registerEntrance.mutate({
+      district, blok, vhod: normalizedVhod,
+      contactPhone: profileQ.data?.phone || user?.phone || undefined,
+      contactEmail: profileQ.data?.email || user?.email || undefined,
+    });
     createCheckout.mutate({
       type, visits, timeSlot,
       visitDays: visits === "15" ? visitDays : "all",

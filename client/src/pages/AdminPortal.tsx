@@ -387,7 +387,7 @@ function BlocksTab() {
     requestCountMap.set(`${b.district}|${b.blok}|${b.vhod}`, b.requestCount);
   });
 
-  type BlockEntry = { district: string; blok: string; vhod: string; requestCount: number };
+  type BlockEntry = { district: string; blok: string; vhod: string; requestCount: number; contactPhone?: string | null; contactEmail?: string | null };
   const districtMap = new Map<string, Map<string, BlockEntry[]>>();
 
   // Only show entrances that have a record in entrance_access (the source of truth for the Blocks tab)
@@ -406,7 +406,7 @@ function BlocksTab() {
   const pendingRecords = (accessRecords ?? []).filter(r => !r.isApproved);
 
   const buildDistrictMap = (records: typeof accessRecords) => {
-    const map = new Map<string, Map<string, { district: string; blok: string; vhod: string; requestCount: number }[]>>();
+    const map = new Map<string, Map<string, BlockEntry[]>>();
     (records ?? []).forEach(r => {
       if (!map.has(r.district)) map.set(r.district, new Map());
       const blokMap = map.get(r.district)!;
@@ -414,7 +414,7 @@ function BlocksTab() {
       const existing = blokMap.get(r.blok)!.find(e => e.vhod === r.vhod);
       if (!existing) {
         const key = `${r.district}|${r.blok}|${r.vhod}`;
-        blokMap.get(r.blok)!.push({ district: r.district, blok: r.blok, vhod: r.vhod, requestCount: requestCountMap.get(key) ?? 0 });
+        blokMap.get(r.blok)!.push({ district: r.district, blok: r.blok, vhod: r.vhod, requestCount: requestCountMap.get(key) ?? 0, contactPhone: r.contactPhone, contactEmail: r.contactEmail });
       }
     });
     return map;
@@ -486,11 +486,20 @@ function BlocksTab() {
                       const isPending = toggleMutation.isPending;
                       return (
                         <div key={entrance.vhod} className={`flex items-center justify-between rounded-xl px-3 py-2 transition-colors ${isApproved ? "bg-green-50 border border-green-200" : "bg-yellow-50 border border-yellow-200"}`}>
-                          <div className="flex items-center gap-2">
-                            <span className={`w-2 h-2 rounded-full ${isApproved ? "bg-green-500" : "bg-yellow-500"}`} />
-                            <span className="text-sm font-medium text-gray-800">Вх. {entrance.vhod}</span>
-                            {entrance.requestCount > 0 && (
-                              <span className="text-xs text-gray-400">({entrance.requestCount} заявки)</span>
+                          <div className="flex flex-col gap-0.5">
+                            <div className="flex items-center gap-2">
+                              <span className={`w-2 h-2 rounded-full ${isApproved ? "bg-green-500" : "bg-yellow-500"}`} />
+                              <span className="text-sm font-medium text-gray-800">Вх. {entrance.vhod}</span>
+                              {entrance.requestCount > 0 && (
+                                <span className="text-xs text-gray-400">({entrance.requestCount} заявки)</span>
+                              )}
+                            </div>
+                            {!isApproved && (entrance.contactPhone || entrance.contactEmail) && (
+                              <div className="text-xs text-gray-500 pl-4">
+                                {entrance.contactPhone && <span>📞 {entrance.contactPhone}</span>}
+                                {entrance.contactPhone && entrance.contactEmail && <span> · </span>}
+                                {entrance.contactEmail && <span>✉️ {entrance.contactEmail}</span>}
+                              </div>
                             )}
                           </div>
                           <div className="flex items-center gap-2">

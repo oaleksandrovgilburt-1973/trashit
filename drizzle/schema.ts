@@ -308,6 +308,8 @@ export const entranceAccess = mysqlTable("entrance_access", {
   blok: varchar("blok", { length: 64 }).notNull(),
   vhod: varchar("vhod", { length: 32 }).notNull(),
   isApproved: boolean("is_approved").notNull().default(false),
+  contactPhone: varchar("contact_phone", { length: 32 }),
+  contactEmail: varchar("contact_email", { length: 255 }),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
