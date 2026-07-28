@@ -215,7 +215,7 @@ export default function Home() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-white/80 text-sm font-medium mb-1">{t.appTagline}</p>
-                  <p className="text-white font-black text-2xl">{t.appName}</p>
+                  <p className="text-white font-black text-2xl">TRASH<span className="italic font-normal">it</span></p>
                 </div>
                 <div className="flex gap-2">
                   <Link href="/auth">
@@ -232,7 +232,6 @@ export default function Home() {
               <div className="mt-4 space-y-1 text-center">
                 <p className="text-white/90 text-sm">🗑️ <strong>{t.heroTitle}</strong></p>
                 <p className="text-white/80 text-sm">{t.heroLine1}</p>
-                <p className="text-white/80 text-sm">{t.heroLine2}</p>
                 <p className="text-yellow-300 text-sm font-bold mt-1">{t.heroPromo}</p>
               </div>
             )}
@@ -443,6 +442,11 @@ export default function Home() {
                 <li>📦 <strong>{isBg ? "Нестандартен отпадък" : "Non-standard Waste"}</strong> — {isBg ? "Мебели, електроуреди, кашони и едрогабаритни предмети. Изпрати снимка — нашият AI оценява обема и правим оферта." : "Furniture, appliances, boxes and bulky items. Send a photo — our AI estimates the volume and we provide a quote."}</li>
                 <li>🏗️ <strong>{isBg ? "Строителен отпадък" : "Construction Waste"}</strong> — {isBg ? "Отпадъци от ремонт или събаряне. Изпрати снимка — нашият AI оценява обема и правим оферта." : "Waste from renovation or demolition. Send a photo — our AI estimates the volume and we provide a quote."}</li>
               </ul>
+              <p className="text-xs text-muted-foreground bg-secondary rounded-lg p-2.5 mt-1">
+                📝 {isBg
+                  ? "За да ползвате услугите, е нужна регистрация. При регистрация получавате 2 безплатни кредита (2 посещения / 2 плика със смет)."
+                  : "Registration is required to use the services. When you register, you get 2 free credits (2 visits / 2 waste bags)."}
+              </p>
               <button
                 onClick={closeServicesPopup}
                 className="w-full mt-3 py-2.5 rounded-xl bg-primary text-white font-semibold text-sm hover:bg-primary/90 transition-all"
