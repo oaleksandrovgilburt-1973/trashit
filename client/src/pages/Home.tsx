@@ -343,14 +343,14 @@ export default function Home() {
           {!user && !loading && (
             <div className="mt-6 p-5 rounded-2xl bg-secondary border border-border text-center">
               <p className="text-muted-foreground text-xs mb-4">{t.noAccount}</p>
-              <div className="flex gap-3">
-                <Link href="/auth" className="flex-1">
+              <div className="grid grid-cols-2 gap-3 max-w-xs mx-auto">
+                <Link href="/auth">
                   <button className="w-full flex items-center justify-center gap-2 trashit-btn-primary text-sm">
                     <LogIn className="w-4 h-4" />
                     {t.login}
                   </button>
                 </Link>
-                <Link href="/auth" className="flex-1">
+                <Link href="/auth">
                   <button className="w-full flex items-center justify-center gap-2 trashit-btn-outline text-sm">
                     <UserPlus className="w-4 h-4" />
                     {t.register}
