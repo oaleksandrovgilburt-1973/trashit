@@ -145,6 +145,11 @@ export default function Subscription() {
       toast.error(isBg ? "Моля попълнете квартал, блок и вход." : "Please fill in district, block and entrance.");
       return;
     }
+    registerEntrance.mutate({
+      district, blok, vhod: normalizedVhod,
+      contactPhone: profileQ.data?.phone || user?.phone || undefined,
+      contactEmail: profileQ.data?.email || user?.email || undefined,
+    });
     if (entranceCheck !== undefined && !entranceCheck.approved) {
       toast.error(isBg
         ? "За този вход все още нямаме осигурен достъп. Ще се свържем с вас скоро на посочения телефон/имейл, за да го осигурим."
@@ -153,11 +158,6 @@ export default function Subscription() {
       );
       return;
     }
-    registerEntrance.mutate({
-      district, blok, vhod: normalizedVhod,
-      contactPhone: profileQ.data?.phone || user?.phone || undefined,
-      contactEmail: profileQ.data?.email || user?.email || undefined,
-    });
     createCheckout.mutate({
       type, visits, timeSlot,
       visitDays: visits === "15" ? visitDays : "all",
