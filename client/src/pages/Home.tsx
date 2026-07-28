@@ -227,16 +227,6 @@ export default function Home() {
                 </div>
               </div>
             )}
-            {user && (
-              <div className="mt-4 space-y-1">
-                <p className="text-white font-bold text-lg leading-snug">{isBg ? "\"Боклукът излиза.\u00a0Ти си оставаш вкъщи.\"" : "\"The trash leaves.\u00a0You stay home.\""}</p>
-                <p className="text-white/75 text-sm leading-snug">{isBg ? "TRASHit е твоята модерна услуга за лесно и удобно изхвърляне на отпадъци от дома. Спести време и усилия – ние се грижим за всичко." : "TRASHit is your modern service for easy and convenient waste disposal from home. Save time and effort – we take care of everything."}</p>
-                <div className="flex items-center gap-2">
-                  <Leaf className="w-4 h-4 text-white/70" />
-                  <p className="text-white/70 text-sm">{t.appTagline}</p>
-                </div>
-              </div>
-            )}
             
             {!user && !loading && (
               <div className="mt-4 space-y-1 text-center">

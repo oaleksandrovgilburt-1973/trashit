@@ -16,15 +16,15 @@ export default function Header() {
             <span className="text-white font-black text-lg leading-none">T</span>
           </div>
           <span className="font-black text-xl text-foreground tracking-tight">
-            TRASH<span className="text-primary">it</span>
+            TRASH<span className="text-primary italic font-normal">it</span>
           </span>
         </Link>
 
         {/* Language Switcher */}
-        <div className="flex items-center gap-1 bg-muted rounded-2xl p-1">
+        <div className="flex items-center gap-0.5 sm:gap-1 bg-muted rounded-xl sm:rounded-2xl p-0.5 sm:p-1">
           <button
             onClick={() => setLanguage("bg")}
-            className={`px-3 py-1.5 rounded-xl text-sm font-bold transition-all duration-200 ${
+            className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 ${
               language === "bg"
                 ? "bg-primary text-white shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
@@ -35,7 +35,7 @@ export default function Header() {
           </button>
           <button
             onClick={() => setLanguage("en")}
-            className={`px-3 py-1.5 rounded-xl text-sm font-bold transition-all duration-200 ${
+            className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 ${
               language === "en"
                 ? "bg-primary text-white shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
