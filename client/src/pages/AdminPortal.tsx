@@ -647,6 +647,9 @@ function CreditsTab() {
           {transactions?.slice().reverse().map(tx => (
             <div key={tx.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
               <div>
+                {(tx as any).userName && (
+                  <span className="text-xs font-semibold text-gray-600 block">{(tx as any).userName}{(tx as any).userEmail ? ` (${(tx as any).userEmail})` : ""}</span>
+                )}
                 <span className="text-sm font-medium text-gray-800">
                   {tx.type === "purchase" ? "Покупка" :
                    tx.type === "admin_add" ? "Добавено от Админ" :
@@ -657,6 +660,11 @@ function CreditsTab() {
                 </span>
                 <p className="text-xs text-gray-400">{new Date(tx.createdAt).toLocaleString("bg-BG")}</p>
                 {tx.note && <p className="text-xs text-gray-500">{tx.note}</p>}
+                {tx.type === "purchase" && (tx.purchaseDistrict || tx.purchaseBlok || tx.purchaseVhod) && (
+                  <p className="text-xs text-blue-600 mt-0.5">
+                    📍 {tx.purchaseDistrict}{tx.purchaseBlok ? `, Бл. ${tx.purchaseBlok}` : ""}{tx.purchaseVhod ? `, Вх. ${tx.purchaseVhod}` : ""}
+                  </p>
+                )}
               </div>
               <div className="text-right">
                 <span className={`font-semibold ${parseFloat(tx.totalAmount) >= 0 ? "text-green-600" : "text-red-500"}`}>

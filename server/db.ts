@@ -465,7 +465,16 @@ export async function getTransactionsByUser(userOpenId: string) {
 export async function getAllTransactions() {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(transactions).orderBy(asc(transactions.createdAt));
+  const rows = await db
+    .select({
+      transaction: transactions,
+      userName: users.name,
+      userEmail: users.email,
+    })
+    .from(transactions)
+    .leftJoin(users, eq(transactions.userOpenId, users.openId))
+    .orderBy(asc(transactions.createdAt));
+  return rows.map(r => ({ ...r.transaction, userName: r.userName, userEmail: r.userEmail }));
 }
 
 export async function getTransactionByStripeSession(sessionId: string) {

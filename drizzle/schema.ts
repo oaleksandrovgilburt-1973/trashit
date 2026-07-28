@@ -240,10 +240,13 @@ export const transactions = mysqlTable("transactions", {
   /** Related request ID (for deductions) */
   requestId: int("requestId"),
   note: text("note"),
+  /** Snapshot of user's saved address at time of purchase (for dispute resolution) */
+  purchaseDistrict: varchar("purchaseDistrict", { length: 128 }),
+  purchaseBlok: varchar("purchaseBlok", { length: 64 }),
+  purchaseVhod: varchar("purchaseVhod", { length: 32 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
-
-export type Transaction = typeof transactions.$inferSelect;
+export type Transaction = typeof transactions.$inferSelect;;
 export type InsertTransaction = typeof transactions.$inferInsert;
 
 // ─── Worker Problem Reports ───────────────────────────────────────────────────

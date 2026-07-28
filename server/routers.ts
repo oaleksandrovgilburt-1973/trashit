@@ -1148,7 +1148,8 @@ export const appRouter = router({
             }
           }
         }
-        // Record transaction
+        // Record transaction (with address snapshot for dispute resolution)
+        const purchaseUser = await getUserByOpenId(ctx.user.openId);
         await createTransaction({
           userId: ctx.user.id,
           userOpenId: ctx.user.openId,
@@ -1159,6 +1160,9 @@ export const appRouter = router({
           totalAmount: total.toFixed(2),
           pricePaid: pricePaid.toFixed(2),
           stripeSessionId: input.sessionId,
+          purchaseDistrict: purchaseUser?.addressKvartal ?? undefined,
+          purchaseBlok: purchaseUser?.addressBlok ?? undefined,
+          purchaseVhod: purchaseUser?.addressVhod ?? undefined,
           note: `Покупка на ${total} ${creditType === "standard" ? "стандартни" : "рециклиращи"} кредита`,
         });
         return { success: true, creditsAdded: total, creditType };
