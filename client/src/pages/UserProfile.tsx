@@ -1,13 +1,15 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
-import { ArrowLeft, User, MapPin, Phone, Mail, Edit2, Save, X, Calendar } from "lucide-react";
+import { ArrowLeft, User, MapPin, Phone, Mail, Edit2, Save, X, Calendar, Check, ChevronsUpDown } from "lucide-react";
 import { StandardCoin, RecyclingCoin } from "@/components/CreditCoin";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import MainLayout from "@/components/MainLayout";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
 export default function UserProfile() {
   const { t } = useLanguage();
@@ -17,6 +19,7 @@ export default function UserProfile() {
   const profileQuery = trpc.users.getProfile.useQuery(undefined, { enabled: isAuthenticated });
   const profile = profileQuery.data;
   const { data: districtsData } = trpc.districts.list.useQuery();
+  const [districtOpen, setDistrictOpen] = useState(false);
   const districts = districtsData?.filter(d => d.isActive) ?? [];
 
   const [editingProfile, setEditingProfile] = useState(false);
@@ -319,20 +322,52 @@ export default function UserProfile() {
               <div className="col-span-2">
                 <label className="text-xs text-muted-foreground mb-1 block">{t.addressKvartal}</label>
                 {districts.length > 0 ? (
-                  <Select
-                    value={addressForm.addressKvartal || "_none"}
-                    onValueChange={v => setAddressForm(f => ({ ...f, addressKvartal: v === "_none" ? "" : v }))}
-                  >
-                    <SelectTrigger className="rounded-xl">
-                      <SelectValue placeholder="Изберете квартал..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="_none">— Без квартал —</SelectItem>
-                      {districts.map(d => (
-                        <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={districtOpen} onOpenChange={setDistrictOpen}>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        className="w-full flex items-center justify-between rounded-xl border border-border bg-background px-3 py-2 text-sm"
+                      >
+                        <span className={addressForm.addressKvartal ? "" : "text-muted-foreground"}>
+                          {addressForm.addressKvartal || "Изберете квартал..."}
+                        </span>
+                        <ChevronsUpDown className="w-4 h-4 opacity-50 flex-shrink-0" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
+                      <Command>
+                        <CommandInput placeholder="Търси квартал..." />
+                        <CommandList>
+                          <CommandEmpty>Няма намерен квартал</CommandEmpty>
+                          <CommandGroup>
+                            <CommandItem
+                              value="_none"
+                              onSelect={() => {
+                                setAddressForm(f => ({ ...f, addressKvartal: "" }));
+                                setDistrictOpen(false);
+                              }}
+                            >
+                              <Check className={`mr-2 w-4 h-4 ${!addressForm.addressKvartal ? "opacity-100" : "opacity-0"}`} />
+                              — Без квартал —
+                            </CommandItem>
+                            {districts.map(d => (
+                              <CommandItem
+                                key={d.id}
+                                value={d.name}
+                                onSelect={(value) => {
+                                  setAddressForm(f => ({ ...f, addressKvartal: value }));
+                                  setDistrictOpen(false);
+                                }}
+                              >
+                                <Check className={`mr-2 w-4 h-4 ${addressForm.addressKvartal === d.name ? "opacity-100" : "opacity-0"}`} />
+                                {d.name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 ) : (
                   <input
                     type="text"
