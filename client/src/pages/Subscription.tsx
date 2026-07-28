@@ -9,10 +9,13 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
   CalendarDays, CheckCircle, ChevronRight, ChevronLeft, LogIn, Loader2,
-  Sun, Moon, Trash2, Recycle, AlertCircle, X
+  Sun, Moon, Trash2, Recycle, AlertCircle, X,
+  Check, ChevronsUpDown
 } from "lucide-react";
 import { Link } from "wouter";
 import { normalizeEntrance } from "../../../shared/bgAlphabet";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
 const PRICES_DEFAULT: Record<string, Record<string, number>> = {
   standard: { "15": 8.99, "30": 17.99 },
@@ -67,6 +70,9 @@ export default function Subscription() {
   const [timeSlot, setTimeSlot] = useState<"morning" | "evening">("morning");
   const [editAddress, setEditAddress] = useState(false);
   const [district, setDistrict] = useState("");
+  const [districtOpen, setDistrictOpen] = useState(false);
+  const { data: districtsData } = trpc.districts.list.useQuery();
+  const districts = districtsData?.filter(d => d.isActive) ?? [];
   const [blok, setBlok] = useState("");
   const [vhod, setVhod] = useState("");
   const [etaj, setEtaj] = useState("");
@@ -418,12 +424,44 @@ export default function Subscription() {
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-2">
-                  <input
-                    className="col-span-2 rounded-xl border border-border p-3 text-sm"
-                    placeholder={isBg ? "Квартал *" : "District *"}
-                    value={district}
-                    onChange={e => setDistrict(e.target.value)}
-                  />
+                  <div className="col-span-2">
+                    <Popover open={districtOpen} onOpenChange={setDistrictOpen}>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className="w-full flex items-center justify-between rounded-xl border border-border p-3 text-sm bg-background"
+                        >
+                          <span className={district ? "" : "text-muted-foreground"}>
+                            {district || (isBg ? "Квартал *" : "District *")}
+                          </span>
+                          <ChevronsUpDown className="w-4 h-4 opacity-50 flex-shrink-0" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
+                        <Command>
+                          <CommandInput placeholder={isBg ? "Търси квартал..." : "Search district..."} />
+                          <CommandList>
+                            <CommandEmpty>{isBg ? "Няма намерен квартал" : "No district found"}</CommandEmpty>
+                            <CommandGroup>
+                              {districts.map(d => (
+                                <CommandItem
+                                  key={d.id}
+                                  value={d.name}
+                                  onSelect={(value) => {
+                                    setDistrict(value);
+                                    setDistrictOpen(false);
+                                  }}
+                                >
+                                  <Check className={`mr-2 w-4 h-4 ${district === d.name ? "opacity-100" : "opacity-0"}`} />
+                                  {d.name}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
                   <input
                     className="rounded-xl border border-border p-3 text-sm"
                     placeholder={isBg ? "Блок *" : "Block *"}
