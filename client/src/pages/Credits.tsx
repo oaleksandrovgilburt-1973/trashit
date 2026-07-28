@@ -34,6 +34,16 @@ export default function Credits() {
   const sessionId = params.get("session_id");
 
   const { data: packages } = trpc.credits.packages.useQuery();
+  const { data: profileData } = trpc.users.getProfile.useQuery(undefined, { enabled: isAuthenticated });
+  const { data: entranceCheck } = trpc.entranceAccess.check.useQuery(
+    {
+      district: profileData?.addressKvartal ?? "",
+      blok: profileData?.addressBlok ?? "",
+      vhod: profileData?.addressVhod ?? "",
+    },
+    { enabled: !!(profileData?.addressKvartal && profileData?.addressBlok && profileData?.addressVhod) }
+  );
+  const hasUnapprovedAddress = !!(profileData?.addressKvartal && profileData?.addressBlok && profileData?.addressVhod) && entranceCheck !== undefined && !entranceCheck.approved;
   const { data: historyData, refetch: refetchHistory } = trpc.credits.history.useQuery(undefined, {
     enabled: isAuthenticated && tab === "history",
   });
@@ -91,6 +101,14 @@ export default function Credits() {
     if (!isAuthenticated) {
       toast.error(isBg ? "Трябва да сте влезли в акаунта си." : "You must be logged in.");
       navigate("/auth");
+      return;
+    }
+    if (hasUnapprovedAddress) {
+      toast.error(isBg
+        ? "Адресът ви все още не е одобрен за обслужване. Ще се свържем с вас скоро, за да го осигурим — тогава ще можете да купувате и ползвате кредити."
+        : "Your address is not yet approved for service. We will contact you shortly to arrange it — you'll be able to buy and use credits once approved.",
+        { duration: 8000 }
+      );
       return;
     }
     checkoutMutation.mutate({
@@ -202,6 +220,13 @@ export default function Credits() {
         {/* Buy tab */}
         {tab === "buy" && (
           <div className="space-y-5">
+            {hasUnapprovedAddress && (
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-800">
+                ⚠️ {isBg
+                  ? "Адресът ви все още не е одобрен за обслужване. Ще се свържем с вас скоро, за да го осигурим."
+                  : "Your address is not yet approved for service. We will contact you shortly to arrange it."}
+              </div>
+            )}
             {/* Credit type toggle */}
             <div className="flex bg-gray-100 rounded-2xl p-1 gap-1">
               <button
