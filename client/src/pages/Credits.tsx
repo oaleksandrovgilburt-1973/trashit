@@ -223,8 +223,8 @@ export default function Credits() {
             {hasUnapprovedAddress && (
               <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-800">
                 ⚠️ {isBg
-                  ? "Адресът ви все още не е одобрен за обслужване. Ще се свържем с вас скоро, за да го осигурим."
-                  : "Your address is not yet approved for service. We will contact you shortly to arrange it."}
+                  ? "Ако адресът Ви не е одобрен, няма да можете да купувате и да използвате кредити. Пробвайте първо да използвате бонус кредитите. Това ще ускори одобрението."
+                  : "If your address is not approved, you won't be able to buy or use credits. Try using your bonus credits first — this will speed up approval."}
               </div>
             )}
             {/* Credit type toggle */}
