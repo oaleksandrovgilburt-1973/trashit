@@ -9,11 +9,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { toast } from "sonner";
 import {
   Trash2, Recycle, Package, HardHat,
   MapPin, Camera, ChevronLeft, AlertTriangle,
-  CheckCircle2, Loader2, Navigation, X
+  CheckCircle2, Loader2, Navigation, X,
+  Check, ChevronsUpDown
 } from "lucide-react";
 import { normalizeEntrance } from "../../../shared/bgAlphabet";
 
@@ -109,6 +112,7 @@ export default function WasteDisposal() {
   // Form state
   const [description, setDescription] = useState("");
   const [district, setDistrict] = useState("");
+  const [districtOpen, setDistrictOpen] = useState(false);
   const [blok, setBlok] = useState("");
   const [vhod, setVhod] = useState("");
   const [etaj, setEtaj] = useState("");
@@ -535,16 +539,42 @@ if (selectedType !== "nonstandard" && selectedType !== "construction") {
               <Label className="text-sm font-semibold">
                 {isBg ? "Квартал *" : "District *"}
               </Label>
-              <Select value={district} onValueChange={setDistrict} required>
-                <SelectTrigger className="rounded-xl">
-                  <SelectValue placeholder={isBg ? "Изберете квартал" : "Select district"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {districtsData?.map((d) => (
-                    <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={districtOpen} onOpenChange={setDistrictOpen}>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className="w-full flex items-center justify-between rounded-xl border border-input bg-background px-3 py-2 text-sm"
+                  >
+                    <span className={district ? "" : "text-muted-foreground"}>
+                      {district || (isBg ? "Изберете квартал" : "Select district")}
+                    </span>
+                    <ChevronsUpDown className="w-4 h-4 opacity-50 flex-shrink-0" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
+                  <Command>
+                    <CommandInput placeholder={isBg ? "Търси квартал..." : "Search district..."} />
+                    <CommandList>
+                      <CommandEmpty>{isBg ? "Няма намерен квартал" : "No district found"}</CommandEmpty>
+                      <CommandGroup>
+                        {districtsData?.map((d) => (
+                          <CommandItem
+                            key={d.id}
+                            value={d.name}
+                            onSelect={(value) => {
+                              setDistrict(value);
+                              setDistrictOpen(false);
+                            }}
+                          >
+                            <Check className={`mr-2 w-4 h-4 ${district === d.name ? "opacity-100" : "opacity-0"}`} />
+                            {d.name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
 
             {/* Address */}
