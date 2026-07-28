@@ -342,20 +342,16 @@ export default function Home() {
           {/* Guest CTA */}
           {!user && !loading && (
             <div className="mt-6 p-5 rounded-2xl bg-secondary border border-border text-center">
-              <div className="flex items-center justify-center gap-1.5 mb-1">
-                <Sparkles className="w-4 h-4 text-yellow-500" />
-                <p className="text-foreground font-semibold text-sm">{t.bonusCreditsMessage}</p>
-              </div>
               <p className="text-muted-foreground text-xs mb-4">{t.noAccount}</p>
-              <div className="flex gap-3 justify-center">
-                <Link href="/auth">
-                  <button className="flex items-center gap-2 trashit-btn-primary text-sm">
+              <div className="flex gap-3">
+                <Link href="/auth" className="flex-1">
+                  <button className="w-full flex items-center justify-center gap-2 trashit-btn-primary text-sm">
                     <LogIn className="w-4 h-4" />
                     {t.login}
                   </button>
                 </Link>
-                <Link href="/auth">
-                  <button className="flex items-center gap-2 trashit-btn-outline text-sm">
+                <Link href="/auth" className="flex-1">
+                  <button className="w-full flex items-center justify-center gap-2 trashit-btn-outline text-sm">
                     <UserPlus className="w-4 h-4" />
                     {t.register}
                   </button>
@@ -443,9 +439,9 @@ export default function Home() {
                 <li>🏗️ <strong>{isBg ? "Строителен отпадък" : "Construction Waste"}</strong> — {isBg ? "Отпадъци от ремонт или събаряне. Изпрати снимка — нашият AI оценява обема и правим оферта." : "Waste from renovation or demolition. Send a photo — our AI estimates the volume and we provide a quote."}</li>
               </ul>
               <p className="text-xs text-muted-foreground bg-secondary rounded-lg p-2.5 mt-1">
-                📝 {isBg
-                  ? "За да ползвате услугите, е нужна регистрация. При регистрация получавате 2 безплатни кредита (2 посещения / 2 плика със смет)."
-                  : "Registration is required to use the services. When you register, you get 2 free credits (2 visits / 2 waste bags)."}
+                📝 {isBg ? "За да ползвате услугите, е нужна регистрация. При регистрация получавате " : "Registration is required to use the services. When you register, you get "}
+                <span className="font-bold text-primary">{isBg ? "2 безплатни кредита" : "2 free credits"}</span>
+                {isBg ? " (2 посещения / 2 плика със смет)." : " (2 visits / 2 waste bags)."}
               </p>
               <button
                 onClick={closeServicesPopup}

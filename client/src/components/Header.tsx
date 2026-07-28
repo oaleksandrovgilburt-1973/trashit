@@ -12,8 +12,8 @@ export default function Header() {
       <div className="container flex items-center justify-between h-16">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 group">
-          <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
-            <span className="text-white font-black text-lg leading-none">T</span>
+          <div className="w-9 h-9 rounded-xl overflow-hidden shadow-sm group-hover:scale-105 transition-transform">
+            <img src="/icon-512.png" alt="TRASHit" className="w-full h-full object-cover" />
           </div>
           <span className="font-black text-xl text-foreground tracking-tight">
             TRASH<span className="text-primary italic font-normal">it</span>
