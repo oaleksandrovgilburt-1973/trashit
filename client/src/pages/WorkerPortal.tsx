@@ -741,22 +741,22 @@ function GroupedRequestsView({ deviceToken }: { deviceToken: string }) {
                                         deviceToken={deviceToken}
                                         onComplete={(id) => {
                                           if (!navigator.geolocation) {
-                                            completeMutation.mutate({ requestId: id, deviceToken });
+                                            toast.error(isBg ? "Устройството не поддържа GPS. Свържете се с админ за ръчно приключване." : "Device does not support GPS. Contact admin for manual completion.");
                                             return;
                                           }
                                           navigator.geolocation.getCurrentPosition(
                                             (pos) => {
-                                              completeMutation.mutate({ 
-                                                requestId: id, 
+                                              completeMutation.mutate({
+                                                requestId: id,
                                                 deviceToken,
                                                 workerLat: pos.coords.latitude,
                                                 workerLng: pos.coords.longitude,
                                               });
                                             },
                                             () => {
-                                              completeMutation.mutate({ requestId: id, deviceToken });
+                                              toast.error(isBg ? "Не успяхме да вземем локацията ви. Проверете дали GPS е включен и опитайте пак." : "Could not get your location. Check that GPS is enabled and try again.");
                                             },
-                                            { timeout: 5000 }
+                                            { timeout: 15000, enableHighAccuracy: true, maximumAge: 30000 }
                                           );
                                         }}
                                         onProblem={(r) => setProblemReq(r)}
@@ -1081,23 +1081,22 @@ function WorkerQuotesTab({ deviceToken, isBg }: { deviceToken: string; isBg: boo
 
   const handleComplete = (requestId: number) => {
     if (!navigator.geolocation) {
-      completeMutation.mutate({ requestId, deviceToken });
+      toast.error(isBg ? "Устройството не поддържа GPS. Свържете се с админ за ръчно приключване." : "Device does not support GPS. Contact admin for manual completion.");
       return;
     }
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        completeMutation.mutate({ 
-          requestId, 
+        completeMutation.mutate({
+          requestId,
           deviceToken,
           workerLat: pos.coords.latitude,
           workerLng: pos.coords.longitude,
         });
       },
       () => {
-        // GPS failed - complete without GPS
-        completeMutation.mutate({ requestId, deviceToken });
+        toast.error(isBg ? "Не успяхме да вземем локацията ви. Проверете дали GPS е включен и опитайте пак." : "Could not get your location. Check that GPS is enabled and try again.");
       },
-      { timeout: 5000 }
+      { timeout: 15000, enableHighAccuracy: true, maximumAge: 30000 }
     );
   };
 
