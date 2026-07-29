@@ -13,7 +13,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 
 export default function UserProfile() {
   const { t } = useLanguage();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
   const [, navigate] = useLocation();
 
   const profileQuery = trpc.users.getProfile.useQuery(undefined, { enabled: isAuthenticated });
@@ -41,8 +41,9 @@ export default function UserProfile() {
     onError: (err) => toast.error(err.message),
   });
   const deleteAccountMutation = trpc.users.deleteAccount.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success("Акаунтът е изтрит успешно.");
+      await logout();
       navigate("/auth");
     },
     onError: (err) => toast.error(err.message),
