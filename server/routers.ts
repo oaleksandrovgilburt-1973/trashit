@@ -286,6 +286,43 @@ export const appRouter = router({
         await upsertUser({ openId: ctx.user.openId, passwordHash: newHash });
         return { success: true };
       }),
+    loginGoogle: publicProcedure
+      .input(z.object({ credential: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        const resp = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${input.credential}`);
+        if (!resp.ok) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Невалиден Google токен." });
+        }
+        const payload: any = await resp.json();
+        if (payload.aud !== process.env.VITE_GOOGLE_CLIENT_ID) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Невалиден Google клиент." });
+        }
+        const googleSub = payload.sub;
+        const email = payload.email as string | undefined;
+        const name = payload.name as string | undefined;
+        const openId = `google_${googleSub}`;
+        const existing = await getUserByOpenId(openId);
+        if (!existing) {
+          await upsertUser({
+            openId,
+            name: name ?? null,
+            email: email ?? null,
+            loginMethod: "google",
+            role: "user",
+            creditsStandard: BONUS_CREDITS,
+            credits: BONUS_CREDITS,
+            bonusGranted: true,
+            isFirstLogin: false,
+            lastSignedIn: new Date(),
+          });
+        } else {
+          await upsertUser({ openId, lastSignedIn: new Date() });
+        }
+        const sessionToken = await sdk.createSessionToken(openId, { name: name ?? "", expiresInMs: ONE_YEAR_MS });
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+        return { success: true, openId, isNew: !existing };
+      }),
   }),
   // ── Worker auth ──────────────────────────────────────────────────────────
   workerAuth: router({

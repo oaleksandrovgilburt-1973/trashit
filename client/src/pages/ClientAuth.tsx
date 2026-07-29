@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { Mail, Phone, ArrowLeft, Sparkles, Eye, EyeOff, X } from "lucide-react";
@@ -72,6 +72,46 @@ export default function ClientAuth() {
     },
     onError: (err) => toast.error(err.message || t.errorInvalidCredentials),
   });
+  const googleLoginMutation = trpc.clientAuth.loginGoogle.useMutation({
+    onSuccess: async (data) => {
+      await utils.auth.me.invalidate();
+      toast.success(data.isNew ? t.bonusCreditsReceived : t.loginSuccess);
+      navigate("/");
+    },
+    onError: (err) => toast.error(err.message),
+  });
+  const googleButtonRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (tab !== "social") return;
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (!clientId) return;
+    const initGoogle = () => {
+      const w = window as any;
+      if (!w.google || !googleButtonRef.current) return;
+      w.google.accounts.id.initialize({
+        client_id: clientId,
+        callback: (response: { credential: string }) => {
+          googleLoginMutation.mutate({ credential: response.credential });
+        },
+      });
+      w.google.accounts.id.renderButton(googleButtonRef.current, {
+        theme: "outline",
+        size: "large",
+        width: 320,
+        text: "continue_with",
+      });
+    };
+    if ((window as any).google) {
+      initGoogle();
+    } else {
+      const script = document.createElement("script");
+      script.src = "https://accounts.google.com/gsi/client";
+      script.async = true;
+      script.defer = true;
+      script.onload = initGoogle;
+      document.body.appendChild(script);
+    }
+  }, [tab]);
 
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
@@ -160,6 +200,11 @@ export default function ClientAuth() {
 
             {tab === "social" && (
   <div className="space-y-3">
+    <div ref={googleButtonRef} className="flex justify-center" />
+    <div className="relative py-2">
+      <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
+      <div className="relative flex justify-center text-xs"><span className="bg-card px-2 text-muted-foreground">{t.or}</span></div>
+    </div>
     <button
       onClick={() => setTab("email")}
       className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl border border-border hover:bg-muted text-foreground text-sm font-medium transition-all"
