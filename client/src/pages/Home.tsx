@@ -1,7 +1,7 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
 import MainLayout from "@/components/MainLayout";
-import { Trash2, Sparkles, LogIn, UserPlus, ChevronRight, Leaf, User, CreditCard, Recycle, LogOut, Bell, BellOff, Package, HardHat, Building2, Home as HomeIcon, MoreHorizontal, CalendarDays, X, AlertTriangle, MapPin, Clock } from "lucide-react";
+import { Trash2, Sparkles, LogIn, UserPlus, ChevronRight, Leaf, User, CreditCard, Recycle, LogOut, Bell, BellOff, Package, HardHat, Building2, Home as HomeIcon, MoreHorizontal, CalendarDays, X, AlertTriangle, MapPin, Clock, CheckCircle } from "lucide-react";
 import { StandardCoin, RecyclingCoin } from "@/components/CreditCoin";
 import AppStoreBadges from "@/components/AppStoreBadges";
 import { Link, useLocation } from "wouter";
@@ -19,7 +19,7 @@ export default function Home() {
 
   const [notifPermission, setNotifPermission] = useState<NotificationPermission | null>(null);
   // Services popup — shown automatically only for guests (not logged in), once per session
-  const [showServicesPopup, setShowServicesPopup] = useState(false);
+  const [showHowItWorksPopup, setShowHowItWorksPopup] = useState(false);
   useEffect(() => {
     if (loading) return;
     if (!user && !sessionStorage.getItem("trashit_services_popup_seen")) {
@@ -304,6 +304,12 @@ export default function Home() {
             >
               ℹ️ {isBg ? "Описание на услугите" : "Service description"}
             </button>
+            <button
+              onClick={() => setShowHowItWorksPopup(true)}
+              className="flex items-center gap-1.5 bg-secondary border border-border text-foreground text-sm font-semibold px-4 py-2 rounded-xl hover:bg-secondary/70 transition-colors ml-2"
+            >
+              ⚙️ {isBg ? "Как работи" : "How it works"}
+            </button>
           </div>
           {/* Flow illustration for guests — temporarily hidden */}
           {/* {!user && !loading && (
@@ -446,6 +452,60 @@ export default function Home() {
               <button
                 onClick={closeServicesPopup}
                 className="w-full mt-3 py-2.5 rounded-xl bg-primary text-white font-semibold text-sm hover:bg-primary/90 transition-all"
+              >
+                {isBg ? "Разбрах" : "Got it"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* How it works popup */}
+      {showHowItWorksPopup && (
+        <div className="fixed inset-x-0 top-4 z-50 flex justify-center px-4 pointer-events-none">
+          <div className="bg-white rounded-2xl shadow-2xl border border-border w-full max-w-sm pointer-events-auto animate-in slide-in-from-top-4 duration-300 max-h-[85vh] overflow-y-auto">
+            <div className="flex items-start justify-between p-4 pb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">⚙️</span>
+                <h2 className="text-base font-bold text-foreground">{isBg ? "Как работи" : "How it works"}</h2>
+              </div>
+              <button
+                onClick={() => setShowHowItWorksPopup(false)}
+                className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="px-4 pb-4 space-y-3 text-sm text-muted-foreground">
+              <p>🎁 <strong>{isBg ? "При регистрация получавате 2 безплатни кредита" : "You get 2 free credits when you register"}</strong> — {isBg ? "за първите ви заявки, без плащане." : "for your first requests, no payment needed."}</p>
+
+              <p>📝 <strong>{isBg ? "Подавате заявка" : "You submit a request"}</strong> — {isBg ? "избирате адрес и вид отпадък." : "choose an address and waste type."}</p>
+
+              <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-700">
+                ⚠️ {isBg
+                  ? "За този вход все още нямаме осигурен достъп. Ще се свържем с вас скоро на посочения телефон/имейл, за да го осигурим."
+                  : "We do not yet have access to this entrance. We will contact you shortly at the phone/email you provided to arrange it."}
+              </div>
+
+              <div className="rounded-xl border-2 border-green-400 bg-white p-3">
+                <p className="text-xs text-muted-foreground mb-1">{isBg ? "Вход" : "Entrance"}</p>
+                <p className="text-sm font-medium">В</p>
+                <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                  <CheckCircle className="w-3 h-3" />
+                  {isBg ? "Достъпът е осигурен" : "Access confirmed"}
+                </p>
+              </div>
+
+              <p>✅ <strong>{isBg ? "След като адресът бъде одобрен" : "Once your address is approved"}</strong> — {isBg ? "свободно подавате заявки, купувате кредити и се абонирате, без ограничения." : "you can freely submit requests, buy credits, and subscribe without restrictions."}</p>
+
+              <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-xs text-green-800 font-medium">
+                🔒 {isBg
+                  ? "Преди одобрението на адреса ви — няма как да похарчите и един цент в приложението. Системата е изградена така, че да няма никакви загуби за вас."
+                  : "Before your address is approved — you cannot spend a single cent in the app. The system is built so that you can never lose money."}
+              </div>
+
+              <button
+                onClick={() => setShowHowItWorksPopup(false)}
+                className="w-full mt-1 py-2.5 rounded-xl bg-primary text-white font-semibold text-sm hover:bg-primary/90 transition-all"
               >
                 {isBg ? "Разбрах" : "Got it"}
               </button>
