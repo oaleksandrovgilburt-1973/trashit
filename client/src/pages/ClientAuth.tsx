@@ -19,6 +19,7 @@ export default function ClientAuth() {
   const [mode, setMode] = useState<Mode>("login");
   const [showPassword, setShowPassword] = useState(false);
   const [showPhonePassword, setShowPhonePassword] = useState(false);
+  const [showPhoneConfirm, setShowPhoneConfirm] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
   // Email form state
@@ -26,7 +27,7 @@ export default function ClientAuth() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Phone form state
-  const [phoneForm, setPhoneForm] = useState({ name: "", phone: "", password: "" });
+  const [phoneForm, setPhoneForm] = useState({ name: "", phone: "", password: "", confirm: "" });
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
   const registerMutation = trpc.clientAuth.register.useMutation({
@@ -90,6 +91,7 @@ export default function ClientAuth() {
       if (!phoneForm.phone || phoneForm.phone.length < 8) errs.phone = t.errorPhoneInvalid;
       if (!phoneForm.password) errs.password = t.errorRequired;
       else if (mode === "register" && phoneForm.password.length < 6) errs.password = t.errorPasswordTooShort;
+      if (mode === "register" && phoneForm.confirm !== phoneForm.password) errs.confirm = t.errorPasswordMismatch;
     }
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -380,6 +382,31 @@ export default function ClientAuth() {
                   </div>
                   {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
                 </div>
+                {mode === "register" && (
+                  <div>
+                    <div className="relative">
+                      <input
+                        type={showPhoneConfirm ? "text" : "password"}
+                        value={phoneForm.confirm}
+                        onChange={e => setPhoneForm(f => ({ ...f, confirm: e.target.value }))}
+                        placeholder={t.confirmPassword}
+                        className={`w-full px-4 py-3 pr-11 rounded-xl border text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all ${
+                          phoneForm.confirm
+                            ? (phoneForm.confirm === phoneForm.password ? "border-green-400" : "border-red-400")
+                            : errors.confirm ? "border-red-400" : "border-border"
+                        }`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPhoneConfirm(v => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showPhoneConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    {errors.confirm && <p className="text-red-500 text-xs mt-1">{errors.confirm}</p>}
+                  </div>
+                )}
                 {mode === "register" && (
                   <div className="flex items-start gap-2">
                     <input

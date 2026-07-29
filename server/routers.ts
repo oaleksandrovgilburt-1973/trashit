@@ -236,6 +236,12 @@ export const appRouter = router({
           phone: input.phone,
           passwordHash,
           loginMethod: "phone",
+          role: "user",
+          creditsStandard: BONUS_CREDITS,
+          credits: BONUS_CREDITS,
+          bonusGranted: true,
+          isFirstLogin: false,
+          lastSignedIn: new Date(),
         });
         const sessionToken = await sdk.createSessionToken(openId, { name: input.name, expiresInMs: ONE_YEAR_MS });
         const cookieOptions = getSessionCookieOptions(ctx.req);
