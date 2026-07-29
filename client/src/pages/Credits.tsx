@@ -34,6 +34,7 @@ export default function Credits() {
   const sessionId = params.get("session_id");
 
   const { data: packages } = trpc.credits.packages.useQuery();
+  const { data: subPrices } = trpc.subscriptions.prices.useQuery();
   const { data: profileData } = trpc.users.getProfile.useQuery(undefined, { enabled: isAuthenticated });
   const { data: entranceCheck } = trpc.entranceAccess.check.useQuery(
     {
@@ -200,7 +201,7 @@ export default function Credits() {
         {/* Tabs */}
         <div className="flex bg-gray-100 rounded-2xl p-1 mb-6 gap-1">
           {([
-            { id: "buy", labelBg: "Купи кредити", labelEn: "Buy credits", icon: Coins },
+            { id: "buy", labelBg: "Купи кредити или абонамент", labelEn: "Buy credits or subscription", icon: Coins },
             { id: "transfer", labelBg: "Прехвърли", labelEn: "Transfer", icon: Gift },
             { id: "history", labelBg: "История", labelEn: "History", icon: History },
           ] as const).map(({ id, labelBg, labelEn, icon: Icon }) => (
@@ -227,6 +228,22 @@ export default function Credits() {
                   : "If your address is not approved, you won't be able to buy or use credits. Try using your bonus credits first — this will speed up approval."}
               </div>
             )}
+            {/* Subscription promo card */}
+            <button
+              onClick={() => navigate("/subscription")}
+              className="w-full flex items-center justify-between gap-3 rounded-2xl border-2 border-blue-200 bg-blue-50 p-4 text-left hover:border-blue-400 transition-colors"
+            >
+              <div>
+                <p className="text-sm font-bold text-blue-800">📅 {isBg ? "Или изберете месечен абонамент" : "Or choose a monthly subscription"}</p>
+                <p className="text-xs text-blue-700 mt-0.5">
+                  {isBg ? "Редовни посещения всеки месец, без да купувате кредити всеки път" : "Regular visits every month, no need to buy credits each time"}
+                  {subPrices?.standard["15"]?.price && (
+                    <> — {isBg ? "от" : "from"} <strong>{subPrices.standard["15"].price.toFixed(2)} €/{isBg ? "мес" : "mo"}</strong></>
+                  )}
+                </p>
+              </div>
+              <ArrowRight className="w-4 h-4 text-blue-600 flex-shrink-0" />
+            </button>
             {/* Credit type toggle */}
             <div className="flex bg-gray-100 rounded-2xl p-1 gap-1">
               <button
