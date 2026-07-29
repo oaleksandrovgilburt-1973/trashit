@@ -16,7 +16,7 @@ import { protectedProcedure, publicProcedure, router } from "./_core/trpc"; // p
 import Stripe from "stripe";
 import {
   getAllSettings, getAllUsers, getAllWorkers,
-  getAdminConfig, getUserByEmail, getUserByOpenId,
+  getAdminConfig, getUserByEmail, getUserByPhone, getUserByOpenId,
   getUsersByRole, getSetting, getWorkerByOpenId,
   getWorkerByUsername, getWorkerSession, getWorkerSessionCount,
   addWorkerSession, removeOldestWorkerSession,
@@ -221,29 +221,49 @@ export const appRouter = router({
       .input(z.object({
         name: z.string().min(2),
         phone: z.string().min(8, "Невалиден телефонен номер"),
+        password: z.string().min(6, "Паролата трябва да е поне 6 символа"),
       }))
       .mutation(async ({ ctx, input }) => {
+        const existingPhone = await getUserByPhone(input.phone);
+        if (existingPhone) {
+          throw new TRPCError({ code: "CONFLICT", message: "Вече съществува акаунт с този телефонен номер." });
+        }
+        const passwordHash = await bcrypt.hash(input.password, 10);
         const openId = `phone_${nanoid(16)}`;
         await upsertUser({
           openId,
           name: input.name,
           phone: input.phone,
+          passwordHash,
           loginMethod: "phone",
-          role: "user",
-          creditsStandard: BONUS_CREDITS,
-          credits: BONUS_CREDITS,
-          bonusGranted: true,
-          isFirstLogin: false,
-          lastSignedIn: new Date(),
         });
         const sessionToken = await sdk.createSessionToken(openId, { name: input.name, expiresInMs: ONE_YEAR_MS });
         const cookieOptions = getSessionCookieOptions(ctx.req);
         ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
         return { success: true, bonusCredits: BONUS_CREDITS, openId };
       }),
+    loginPhone: publicProcedure
+      .input(z.object({
+        phone: z.string().min(1, "Въведете телефонен номер"),
+        password: z.string().min(1, "Въведете парола"),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const user = await getUserByPhone(input.phone);
+        if (!user || !user.passwordHash) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Грешен телефон или парола." });
+        }
+        const valid = await bcrypt.compare(input.password, user.passwordHash);
+        if (!valid) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Грешен телефон или парола." });
+        }
+        await upsertUser({ openId: user.openId, lastSignedIn: new Date() });
+        const sessionToken = await sdk.createSessionToken(user.openId, { name: user.name ?? "", expiresInMs: ONE_YEAR_MS });
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+        return { success: true, openId: user.openId, name: user.name, role: user.role };
+      }),
   }),
-
-  // ── Worker auth ───────────────────────────────────────────────────────────
+  // ── Worker auth ──────────────────────────────────────────────────────────
   workerAuth: router({
     login: publicProcedure
       .input(z.object({

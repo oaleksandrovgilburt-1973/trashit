@@ -18,6 +18,7 @@ export default function ClientAuth() {
   const [tab, setTab] = useState<Tab>("social");
   const [mode, setMode] = useState<Mode>("login");
   const [showPassword, setShowPassword] = useState(false);
+  const [showPhonePassword, setShowPhonePassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
   // Email form state
@@ -25,7 +26,7 @@ export default function ClientAuth() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Phone form state
-  const [phoneForm, setPhoneForm] = useState({ name: "", phone: "" });
+  const [phoneForm, setPhoneForm] = useState({ name: "", phone: "", password: "" });
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
   const registerMutation = trpc.clientAuth.register.useMutation({
@@ -62,6 +63,14 @@ export default function ClientAuth() {
     },
     onError: (err) => toast.error(err.message),
   });
+  const phoneLoginMutation = trpc.clientAuth.loginPhone.useMutation({
+    onSuccess: async () => {
+      await utils.auth.me.invalidate();
+      toast.success(t.loginSuccess);
+      navigate("/");
+    },
+    onError: (err) => toast.error(err.message || t.errorInvalidCredentials),
+  });
 
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
@@ -77,8 +86,10 @@ export default function ClientAuth() {
       }
     }
     if (tab === "phone") {
-      if (!phoneForm.name || phoneForm.name.length < 2) errs.name = t.errorNameTooShort;
+      if (mode === "register" && (!phoneForm.name || phoneForm.name.length < 2)) errs.name = t.errorNameTooShort;
       if (!phoneForm.phone || phoneForm.phone.length < 8) errs.phone = t.errorPhoneInvalid;
+      if (!phoneForm.password) errs.password = t.errorRequired;
+      else if (mode === "register" && phoneForm.password.length < 6) errs.password = t.errorPasswordTooShort;
     }
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -93,11 +104,15 @@ export default function ClientAuth() {
         loginMutation.mutate({ email: emailForm.email, password: emailForm.password });
       }
     } else if (tab === "phone") {
-      phoneRegisterMutation.mutate({ name: phoneForm.name, phone: phoneForm.phone });
+      if (mode === "register") {
+        phoneRegisterMutation.mutate({ name: phoneForm.name, phone: phoneForm.phone, password: phoneForm.password });
+      } else {
+        phoneLoginMutation.mutate({ phone: phoneForm.phone, password: phoneForm.password });
+      }
     }
   };
 
-  const isPending = registerMutation.isPending || loginMutation.isPending || phoneRegisterMutation.isPending;
+  const isPending = registerMutation.isPending || loginMutation.isPending || phoneRegisterMutation.isPending || phoneLoginMutation.isPending;
 
   return (
     <MainLayout>
@@ -298,22 +313,39 @@ export default function ClientAuth() {
             {/* Phone tab */}
             {tab === "phone" && (
               <div className="space-y-4">
-                <div className="bg-primary/5 rounded-xl p-3 text-sm text-muted-foreground text-center">
-                  <Sparkles className="w-4 h-4 inline mr-1 text-yellow-500" />
-                  {t.bonusCreditsMessage}
+                {/* Mode toggle */}
+                <div className="flex gap-1 bg-muted rounded-xl p-1 mb-2">
+                  <button
+                    onClick={() => setMode("login")}
+                    className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${mode === "login" ? "bg-white shadow text-primary" : "text-muted-foreground"}`}
+                  >
+                    {t.login}
+                  </button>
+                  <button
+                    onClick={() => setMode("register")}
+                    className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${mode === "register" ? "bg-white shadow text-primary" : "text-muted-foreground"}`}
+                  >
+                    {t.register}
+                  </button>
                 </div>
-
-                <div>
-                  <input
-                    type="text"
-                    value={phoneForm.name}
-                    onChange={e => setPhoneForm(f => ({ ...f, name: e.target.value }))}
-                    placeholder={t.name}
-                    className={`w-full px-4 py-3 rounded-xl border text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all ${errors.name ? "border-red-400" : "border-border"}`}
-                  />
-                  {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
-                </div>
-
+                {mode === "register" && (
+                  <div className="bg-primary/5 rounded-xl p-3 text-sm text-muted-foreground text-center">
+                    <Sparkles className="w-4 h-4 inline mr-1 text-yellow-500" />
+                    {t.bonusCreditsMessage}
+                  </div>
+                )}
+                {mode === "register" && (
+                  <div>
+                    <input
+                      type="text"
+                      value={phoneForm.name}
+                      onChange={e => setPhoneForm(f => ({ ...f, name: e.target.value }))}
+                      placeholder={t.name}
+                      className={`w-full px-4 py-3 rounded-xl border text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all ${errors.name ? "border-red-400" : "border-border"}`}
+                    />
+                    {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+                  </div>
+                )}
                 <div>
                   <input
                     type="tel"
@@ -324,32 +356,57 @@ export default function ClientAuth() {
                   />
                   {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
                 </div>
-
-                <div className="flex items-start gap-2">
-                  <input
-                    type="checkbox"
-                    id="terms-phone"
-                    checked={termsAccepted}
-                    onChange={e => setTermsAccepted(e.target.checked)}
-                    className="mt-0.5 w-4 h-4 accent-primary cursor-pointer"
-                  />
-                  <label htmlFor="terms-phone" className="text-xs text-muted-foreground leading-relaxed">
-                    Приемам{" "}
+                <div>
+                  <div className="relative">
+                    <input
+                      type={showPhonePassword ? "text" : "password"}
+                      value={phoneForm.password}
+                      onChange={e => setPhoneForm(f => ({ ...f, password: e.target.value }))}
+                      placeholder={t.password}
+                      className={`w-full px-4 py-3 pr-11 rounded-xl border text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all ${
+                        mode === "register" && phoneForm.password
+                          ? (phoneForm.password.length >= 6 ? "border-green-400" : "border-red-400")
+                          : errors.password ? "border-red-400" : "border-border"
+                      }`}
+                      onKeyDown={e => e.key === "Enter" && handleSubmit()}
+                    />
                     <button
                       type="button"
-                      onClick={() => setShowTermsModal(true)}
-                      className="text-primary underline font-medium"
+                      onClick={() => setShowPhonePassword(v => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     >
-                      Общите условия
+                      {showPhonePassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
-                  </label>
+                  </div>
+                  {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
                 </div>
+                {mode === "register" && (
+                  <div className="flex items-start gap-2">
+                    <input
+                      type="checkbox"
+                      id="terms-phone"
+                      checked={termsAccepted}
+                      onChange={e => setTermsAccepted(e.target.checked)}
+                      className="mt-0.5 w-4 h-4 accent-primary cursor-pointer"
+                    />
+                    <label htmlFor="terms-phone" className="text-xs text-muted-foreground leading-relaxed">
+                      Приемам{" "}
+                      <button
+                        type="button"
+                        onClick={() => setShowTermsModal(true)}
+                        className="text-primary underline font-medium"
+                      >
+                        Общите условия
+                      </button>
+                    </label>
+                  </div>
+                )}
                 <button
                   onClick={handleSubmit}
-                  disabled={isPending || !termsAccepted}
+                  disabled={isPending || (mode === "register" && !termsAccepted)}
                   className="w-full py-3 rounded-xl bg-primary text-white font-semibold text-sm hover:bg-primary/90 disabled:opacity-60 transition-all shadow-md"
                 >
-                  {isPending ? t.loading : t.register}
+                  {isPending ? t.loading : mode === "login" ? t.login : t.register}
                 </button>
               </div>
             )}

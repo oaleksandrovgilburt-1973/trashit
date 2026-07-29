@@ -85,6 +85,12 @@ export async function getUserByEmail(email: string) {
   const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
   return result[0];
 }
+export async function getUserByPhone(phone: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(users).where(eq(users.phone, phone)).limit(1);
+  return result[0];
+}
 
 export async function getAllUsers() {
   const db = await getDb();
