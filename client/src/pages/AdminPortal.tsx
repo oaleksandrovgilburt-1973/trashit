@@ -1631,7 +1631,8 @@ function ClientsTab() {
     const q = search.toLowerCase();
     return (
       (c.name ?? "").toLowerCase().includes(q) ||
-      (c.email ?? "").toLowerCase().includes(q)
+      (c.email ?? "").toLowerCase().includes(q) ||
+      (c.phone ?? "").toLowerCase().includes(q)
     );
   });
 
@@ -1743,7 +1744,8 @@ function ClientsTab() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-semibold text-gray-900 truncate">{client.name ?? "—"}</span>
-                    <span className="text-xs text-gray-400 truncate">{client.email ?? "—"}</span>
+                    {client.email && <span className="text-xs text-gray-400 truncate">{client.email}</span>}
+                    {client.phone && <span className="text-xs text-gray-400 truncate">📱 {client.phone}</span>}
                   </div>
                   <div className="flex items-center gap-3 mt-1 flex-wrap">
                     <span className="text-xs text-gray-500">Рег. {formatDate(client.createdAt)}</span>
