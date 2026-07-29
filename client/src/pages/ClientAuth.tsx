@@ -73,6 +73,7 @@ export default function ClientAuth() {
       if (mode === "register") {
         if (!emailForm.name || emailForm.name.length < 2) errs.name = t.errorNameTooShort;
         if (emailForm.confirm !== emailForm.password) errs.confirm = t.errorPasswordMismatch;
+        if (!emailForm.phone || emailForm.phone.length < 8) errs.phone = t.errorPhoneInvalid;
       }
     }
     if (tab === "phone") {
@@ -87,7 +88,7 @@ export default function ClientAuth() {
     if (!validate()) return;
     if (tab === "email") {
       if (mode === "register") {
-        registerMutation.mutate({ name: emailForm.name, email: emailForm.email, password: emailForm.password, phone: emailForm.phone || undefined });
+        registerMutation.mutate({ name: emailForm.name, email: emailForm.email, password: emailForm.password, phone: emailForm.phone });
       } else {
         loginMutation.mutate({ email: emailForm.email, password: emailForm.password });
       }
@@ -209,7 +210,11 @@ export default function ClientAuth() {
                       value={emailForm.password}
                       onChange={e => setEmailForm(f => ({ ...f, password: e.target.value }))}
                       placeholder={t.password}
-                      className={`w-full px-4 py-3 pr-11 rounded-xl border text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all ${errors.password ? "border-red-400" : "border-border"}`}
+                      className={`w-full px-4 py-3 pr-11 rounded-xl border text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all ${
+                        mode === "register" && emailForm.password
+                          ? (emailForm.password.length >= 6 ? "border-green-400" : "border-red-400")
+                          : errors.password ? "border-red-400" : "border-border"
+                      }`}
                       onKeyDown={e => e.key === "Enter" && handleSubmit()}
                     />
                     <button
@@ -232,7 +237,11 @@ export default function ClientAuth() {
                           value={emailForm.confirm}
                           onChange={e => setEmailForm(f => ({ ...f, confirm: e.target.value }))}
                           placeholder={t.confirmPassword}
-                          className={`w-full px-4 py-3 pr-11 rounded-xl border text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all ${errors.confirm ? "border-red-400" : "border-border"}`}
+                          className={`w-full px-4 py-3 pr-11 rounded-xl border text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all ${
+                            emailForm.confirm
+                              ? (emailForm.confirm === emailForm.password ? "border-green-400" : "border-red-400")
+                              : errors.confirm ? "border-red-400" : "border-border"
+                          }`}
                         />
                         <button
                           type="button"
@@ -244,13 +253,14 @@ export default function ClientAuth() {
                       </div>
                       {errors.confirm && <p className="text-red-500 text-xs mt-1">{errors.confirm}</p>}
                     </div>
-                    <input
+                      <input
                       type="tel"
                       value={emailForm.phone}
                       onChange={e => setEmailForm(f => ({ ...f, phone: e.target.value }))}
-                      placeholder={`${t.phoneNumber} (${t.or.toLowerCase()} ${t.errorRequired.toLowerCase()})`}
-                      className="w-full px-4 py-3 rounded-xl border border-border text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
+                      placeholder={t.phoneNumber}
+                      className={`w-full px-4 py-3 rounded-xl border text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all ${errors.phone ? "border-red-400" : "border-border"}`}
                     />
+                    {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
                   </>
                 )}
 

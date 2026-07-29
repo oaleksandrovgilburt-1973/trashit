@@ -166,7 +166,7 @@ export const appRouter = router({
         name: z.string().min(2, "Името трябва да е поне 2 символа"),
         email: z.string().email("Невалиден имейл адрес"),
         password: z.string().min(6, "Паролата трябва да е поне 6 символа"),
-        phone: z.string().optional(),
+        phone: z.string().min(8, "Телефонният номер трябва да е поне 8 цифри"),
       }))
       .mutation(async ({ ctx, input }) => {
         const existing = await getUserByEmail(input.email);
@@ -179,7 +179,7 @@ export const appRouter = router({
           openId,
           name: input.name,
           email: input.email,
-          phone: input.phone ?? null,
+          phone: input.phone,
           passwordHash,
           loginMethod: "email",
           role: "user",
