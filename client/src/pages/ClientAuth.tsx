@@ -75,7 +75,11 @@ export default function ClientAuth() {
   const googleLoginMutation = trpc.clientAuth.loginGoogle.useMutation({
     onSuccess: async (data) => {
       await utils.auth.me.invalidate();
-      toast.success(data.isNew ? t.bonusCreditsReceived : t.loginSuccess);
+      if (data.reactivated) {
+        toast.success(isBg ? "Добре дошли отново! Акаунтът ви е възстановен." : "Welcome back! Your account has been restored.");
+      } else {
+        toast.success(data.isNew ? t.bonusCreditsReceived : t.loginSuccess);
+      }
       navigate("/");
     },
     onError: (err) => toast.error(err.message),

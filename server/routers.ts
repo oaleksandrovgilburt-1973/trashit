@@ -302,6 +302,7 @@ export const appRouter = router({
         const name = payload.name as string | undefined;
         const openId = `google_${googleSub}`;
         const existing = await getUserByOpenId(openId);
+        const wasDeleted = existing?.isDeleted === true;
         if (!existing) {
           await upsertUser({
             openId,
@@ -315,13 +316,23 @@ export const appRouter = router({
             isFirstLogin: false,
             lastSignedIn: new Date(),
           });
+        } else if (wasDeleted) {
+          // Reactivate previously deleted account with fresh Google data
+          await upsertUser({
+            openId,
+            name: name ?? null,
+            email: email ?? null,
+            isDeleted: false,
+            deletedAt: null,
+            lastSignedIn: new Date(),
+          });
         } else {
           await upsertUser({ openId, lastSignedIn: new Date() });
         }
         const sessionToken = await sdk.createSessionToken(openId, { name: name ?? "", expiresInMs: ONE_YEAR_MS });
         const cookieOptions = getSessionCookieOptions(ctx.req);
         ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
-        return { success: true, openId, isNew: !existing };
+        return { success: true, openId, isNew: !existing, reactivated: wasDeleted };
       }),
   }),
   // ── Worker auth ──────────────────────────────────────────────────────────
