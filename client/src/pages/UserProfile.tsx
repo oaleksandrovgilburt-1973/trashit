@@ -423,7 +423,7 @@ export default function UserProfile() {
         </div>
 
         {/* Change Password card */}
-        {profile?.loginMethod === "email" && (
+        {(profile?.loginMethod === "email" || profile?.loginMethod === "phone") && (
           <div className="bg-card rounded-2xl border border-border p-5 mt-4 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
