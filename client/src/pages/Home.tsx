@@ -445,11 +445,13 @@ export default function Home() {
                 <li>📦 <strong>{isBg ? "Нестандартен отпадък" : "Non-standard Waste"}</strong> — {isBg ? "Мебели, електроуреди, кашони и едрогабаритни предмети. Изпрати снимка — нашият AI оценява обема и правим оферта." : "Furniture, appliances, boxes and bulky items. Send a photo — our AI estimates the volume and we provide a quote."}</li>
                 <li>🏗️ <strong>{isBg ? "Строителен отпадък" : "Construction Waste"}</strong> — {isBg ? "Отпадъци от ремонт или събаряне. Изпрати снимка — нашият AI оценява обема и правим оферта." : "Waste from renovation or demolition. Send a photo — our AI estimates the volume and we provide a quote."}</li>
               </ul>
-              <p className="text-xs text-muted-foreground bg-secondary rounded-lg p-2.5 mt-1">
-                📝 {isBg ? "За да ползвате услугите, е нужна регистрация. При регистрация получавате " : "Registration is required to use the services. When you register, you get "}
-                <span className="font-bold text-primary">{isBg ? "2 безплатни кредита" : "2 free credits"}</span>
-                {isBg ? " (2 посещения / 2 плика със смет)." : " (2 visits / 2 waste bags)."}
-              </p>
+              {!user && (
+                <p className="text-xs text-muted-foreground bg-secondary rounded-lg p-2.5 mt-1">
+                  📝 {isBg ? "За да ползвате услугите, е нужна регистрация. При регистрация получавате " : "Registration is required to use the services. When you register, you get "}
+                  <span className="font-bold text-primary">{isBg ? "2 безплатни кредита" : "2 free credits"}</span>
+                  {isBg ? " (2 посещения / 2 плика със смет)." : " (2 visits / 2 waste bags)."}
+                </p>
+              )}
               <button
                 onClick={closeServicesPopup}
                 className="w-full mt-3 py-2.5 rounded-xl bg-primary text-white font-semibold text-sm hover:bg-primary/90 transition-all"
@@ -481,12 +483,14 @@ export default function Home() {
 
               <p>📝 <strong>{isBg ? "Подавате заявка" : "You submit a request"}</strong> — {isBg ? "избирате адрес и вид отпадък." : "choose an address and waste type."}</p>
 
+              <p className="text-xs font-semibold text-foreground">{isBg ? "Вариант 1 — ако адресът все още не е одобрен:" : "Option 1 — if the address is not yet approved:"}</p>
               <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-700">
                 ⚠️ {isBg
                   ? "За този вход все още нямаме осигурен достъп. Ще се свържем с вас скоро на посочения телефон/имейл, за да го осигурим."
                   : "We do not yet have access to this entrance. We will contact you shortly at the phone/email you provided to arrange it."}
               </div>
 
+              <p className="text-xs font-semibold text-foreground">{isBg ? "Вариант 2 — ако адресът вече е одобрен:" : "Option 2 — if the address is already approved:"}</p>
               <div className="rounded-xl border-2 border-green-400 bg-white p-3">
                 <p className="text-xs text-muted-foreground mb-1">{isBg ? "Вход" : "Entrance"}</p>
                 <p className="text-sm font-medium">В</p>
