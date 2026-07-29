@@ -19,6 +19,7 @@ export default function Home() {
 
   const [notifPermission, setNotifPermission] = useState<NotificationPermission | null>(null);
   // Services popup — shown automatically only for guests (not logged in), once per session
+  const [showServicesPopup, setShowServicesPopup] = useState(false);
   const [showHowItWorksPopup, setShowHowItWorksPopup] = useState(false);
   useEffect(() => {
     if (loading) return;
