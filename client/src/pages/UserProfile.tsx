@@ -502,8 +502,11 @@ export default function UserProfile() {
                 </button>
               </div>
             )}
+          </div>
+        )}
 
-            <div className="mt-6 pt-6 border-t border-gray-200">
+        <div className="bg-card rounded-2xl border border-border p-5 mt-4 shadow-sm">
+            <div>
               {!showDeleteConfirm ? (
                 <button
                   onClick={() => setShowDeleteConfirm(true)}
@@ -538,7 +541,6 @@ export default function UserProfile() {
               )}
             </div>
           </div>
-        )}
       </div>
     </MainLayout>
   );
