@@ -6,7 +6,7 @@ import { nanoid } from "nanoid";
 import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { sdk } from "./_core/sdk";
 import { parse as parseCookies } from "cookie";
-import { getSessionCookieOptions } from "./_core/cookies";
+import { getSessionCookieOptions, getAdminSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { notifyOwner } from "./_core/notification";
 import { sendPushNotification } from "./fcm";
@@ -137,12 +137,11 @@ const adminProcedure = publicProcedure.use(async ({ ctx, next }) => {
 
 // ─── Shared cookie helpers ────────────────────────────────────────────────────
 function setWorkerCookie(ctx: { res: any; req: any }, token: string) {
-  const opts = getSessionCookieOptions(ctx.req);
+  const opts = getAdminSessionCookieOptions(ctx.req);
   ctx.res.cookie(WORKER_SESSION_COOKIE, token, { ...opts, maxAge: 30 * 24 * 60 * 60 * 1000 });
 }
-
 function setAdminCookie(ctx: { res: any; req: any }, token: string) {
-  const opts = getSessionCookieOptions(ctx.req);
+  const opts = getAdminSessionCookieOptions(ctx.req);
   ctx.res.cookie(ADMIN_SESSION_COOKIE, token, { ...opts, maxAge: 8 * 60 * 60 * 1000 });
 }
 
