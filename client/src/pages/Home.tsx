@@ -366,7 +366,7 @@ export default function Home() {
               </div>
               <div className="mt-4 pt-4 border-t border-border">
                 <p className="text-xs text-muted-foreground mb-2">Изтеглете приложението</p>
-                <AppStoreBadges />
+                <AppStoreBadges isBg={isBg} />
               </div>
             </div>
           )}
