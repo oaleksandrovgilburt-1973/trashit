@@ -76,7 +76,7 @@ export default function ClientAuth() {
     onSuccess: async (data) => {
       await utils.auth.me.invalidate();
       if (data.reactivated) {
-        toast.success(isBg ? "Добре дошли отново! Акаунтът ви е възстановен." : "Welcome back! Your account has been restored.");
+        toast.success(t.accountRestored);
       } else {
         toast.success(data.isNew ? t.bonusCreditsReceived : t.loginSuccess);
       }

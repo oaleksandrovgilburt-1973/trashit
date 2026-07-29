@@ -44,6 +44,7 @@ export interface Translations {
   registerWithPhone: string;
   bonusCreditsMessage: string;
   bonusCreditsReceived: string;
+  accountRestored: string;
 
   // Auth — worker
   workerLoginTitle: string;
@@ -222,6 +223,7 @@ const bg: Translations = {
   registerWithPhone: "Регистрация с телефон",
   bonusCreditsMessage: "При регистрация получаваш 2 бонус кредита!",
   bonusCreditsReceived: "Получи 2 бонус кредита! 🎉",
+  accountRestored: "Добре дошли отново! Акаунтът ви е възстановен.",
 
   workerLoginTitle: "Вход за работници",
   workerLoginDesc: "Влезте с данните, предоставени от администратора",
@@ -387,6 +389,7 @@ const en: Translations = {
   registerWithPhone: "Register with Phone",
   bonusCreditsMessage: "Get 2 bonus credits when you register!",
   bonusCreditsReceived: "You received 2 bonus credits! 🎉",
+  accountRestored: "Welcome back! Your account has been restored.",
 
   workerLoginTitle: "Worker Login",
   workerLoginDesc: "Login with credentials provided by the administrator",
