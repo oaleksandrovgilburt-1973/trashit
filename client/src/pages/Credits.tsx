@@ -236,7 +236,7 @@ export default function Credits() {
               <div>
                 <p className="text-sm font-bold text-blue-800">📅 {isBg ? "Или изберете месечен абонамент" : "Or choose a monthly subscription"}</p>
                 <p className="text-xs text-blue-700 mt-0.5">
-                  {isBg ? "Редовни посещения всеки месец, без да купувате кредити всеки път" : "Regular visits every month, no need to buy credits each time"}
+                  {isBg ? "Редовни посещения, без да купувате кредити всеки път" : "Regular visits, no need to buy credits each time"}
                   {subPrices?.standard["15"]?.price && (
                     <> — {isBg ? "от" : "from"} <strong>{subPrices.standard["15"].price.toFixed(2)} €/{isBg ? "мес" : "mo"}</strong></>
                   )}
