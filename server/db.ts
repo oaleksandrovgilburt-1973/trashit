@@ -8,6 +8,7 @@ import {
   adminConfig,
   workerSessions,
   districts, InsertDistrict,
+  cities, InsertCity,
   requests, InsertRequest,
   cleaningRequests, InsertCleaningRequest,
   transactions, InsertTransaction,
@@ -295,38 +296,63 @@ export async function upsertSetting(key: string, value: string): Promise<void> {
   await db.insert(settings).values({ key, value }).onDuplicateKeyUpdate({ set: { value } });
 }
 
+// ─── Cities ─────────────────────────────────────────────────────────────────
+export async function getAllCities() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(cities).orderBy(asc(cities.name));
+}
+export async function getActiveCities() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(cities).where(eq(cities.isActive, true)).orderBy(asc(cities.name));
+}
+export async function createCity(name: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.insert(cities).values({ name, isActive: true });
+}
+export async function updateCityStatus(id: number, isActive: boolean): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(cities).set({ isActive }).where(eq(cities.id, id));
+}
+export async function deleteCity(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(cities).where(eq(cities.id, id));
+}
 // ─── Districts ────────────────────────────────────────────────────────────────
-
 export async function getAllDistricts() {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(districts).orderBy(asc(districts.name));
 }
-
 export async function getActiveDistricts() {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(districts).where(eq(districts.isActive, true)).orderBy(asc(districts.name));
 }
-
-export async function createDistrict(name: string): Promise<void> {
+export async function getDistrictsByCity(cityId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(districts).where(eq(districts.cityId, cityId)).orderBy(asc(districts.name));
+}
+export async function createDistrict(name: string, cityId: number): Promise<void> {
   const db = await getDb();
   if (!db) return;
-  await db.insert(districts).values({ name, isActive: true });
+  await db.insert(districts).values({ name, cityId, isActive: true });
 }
-
 export async function updateDistrictStatus(id: number, isActive: boolean): Promise<void> {
   const db = await getDb();
   if (!db) return;
   await db.update(districts).set({ isActive }).where(eq(districts.id, id));
 }
-
 export async function deleteDistrict(id: number): Promise<void> {
   const db = await getDb();
   if (!db) return;
   await db.delete(districts).where(eq(districts.id, id));
 }
-
 // ─── Requests ─────────────────────────────────────────────────────────────────
 
 export async function createRequest(data: InsertRequest): Promise<number> {

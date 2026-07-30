@@ -24,8 +24,10 @@ import {
   updateUserCredits, updateUserFcmToken, updateUserProfile, updateUserRole, anonymizeAndDeleteUser,
   updateWorkerLastSignedIn, updateWorkerPassword,
   upsertSetting, upsertUser, createWorker,
+  // Cities
+  getAllCities, getActiveCities, createCity, updateCityStatus, deleteCity,
   // Districts
-  getAllDistricts, getActiveDistricts, createDistrict,
+  getAllDistricts, getActiveDistricts, getDistrictsByCity, createDistrict,
   updateDistrictStatus, deleteDistrict,
   // Requests
   createRequest, getRequestsByUser, getAllRequests,
@@ -664,19 +666,33 @@ export const appRouter = router({
     listAllWorkers: adminProcedure.query(async () => getAllWorkers()),
   }),
 
+  // ── Cities ────────────────────────────────────────────────────────────────────────────────
+  cities: router({
+    list: publicProcedure.query(async () => getAllCities()),
+    listActive: publicProcedure.query(async () => getActiveCities()),
+    create: adminProcedure
+      .input(z.object({ name: z.string().min(2, "Името трябва да е поне 2 символа") }))
+      .mutation(async ({ input }) => { await createCity(input.name); return { success: true }; }),
+    toggleActive: adminProcedure
+      .input(z.object({ id: z.number(), isActive: z.boolean() }))
+      .mutation(async ({ input }) => { await updateCityStatus(input.id, input.isActive); return { success: true }; }),
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => { await deleteCity(input.id); return { success: true }; }),
+  }),
   // ── Districts ────────────────────────────────────────────────────────────────────────────────
   districts: router({
     list: publicProcedure.query(async () => getActiveDistricts()),
     listAll: adminProcedure.query(async () => getAllDistricts()),
-
+    listByCity: publicProcedure
+      .input(z.object({ cityId: z.number() }))
+      .query(async ({ input }) => getDistrictsByCity(input.cityId)),
     create: adminProcedure
-      .input(z.object({ name: z.string().min(2, "Името трябва да е поне 2 символа") }))
-      .mutation(async ({ input }) => { await createDistrict(input.name); return { success: true }; }),
-
+      .input(z.object({ name: z.string().min(2, "Името трябва да е поне 2 символа"), cityId: z.number() }))
+      .mutation(async ({ input }) => { await createDistrict(input.name, input.cityId); return { success: true }; }),
     toggleActive: adminProcedure
       .input(z.object({ id: z.number(), isActive: z.boolean() }))
       .mutation(async ({ input }) => { await updateDistrictStatus(input.id, input.isActive); return { success: true }; }),
-
     delete: adminProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => { await deleteDistrict(input.id); return { success: true }; }),

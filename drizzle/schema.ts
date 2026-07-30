@@ -118,14 +118,22 @@ export const workerSessions = mysqlTable("worker_sessions", {
 export type WorkerSession = typeof workerSessions.$inferSelect;
 
 // ─── Districts (admin-managed) ────────────────────────────────────────────────
-export const districts = mysqlTable("districts", {
+export const cities = mysqlTable("cities", {
   id: int("id").autoincrement().primaryKey(),
   name: varchar("name", { length: 128 }).notNull().unique(),
   isActive: boolean("isActive").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type City = typeof cities.$inferSelect;
+export type InsertCity = typeof cities.$inferInsert;
+export const districts = mysqlTable("districts", {
+  id: int("id").autoincrement().primaryKey(),
+  cityId: int("cityId").notNull(),
+  name: varchar("name", { length: 128 }).notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
-
 export type District = typeof districts.$inferSelect;
 export type InsertDistrict = typeof districts.$inferInsert;
 
