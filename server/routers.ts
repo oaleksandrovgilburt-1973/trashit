@@ -62,6 +62,7 @@ import {
   // Sub-Admins
   createSubAdmin, getAllSubAdmins, getSubAdminByUsername, getSubAdminById,
   updateSubAdminPermissions, toggleSubAdminActive, deleteSubAdmin,
+  getSubAdminCities, setSubAdminCities,
   // Subscriptions
   createSubscription, getSubscriptionsByUser, getActiveSubscriptionByUser,
   getAllSubscriptions, updateSubscriptionStripe, cancelSubscription,
@@ -2482,6 +2483,21 @@ export const appRouter = router({
         await deleteSubAdmin(input.id);
         return { success: true };
       }),
+    // Get assigned cities for a sub-admin (admin only)
+    getCities: adminProcedure
+      .input(z.object({ subAdminId: z.number() }))
+      .query(async ({ input }) => getSubAdminCities(input.subAdminId)),
+    // Set assigned cities for a sub-admin (admin only)
+    setCities: adminProcedure
+      .input(z.object({ subAdminId: z.number(), cityIds: z.array(z.number()) }))
+      .mutation(async ({ input }) => {
+        await setSubAdminCities(input.subAdminId, input.cityIds);
+        return { success: true };
+      }),
+    // Sub-admin: get my own assigned cities
+    myCities: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => getSubAdminCities(input.id)),
 
     // Sub-admin login (public)
     login: publicProcedure

@@ -348,6 +348,15 @@ export type InsertActivityDescription = typeof activityDescriptions.$inferInsert
 // ─── Worker Profile Photos ────────────────────────────────────────────────────
 // Stored as photoUrl on the workers table (added via migration)
 
+export const subAdminCities = mysqlTable("sub_admin_cities", {
+  id: int("id").autoincrement().primaryKey(),
+  subAdminId: int("subAdminId").notNull(),
+  cityId: int("cityId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type SubAdminCity = typeof subAdminCities.$inferSelect;
+export type InsertSubAdminCity = typeof subAdminCities.$inferInsert;
+
 // ─── Sub-Admins ───────────────────────────────────────────────────────────────
 export const subAdmins = mysqlTable("sub_admins", {
   id: int("id").autoincrement().primaryKey(),

@@ -19,6 +19,7 @@ import {
   usedBonusIdentifiers,
   entranceAccess, EntranceAccess, InsertEntranceAccess,
   subAdmins, SubAdmin, InsertSubAdmin,
+  subAdminCities,
   subscriptions, subscriptionVisits, workerSubscriptionPrefs,
   Subscription, InsertSubscription, SubscriptionVisit,
   pushSubscriptions, PushSubscriptionRow,
@@ -919,6 +920,25 @@ export async function deleteSubAdmin(id: number): Promise<void> {
   const db = await getDb();
   if (!db) return;
   await db.delete(subAdmins).where(eq(subAdmins.id, id));
+}
+// ─── Sub-Admin City Access ─────────────────────────────────────────────────────
+export async function getSubAdminCities(subAdminId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db
+    .select({ city: cities })
+    .from(subAdminCities)
+    .innerJoin(cities, eq(subAdminCities.cityId, cities.id))
+    .where(eq(subAdminCities.subAdminId, subAdminId));
+  return rows.map(r => r.city);
+}
+export async function setSubAdminCities(subAdminId: number, cityIds: number[]): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(subAdminCities).where(eq(subAdminCities.subAdminId, subAdminId));
+  if (cityIds.length > 0) {
+    await db.insert(subAdminCities).values(cityIds.map(cityId => ({ subAdminId, cityId })));
+  }
 }
 
 // ─── Subscriptions ────────────────────────────────────────────────────────────
