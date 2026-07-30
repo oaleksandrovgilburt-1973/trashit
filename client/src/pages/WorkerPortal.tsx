@@ -89,7 +89,10 @@ function DistrictSelector({ deviceToken }: { deviceToken: string }) {
   const { language } = useLanguage();
   const isBg = language === "bg";
 
+  const { data: citiesData } = trpc.cities.list.useQuery();
+  const [selectedCityId, setSelectedCityId] = useState<number | null>(null);
   const { data: allDistricts = [] } = trpc.districts.list.useQuery();
+  const districtsForCity = allDistricts.filter(d => d.cityId === selectedCityId);
   const { data: myDistricts = [], refetch } = trpc.workerDistricts.getMyDistricts.useQuery(
     { deviceToken }, { enabled: !!deviceToken }
   );
@@ -131,7 +134,26 @@ function DistrictSelector({ deviceToken }: { deviceToken: string }) {
       </div>
 
       <div className="flex gap-2 flex-wrap">
-        <Button size="sm" variant="outline" onClick={() => setSelected(allDistricts.map(d => d.name))} className="rounded-2xl text-xs">
+        {citiesData?.map((city) => (
+          <button
+            key={city.id}
+            type="button"
+            disabled={!city.isActive}
+            onClick={() => setSelectedCityId(city.id)}
+            className={`px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
+              !city.isActive
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                : selectedCityId === city.id
+                  ? "bg-primary text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+          >
+            {city.name}
+          </button>
+        ))}
+      </div>
+      <div className="flex gap-2 flex-wrap">
+        <Button size="sm" variant="outline" onClick={() => setSelected(districtsForCity.map(d => d.name))} className="rounded-2xl text-xs">
           {isBg ? "Избери всички" : "Select all"}
         </Button>
         <Button size="sm" variant="outline" onClick={() => setSelected([])} className="rounded-2xl text-xs">
@@ -143,7 +165,7 @@ function DistrictSelector({ deviceToken }: { deviceToken: string }) {
       </div>
 
       <div className="grid grid-cols-2 gap-2 max-h-72 overflow-y-auto pr-1">
-        {allDistricts.map(d => (
+        {districtsForCity.map(d => (
           <div
             key={d.id}
             className={`flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer transition-colors ${
