@@ -190,6 +190,7 @@ export default function MyRequests() {
 
   const [activeTab, setActiveTab] = React.useState<"active" | "history">("active");
   const [historyPage, setHistoryPage] = React.useState(1);
+  const [workerModalInfo, setWorkerModalInfo] = React.useState<{ name: string; number?: number | null; photoUrl?: string | null } | null>(null);
   const HISTORY_PAGE_SIZE = 20;
 
   const { data: requests, isLoading, refetch } = trpc.requests.myList.useQuery(undefined, {
@@ -417,13 +418,23 @@ export default function MyRequests() {
                   <div className="mt-3 space-y-2">
                     {(req as any).assignedWorkerName && (
                       <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-xl px-3 py-2">
-                        {(req as any).workerPhotoUrl ? (
-                          <img src={(req as any).workerPhotoUrl} alt={(req as any).assignedWorkerName} className="w-8 h-8 rounded-full object-cover border border-blue-200 flex-shrink-0" />
-                        ) : (
-                          <div className="w-8 h-8 rounded-full bg-blue-200 flex items-center justify-center flex-shrink-0">
-                            <span className="text-blue-700 font-bold text-sm">{((req as any).assignedWorkerName as string).charAt(0).toUpperCase()}</span>
-                          </div>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => setWorkerModalInfo({
+                            name: (req as any).assignedWorkerName,
+                            number: (req as any).assignedWorkerNumber,
+                            photoUrl: (req as any).workerPhotoUrl,
+                          })}
+                          className="flex-shrink-0"
+                        >
+                          {(req as any).workerPhotoUrl ? (
+                            <img src={(req as any).workerPhotoUrl} alt={(req as any).assignedWorkerName} className="w-8 h-8 rounded-full object-cover border border-blue-200" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-blue-200 flex items-center justify-center">
+                              <span className="text-blue-700 font-bold text-sm">{((req as any).assignedWorkerName as string).charAt(0).toUpperCase()}</span>
+                            </div>
+                          )}
+                        </button>
                         <div>
                           <p className="text-xs font-semibold text-blue-800">
                             {(req as any).assignedWorkerName}
@@ -521,6 +532,33 @@ export default function MyRequests() {
           </div>
         )}
       </div>
+      {/* Worker info modal */}
+      {workerModalInfo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setWorkerModalInfo(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs p-6 text-center relative" onClick={e => e.stopPropagation()}>
+            <button
+              onClick={() => setWorkerModalInfo(null)}
+              className="absolute top-3 right-3 p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            {workerModalInfo.photoUrl ? (
+              <img src={workerModalInfo.photoUrl} alt={workerModalInfo.name} className="w-24 h-24 rounded-full object-cover border-4 border-blue-100 mx-auto mb-4" />
+            ) : (
+              <div className="w-24 h-24 rounded-full bg-blue-200 flex items-center justify-center mx-auto mb-4">
+                <span className="text-blue-700 font-bold text-3xl">{workerModalInfo.name.charAt(0).toUpperCase()}</span>
+              </div>
+            )}
+            <h3 className="text-lg font-bold text-gray-900">{workerModalInfo.name}</h3>
+            {workerModalInfo.number && (
+              <p className="text-sm text-gray-500 mt-1">{isBg ? "Работник №" : "Worker No."}{workerModalInfo.number}</p>
+            )}
+            <p className="text-xs text-blue-600 font-medium mt-3 bg-blue-50 rounded-xl py-2">
+              {isBg ? "Работник в изпълнение" : "Worker in progress"}
+            </p>
+          </div>
+        </div>
+      )}
     </MainLayout>
   );
 }
