@@ -2077,6 +2077,48 @@ const ALL_PERMISSION_TABS: { id: string; label: string }[] = [
   { id: "problems", label: "Проблеми" },
   { id: "subscriptions", label: "Абонаменти" },
 ];
+function SubAdminCitiesSection({ subAdminId }: { subAdminId: number }) {
+  const { data: allCities = [] } = trpc.cities.list.useQuery();
+  const { data: assignedCities = [], refetch } = trpc.subAdmins.getCities.useQuery({ subAdminId });
+  const setCities = trpc.subAdmins.setCities.useMutation({
+    onSuccess: () => refetch(),
+    onError: (e: any) => toast.error(e.message),
+  });
+  const assignedIds = (assignedCities as any[]).map(c => c.id);
+  const toggleCity = (cityId: number) => {
+    const updated = assignedIds.includes(cityId)
+      ? assignedIds.filter(id => id !== cityId)
+      : [...assignedIds, cityId];
+    setCities.mutate({ subAdminId, cityIds: updated });
+  };
+  return (
+    <div className="border-t border-gray-100 px-5 py-4 bg-gray-50/50">
+      <p className="text-xs font-medium text-gray-500 mb-2">Разрешени градове (кликни за промяна)</p>
+      <div className="flex flex-wrap gap-2">
+        {allCities.map(city => {
+          const hasAccess = assignedIds.includes(city.id);
+          return (
+            <button
+              key={city.id}
+              type="button"
+              onClick={() => toggleCity(city.id)}
+              disabled={setCities.isPending || !city.isActive}
+              className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${
+                !city.isActive
+                  ? "bg-gray-100 text-gray-300 border-gray-100 cursor-not-allowed"
+                  : hasAccess
+                    ? "bg-primary text-white border-primary shadow-sm"
+                    : "bg-white text-gray-400 border-gray-200 hover:border-gray-400"
+              }`}
+            >
+              {hasAccess ? "✓ " : ""}{city.name}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 function SubAdminsTab() {
   const utils = trpc.useUtils();
   const [showCreate, setShowCreate] = useState(false);
@@ -2267,6 +2309,7 @@ function SubAdminsTab() {
                   })}
                 </div>
               </div>
+              <SubAdminCitiesSection subAdminId={sa.id} />
             </div>
           ))}
         </div>
