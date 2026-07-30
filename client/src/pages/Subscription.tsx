@@ -51,7 +51,7 @@ export default function Subscription() {
 
   const TYPE_LABELS: Record<string, string> = {
     standard: isBg ? "Стандартен битов" : "Standard Household",
-    recycling: isBg ? "Рециклиращ" : "Recycling",
+    recycling: isBg ? "Разделно събиране" : "Recycling Collection",
   };
   const SLOT_LABELS: Record<string, string> = {
     morning: "08:00 – 12:00",
