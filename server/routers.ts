@@ -848,7 +848,7 @@ export const appRouter = router({
           acceptedQuoteProposedDate = acceptedQuote?.proposedDate ?? null;
           acceptedQuotePrice = acceptedQuote?.price ?? null;
         }
-        return { ...r, workerPhotoUrl: worker?.photoUrl ?? null, assignedWorkerName: worker?.name ?? null, acceptedQuoteProposedDate, acceptedQuotePrice };
+        return { ...r, workerPhotoUrl: worker?.photoUrl ?? null, assignedWorkerName: worker?.name ?? null, assignedWorkerNumber: worker?.id ?? null, acceptedQuoteProposedDate, acceptedQuotePrice };
       }));
       return enriched;
     }),

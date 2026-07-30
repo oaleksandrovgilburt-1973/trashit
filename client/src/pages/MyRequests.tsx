@@ -425,7 +425,10 @@ export default function MyRequests() {
                           </div>
                         )}
                         <div>
-                          <p className="text-xs font-semibold text-blue-800">{(req as any).assignedWorkerName}</p>
+                          <p className="text-xs font-semibold text-blue-800">
+                            {(req as any).assignedWorkerName}
+                            {(req as any).assignedWorkerNumber && <span className="font-normal text-blue-500"> · №{(req as any).assignedWorkerNumber}</span>}
+                          </p>
                           <p className="text-xs text-blue-600">{isBg ? "Работник в изпълнение" : "Worker in progress"}</p>
                         </div>
                       </div>
