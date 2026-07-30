@@ -18,9 +18,11 @@ export default function UserProfile() {
 
   const profileQuery = trpc.users.getProfile.useQuery(undefined, { enabled: isAuthenticated });
   const profile = profileQuery.data;
+  const { data: citiesData } = trpc.cities.list.useQuery();
+  const [selectedCityId, setSelectedCityId] = useState<number | null>(null);
   const { data: districtsData } = trpc.districts.list.useQuery();
   const [districtOpen, setDistrictOpen] = useState(false);
-  const districts = districtsData?.filter(d => d.isActive) ?? [];
+  const districts = districtsData?.filter(d => d.isActive && d.cityId === selectedCityId) ?? [];
 
   const [editingProfile, setEditingProfile] = useState(false);
   const [editingAddress, setEditingAddress] = useState(false);
@@ -321,6 +323,26 @@ export default function UserProfile() {
                 />
               </div>
               <div className="col-span-2">
+                <label className="text-xs text-muted-foreground mb-1 block">Град</label>
+                <div className="flex gap-2 flex-wrap mb-2">
+                  {citiesData?.map((city) => (
+                    <button
+                      key={city.id}
+                      type="button"
+                      disabled={!city.isActive}
+                      onClick={() => { setSelectedCityId(city.id); setAddressForm(f => ({ ...f, addressKvartal: "" })); }}
+                      className={`px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
+                        !city.isActive
+                          ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                          : selectedCityId === city.id
+                            ? "bg-primary text-white"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      }`}
+                    >
+                      {city.name}
+                    </button>
+                  ))}
+                </div>
                 <label className="text-xs text-muted-foreground mb-1 block">{t.addressKvartal}</label>
                 {districts.length > 0 ? (
                   <Popover open={districtOpen} onOpenChange={setDistrictOpen}>

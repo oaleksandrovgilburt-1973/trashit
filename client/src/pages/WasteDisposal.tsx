@@ -137,7 +137,10 @@ export default function WasteDisposal() {
   });
 
   // Load districts
+  const { data: citiesData } = trpc.cities.list.useQuery();
+  const [selectedCityId, setSelectedCityId] = useState<number | null>(null);
   const { data: districtsData } = trpc.districts.list.useQuery();
+  const districtsForCity = districtsData?.filter(d => d.cityId === selectedCityId) ?? [];
   // Entrance access check (only when district, blok, vhod are filled)
   const normalizedVhod = vhod ? normalizeEntrance(vhod) : "";
   const { data: entranceCheck } = trpc.entranceAccess.check.useQuery(
@@ -536,6 +539,31 @@ if (selectedType !== "nonstandard" && selectedType !== "construction") {
               />
             </div>
 
+            {/* City */}
+            <div className="space-y-1.5">
+              <Label className="text-sm font-semibold">
+                {isBg ? "Град *" : "City *"}
+              </Label>
+              <div className="flex gap-2 flex-wrap">
+                {citiesData?.map((city) => (
+                  <button
+                    key={city.id}
+                    type="button"
+                    disabled={!city.isActive}
+                    onClick={() => { setSelectedCityId(city.id); setDistrict(""); }}
+                    className={`px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
+                      !city.isActive
+                        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                        : selectedCityId === city.id
+                          ? "bg-primary text-white"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    {city.name}
+                  </button>
+                ))}
+              </div>
+            </div>
             {/* District */}
             <div className="space-y-1.5">
               <Label className="text-sm font-semibold">
@@ -559,7 +587,7 @@ if (selectedType !== "nonstandard" && selectedType !== "construction") {
                     <CommandList>
                       <CommandEmpty>{isBg ? "Няма намерен квартал" : "No district found"}</CommandEmpty>
                       <CommandGroup>
-                        {districtsData?.map((d) => (
+                        {districtsForCity.map((d) => (
                           <CommandItem
                             key={d.id}
                             value={d.name}

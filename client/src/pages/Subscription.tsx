@@ -71,8 +71,10 @@ export default function Subscription() {
   const [editAddress, setEditAddress] = useState(false);
   const [district, setDistrict] = useState("");
   const [districtOpen, setDistrictOpen] = useState(false);
+  const { data: citiesData } = trpc.cities.list.useQuery();
+  const [selectedCityId, setSelectedCityId] = useState<number | null>(null);
   const { data: districtsData } = trpc.districts.list.useQuery();
-  const districts = districtsData?.filter(d => d.isActive) ?? [];
+  const districts = districtsData?.filter(d => d.isActive && d.cityId === selectedCityId) ?? [];
   const [blok, setBlok] = useState("");
   const [vhod, setVhod] = useState("");
   const [etaj, setEtaj] = useState("");
@@ -424,6 +426,25 @@ export default function Subscription() {
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-2">
+                  <div className="col-span-2 flex gap-2 flex-wrap">
+                    {citiesData?.map((city) => (
+                      <button
+                        key={city.id}
+                        type="button"
+                        disabled={!city.isActive}
+                        onClick={() => { setSelectedCityId(city.id); setDistrict(""); }}
+                        className={`px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
+                          !city.isActive
+                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                            : selectedCityId === city.id
+                              ? "bg-primary text-white"
+                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        }`}
+                      >
+                        {city.name}
+                      </button>
+                    ))}
+                  </div>
                   <div className="col-span-2">
                     <Popover open={districtOpen} onOpenChange={setDistrictOpen}>
                       <PopoverTrigger asChild>
