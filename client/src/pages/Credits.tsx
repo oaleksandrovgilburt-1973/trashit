@@ -7,7 +7,7 @@ import MainLayout from "@/components/MainLayout";
 import { toast } from "sonner";
 import {
   ArrowLeft, Star, Recycle, Gift, History, CheckCircle2,
-  ArrowRight, Coins, Send, Clock
+  ArrowRight, Coins, Send, Clock, CalendarDays
 } from "lucide-react";
 import { StandardCoin, RecyclingCoin } from "@/components/CreditCoin";
 
@@ -231,18 +231,23 @@ export default function Credits() {
             {/* Subscription promo card */}
             <button
               onClick={() => navigate("/subscription")}
-              className="w-full flex items-center justify-between gap-3 rounded-2xl border-2 border-blue-200 bg-blue-50 p-4 text-left hover:border-blue-400 transition-colors"
+              className="w-full flex items-center justify-between gap-3 rounded-2xl border-2 border-primary bg-gradient-to-br from-primary/10 to-primary/5 p-5 text-left hover:from-primary/15 hover:to-primary/10 hover:shadow-md transition-all"
             >
-              <div>
-                <p className="text-sm font-bold text-blue-800">📅 {isBg ? "Или изберете месечен абонамент" : "Or choose a monthly subscription"}</p>
-                <p className="text-xs text-blue-700 mt-0.5">
-                  {isBg ? "Редовни посещения, без да купувате кредити всеки път" : "Regular visits, no need to buy credits each time"}
-                  {subPrices?.standard["15"]?.price && (
-                    <> — {isBg ? "от" : "from"} <strong>{subPrices.standard["15"].price.toFixed(2)} €/{isBg ? "мес" : "mo"}</strong></>
-                  )}
-                </p>
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-primary flex items-center justify-center flex-shrink-0 shadow-sm">
+                  <CalendarDays className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-foreground">{isBg ? "Или изберете месечен абонамент" : "Or choose a monthly subscription"}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {isBg ? "Редовни посещения, без да купувате кредити всеки път" : "Regular visits, no need to buy credits each time"}
+                    {subPrices?.standard["15"]?.price && (
+                      <> — {isBg ? "от" : "from"} <strong className="text-primary">{subPrices.standard["15"].price.toFixed(2)} €/{isBg ? "мес" : "mo"}</strong></>
+                    )}
+                  </p>
+                </div>
               </div>
-              <ArrowRight className="w-4 h-4 text-blue-600 flex-shrink-0" />
+              <ArrowRight className="w-5 h-5 text-primary flex-shrink-0" />
             </button>
             {/* Credit type toggle */}
             <div className="flex bg-gray-100 rounded-2xl p-1 gap-1">
