@@ -320,6 +320,13 @@ export type EntranceAccess = typeof entranceAccess.$inferSelect;
 export type InsertEntranceAccess = typeof entranceAccess.$inferInsert;
 
 // ─── Activity Descriptions (admin-managed per activity key) ──────────────────
+export const usedBonusIdentifiers = mysqlTable("used_bonus_identifiers", {
+  id: int("id").autoincrement().primaryKey(),
+  identifierHash: varchar("identifierHash", { length: 128 }).notNull().unique(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type UsedBonusIdentifier = typeof usedBonusIdentifiers.$inferSelect;
+export type InsertUsedBonusIdentifier = typeof usedBonusIdentifiers.$inferInsert;
 export const activityDescriptions = mysqlTable("activity_descriptions", {
   id: int("id").autoincrement().primaryKey(),
   activityKey: varchar("activityKey", { length: 64 }).notNull().unique(),

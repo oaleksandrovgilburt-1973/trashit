@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { eq, and, asc, desc, gte } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
@@ -14,6 +15,7 @@ import {
   workerDistricts,
   workerQuotes, InsertWorkerQuote, WorkerQuote,
   activityDescriptions,
+  usedBonusIdentifiers,
   entranceAccess, EntranceAccess, InsertEntranceAccess,
   subAdmins, SubAdmin, InsertSubAdmin,
   subscriptions, subscriptionVisits, workerSubscriptionPrefs,
@@ -90,6 +92,25 @@ export async function getUserByPhone(phone: string) {
   if (!db) return undefined;
   const result = await db.select().from(users).where(eq(users.phone, phone)).limit(1);
   return result[0];
+}
+// ─── Bonus abuse prevention (hashed identifiers, no plaintext stored) ─────────
+function hashIdentifier(value: string): string {
+  const pepper = process.env.BONUS_HASH_PEPPER ?? "";
+  const normalized = value.trim().toLowerCase();
+  return crypto.createHmac("sha256", pepper).update(normalized).digest("hex");
+}
+export async function hasUsedBonus(identifier: string): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  const hash = hashIdentifier(identifier);
+  const result = await db.select().from(usedBonusIdentifiers).where(eq(usedBonusIdentifiers.identifierHash, hash)).limit(1);
+  return result.length > 0;
+}
+export async function markBonusUsed(identifier: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  const hash = hashIdentifier(identifier);
+  await db.insert(usedBonusIdentifiers).values({ identifierHash: hash }).onDuplicateKeyUpdate({ set: { identifierHash: hash } });
 }
 
 export async function getAllUsers() {

@@ -16,7 +16,7 @@ import { protectedProcedure, publicProcedure, router } from "./_core/trpc"; // p
 import Stripe from "stripe";
 import {
   getAllSettings, getAllUsers, getAllWorkers,
-  getAdminConfig, getUserByEmail, getUserByPhone, getUserByOpenId,
+  getAdminConfig, getUserByEmail, getUserByPhone, getUserByOpenId, hasUsedBonus, markBonusUsed,
   getUsersByRole, getSetting, getWorkerByOpenId,
   getWorkerByUsername, getWorkerSession, getWorkerSessionCount,
   addWorkerSession, removeOldestWorkerSession,
@@ -175,6 +175,11 @@ export const appRouter = router({
         }
         const passwordHash = await bcrypt.hash(input.password, 10);
         const openId = `email_${nanoid(16)}`;
+        const emailUsedBonus = await hasUsedBonus(input.email);
+        const phoneUsedBonus = await hasUsedBonus(input.phone);
+        const alreadyUsedBonus = emailUsedBonus || phoneUsedBonus;
+        if (!emailUsedBonus) await markBonusUsed(input.email);
+        if (!phoneUsedBonus) await markBonusUsed(input.phone);
         await upsertUser({
           openId,
           name: input.name,
@@ -183,16 +188,16 @@ export const appRouter = router({
           passwordHash,
           loginMethod: "email",
           role: "user",
-          creditsStandard: BONUS_CREDITS,
-          credits: BONUS_CREDITS,
-          bonusGranted: true,
+          creditsStandard: alreadyUsedBonus ? "0" : BONUS_CREDITS,
+          credits: alreadyUsedBonus ? "0" : BONUS_CREDITS,
+          bonusGranted: !alreadyUsedBonus,
           isFirstLogin: false,
           lastSignedIn: new Date(),
         });
         const sessionToken = await sdk.createSessionToken(openId, { name: input.name, expiresInMs: ONE_YEAR_MS });
         const cookieOptions = getSessionCookieOptions(ctx.req);
         ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
-        return { success: true, bonusCredits: BONUS_CREDITS, openId };
+        return { success: true, bonusCredits: alreadyUsedBonus ? 0 : BONUS_CREDITS, openId };
       }),
 
     login: publicProcedure
@@ -230,6 +235,10 @@ export const appRouter = router({
         }
         const passwordHash = await bcrypt.hash(input.password, 10);
         const openId = `phone_${nanoid(16)}`;
+        const alreadyUsedBonus = await hasUsedBonus(input.phone);
+        if (!alreadyUsedBonus) {
+          await markBonusUsed(input.phone);
+        }
         await upsertUser({
           openId,
           name: input.name,
@@ -237,9 +246,9 @@ export const appRouter = router({
           passwordHash,
           loginMethod: "phone",
           role: "user",
-          creditsStandard: BONUS_CREDITS,
-          credits: BONUS_CREDITS,
-          bonusGranted: true,
+          creditsStandard: alreadyUsedBonus ? "0" : BONUS_CREDITS,
+          credits: alreadyUsedBonus ? "0" : BONUS_CREDITS,
+          bonusGranted: !alreadyUsedBonus,
           isFirstLogin: false,
           lastSignedIn: new Date(),
         });
@@ -304,15 +313,17 @@ export const appRouter = router({
         const existing = await getUserByOpenId(openId);
         const wasDeleted = existing?.isDeleted === true;
         if (!existing) {
+          const emailUsedBonus = email ? await hasUsedBonus(email) : false;
+          if (email && !emailUsedBonus) await markBonusUsed(email);
           await upsertUser({
             openId,
             name: name ?? null,
             email: email ?? null,
             loginMethod: "google",
             role: "user",
-            creditsStandard: BONUS_CREDITS,
-            credits: BONUS_CREDITS,
-            bonusGranted: true,
+            creditsStandard: emailUsedBonus ? "0" : BONUS_CREDITS,
+            credits: emailUsedBonus ? "0" : BONUS_CREDITS,
+            bonusGranted: !emailUsedBonus,
             isFirstLogin: false,
             lastSignedIn: new Date(),
           });
