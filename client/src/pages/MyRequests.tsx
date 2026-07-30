@@ -278,7 +278,7 @@ export default function MyRequests() {
             </h1>
           </div>
           <Button
-            onClick={() => navigate("/waste-disposal")}
+            onClick={() => navigate("/")}
             size="sm"
             className="rounded-xl bg-primary hover:bg-primary/90 gap-1"
           >
@@ -320,7 +320,7 @@ export default function MyRequests() {
             <p className="text-gray-500 mb-4">
               {isBg ? "Нямате активни заявки" : "No active requests"}
             </p>
-            <Button onClick={() => navigate("/waste-disposal")} className="rounded-2xl bg-primary hover:bg-primary/90">
+            <Button onClick={() => navigate("/")} className="rounded-2xl bg-primary hover:bg-primary/90">
               {isBg ? "Подай заявка" : "Submit Request"}
             </Button>
           </div>
