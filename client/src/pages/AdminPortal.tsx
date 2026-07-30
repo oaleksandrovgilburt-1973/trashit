@@ -1,5 +1,5 @@
 import { normalizeEntrance } from "../../../shared/bgAlphabet";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import {
   PowerOff, CheckCircle, Phone, Mail, ChevronRight,
   RefreshCw, Eye, Send, ShieldAlert, Pencil, Save, LayoutDashboard,
   FileText, UserCheck, Search, ChevronDown, ChevronUp, Coins, History,
-  Shield, Lock, DollarSign, CalendarDays, CheckCheck, X, KeyRound, BarChart2, XCircle
+  Shield, Lock, DollarSign, CalendarDays, CheckCheck, X, KeyRound, BarChart2, XCircle, Camera
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import AdminDashboard from "@/components/AdminDashboard";
@@ -143,6 +143,34 @@ function WorkersTab() {
     onSuccess: () => { toast.success("Работникът е изтрит"); refetch(); setExpandedWorker(null); },
     onError: (e: any) => toast.error(e.message),
   });
+  const updatePhoto = trpc.workersMgmt.updatePhoto.useMutation({
+    onSuccess: () => { toast.success("Снимката е обновена"); refetch(); },
+    onError: (e: any) => toast.error(e.message),
+  });
+  const fileInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
+  const handlePhotoUpload = (workerOpenId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const canvas = document.createElement("canvas");
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      img.onload = () => {
+        const MAX = 400;
+        let w = img.width, h = img.height;
+        if (w > MAX || h > MAX) {
+          if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+          else { w = Math.round(w * MAX / h); h = MAX; }
+        }
+        canvas.width = w; canvas.height = h;
+        canvas.getContext("2d")!.drawImage(img, 0, 0, w, h);
+        const compressed = canvas.toDataURL("image/jpeg", 0.8);
+        updatePhoto.mutate({ workerOpenId, photoUrl: compressed });
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
   const { data: allRequests } = trpc.requests.listAll.useQuery();
 
   return (
@@ -200,13 +228,30 @@ function WorkersTab() {
             <div key={worker.id} className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  {(worker as any).photoUrl ? (
-                    <img src={(worker as any).photoUrl} alt={worker.name} className="w-11 h-11 rounded-xl object-cover border border-gray-200" />
-                  ) : (
-                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-white font-bold text-lg ${worker.isActive ? "bg-green-500" : "bg-gray-400"}`}>
-                      {worker.name.charAt(0).toUpperCase()}
-                    </div>
-                  )}
+                  <div className="relative group flex-shrink-0">
+                    {(worker as any).photoUrl ? (
+                      <img src={(worker as any).photoUrl} alt={worker.name} className="w-11 h-11 rounded-xl object-cover border border-gray-200" />
+                    ) : (
+                      <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-white font-bold text-lg ${worker.isActive ? "bg-green-500" : "bg-gray-400"}`}>
+                        {worker.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => fileInputRefs.current[worker.id]?.click()}
+                      className="absolute -bottom-1 -right-1 w-5 h-5 bg-white border border-gray-300 rounded-full flex items-center justify-center shadow-sm hover:bg-gray-50"
+                      title="Смени снимката"
+                    >
+                      <Camera className="w-3 h-3 text-gray-600" />
+                    </button>
+                    <input
+                      ref={el => { fileInputRefs.current[worker.id] = el; }}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handlePhotoUpload(worker.openId, e)}
+                    />
+                  </div>
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold text-gray-900">{worker.name}</span>

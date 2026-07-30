@@ -1576,6 +1576,12 @@ export const appRouter = router({
         await deleteWorker(input.id);
         return { success: true };
       }),
+    updatePhoto: adminProcedure
+      .input(z.object({ workerOpenId: z.string(), photoUrl: z.string().nullable() }))
+      .mutation(async ({ input }) => {
+        await updateWorkerPhoto(input.workerOpenId, input.photoUrl);
+        return { success: true };
+      }),
   }),
   // ── Block Access Management (Admin) ──────────────────────────────────────────
   blockAccess: router({
