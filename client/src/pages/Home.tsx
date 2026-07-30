@@ -21,6 +21,7 @@ export default function Home() {
   // Services popup — shown automatically only for guests (not logged in), once per session
   const [showServicesPopup, setShowServicesPopup] = useState(false);
   const [showHowItWorksPopup, setShowHowItWorksPopup] = useState(false);
+  const [workerModalInfo, setWorkerModalInfo] = useState<{ name: string; number?: number | null; photoUrl?: string | null } | null>(null);
   useEffect(() => {
     if (loading) return;
     if (!user && !sessionStorage.getItem("trashit_services_popup_seen")) {
@@ -290,7 +291,15 @@ export default function Home() {
                           {isBg ? "В изпълнение" : "In progress"}
                         </p>
                         {(req as any).assignedWorkerName && (
-                          <div className="flex items-center gap-1.5 mt-1">
+                          <button
+                            type="button"
+                            onClick={() => setWorkerModalInfo({
+                              name: (req as any).assignedWorkerName,
+                              number: (req as any).assignedWorkerNumber,
+                              photoUrl: (req as any).workerPhotoUrl,
+                            })}
+                            className="flex items-center gap-1.5 mt-1"
+                          >
                             {(req as any).workerPhotoUrl ? (
                               <img src={(req as any).workerPhotoUrl} alt={(req as any).assignedWorkerName} className="w-5 h-5 rounded-full object-cover flex-shrink-0" />
                             ) : (
@@ -302,7 +311,7 @@ export default function Home() {
                               {(req as any).assignedWorkerName}
                               {(req as any).assignedWorkerNumber && <span className="text-gray-400"> · №{(req as any).assignedWorkerNumber}</span>}
                             </span>
-                          </div>
+                          </button>
                         )}
                       </div>
                     )}
@@ -542,6 +551,33 @@ export default function Home() {
           <a href="/refund" className="hover:text-primary transition-colors">{isBg ? "Политика за възстановяване" : "Refund Policy"}</a>
         </div>
       </footer>
+      {/* Worker info modal */}
+      {workerModalInfo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setWorkerModalInfo(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs p-6 text-center relative" onClick={e => e.stopPropagation()}>
+            <button
+              onClick={() => setWorkerModalInfo(null)}
+              className="absolute top-3 right-3 p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            {workerModalInfo.photoUrl ? (
+              <img src={workerModalInfo.photoUrl} alt={workerModalInfo.name} className="w-24 h-24 rounded-full object-cover border-4 border-primary/20 mx-auto mb-4" />
+            ) : (
+              <div className="w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4">
+                <span className="text-primary font-bold text-3xl">{workerModalInfo.name.charAt(0).toUpperCase()}</span>
+              </div>
+            )}
+            <h3 className="text-lg font-bold text-gray-900">{workerModalInfo.name}</h3>
+            {workerModalInfo.number && (
+              <p className="text-sm text-gray-500 mt-1">{isBg ? "Работник №" : "Worker No."}{workerModalInfo.number}</p>
+            )}
+            <p className="text-xs text-primary font-medium mt-3 bg-primary/10 rounded-xl py-2">
+              {isBg ? "Работник в изпълнение" : "Worker in progress"}
+            </p>
+          </div>
+        </div>
+      )}
     </MainLayout>
   );
 }
