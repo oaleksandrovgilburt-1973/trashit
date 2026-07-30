@@ -136,7 +136,7 @@ export default function SubAdminPortal() {
         {currentTab === "dashboard" && session.permissions.includes("dashboard") && <AdminDashboard />}
         {currentTab === "clients" && session.permissions.includes("clients") && <ClientsTab />}
         {currentTab === "workers" && session.permissions.includes("workers") && <WorkersTab />}
-        {currentTab === "districts" && session.permissions.includes("districts") && <DistrictsTab />}
+        {currentTab === "districts" && session.permissions.includes("districts") && <DistrictsTab subAdminId={session.id} />}
         {currentTab === "blocks" && session.permissions.includes("blocks") && <BlocksTab />}
         {currentTab === "credits" && session.permissions.includes("credits") && <CreditsTab />}
         {currentTab === "requests" && session.permissions.includes("requests") && <RequestsTab />}
@@ -305,10 +305,13 @@ function WorkersTab() {
 }
 
 // ─── DistrictsTab ─────────────────────────────────────────────────────────────
-function DistrictsTab() {
+function DistrictsTab({ subAdminId }: { subAdminId: number }) {
   const [newDistrict, setNewDistrict] = useState("");
+  const [selectedCityId, setSelectedCityId] = useState<number | null>(null);
   const utils = trpc.useUtils();
+  const { data: myCities = [] } = trpc.subAdmins.myCities.useQuery({ id: subAdminId });
   const { data: districts = [], isLoading } = trpc.districts.listAll.useQuery();
+  const districtsForCity = (districts as any[]).filter(d => d.cityId === selectedCityId);
   const createDistrict = trpc.districts.create.useMutation({
     onSuccess: () => { utils.districts.listAll.invalidate(); setNewDistrict(""); toast.success("Кварталът е добавен."); },
     onError: (e: any) => toast.error(e.message),
@@ -324,17 +327,36 @@ function DistrictsTab() {
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-bold text-gray-900">Квартали</h2>
+      <div className="flex gap-2 flex-wrap">
+        {(myCities as any[]).map(city => (
+          <button
+            key={city.id}
+            type="button"
+            onClick={() => setSelectedCityId(city.id)}
+            className={`px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
+              selectedCityId === city.id
+                ? "bg-[#4CAF50] text-white"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+          >
+            {city.name}
+          </button>
+        ))}
+      </div>
+      {(myCities as any[]).length === 0 && (
+        <p className="text-sm text-gray-400">Нямате назначени градове. Свържете се с администратора.</p>
+      )}
       <div className="bg-white rounded-2xl border border-gray-200 p-4 flex gap-2">
         <Input placeholder="Добави нов квартал..." value={newDistrict} onChange={e => setNewDistrict(e.target.value)}
-          onKeyDown={e => e.key === "Enter" && newDistrict && createDistrict.mutate({ name: newDistrict })} />
-        <Button onClick={() => newDistrict && createDistrict.mutate({ name: newDistrict })}
-          disabled={!newDistrict || createDistrict.isPending} className="rounded-xl bg-[#4CAF50] hover:bg-green-600 text-white">
+          onKeyDown={e => e.key === "Enter" && newDistrict && selectedCityId && createDistrict.mutate({ name: newDistrict, cityId: selectedCityId })} />
+        <Button onClick={() => newDistrict && selectedCityId && createDistrict.mutate({ name: newDistrict, cityId: selectedCityId })}
+          disabled={!newDistrict || !selectedCityId || createDistrict.isPending} className="rounded-xl bg-[#4CAF50] hover:bg-green-600 text-white">
           <Plus className="w-4 h-4 mr-1" />Добави
         </Button>
       </div>
       {isLoading ? <p className="text-gray-500">Зареждане...</p> : (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-          {(districts as any[]).map((d: any) => (
+          {districtsForCity.map((d: any) => (
             <div key={d.id}
               className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all hover:shadow-sm select-none ${
                 d.isActive ? "bg-green-50 border-green-200 text-green-800" : "bg-red-50 border-red-200 text-red-700"

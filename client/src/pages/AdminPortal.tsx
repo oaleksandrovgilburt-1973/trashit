@@ -946,6 +946,11 @@ function RequestsTab() {
   const [view, setView] = useState<"active" | "completed">("active");
   const adminSession = typeof window !== "undefined" ? localStorage.getItem("admin_session") : null;
   const [openDates, setOpenDates] = useState<Set<string>>(new Set());
+  const [selectedCityId, setSelectedCityId] = useState<number | null>(null);
+  const { data: citiesData } = trpc.cities.list.useQuery();
+  const { data: districtsData } = trpc.districts.listAll.useQuery();
+  const districtCityMap = new Map<string, number>();
+  (districtsData ?? []).forEach((d: any) => districtCityMap.set(d.name, d.cityId));
   const { data: allRequests } = trpc.requests.listAll.useQuery();
   const cancelRequest = trpc.requests.adminCancel.useMutation({
     onSuccess: () => { toast.success("Заявката е отказана"); refetchRequests(); },
@@ -956,8 +961,9 @@ function RequestsTab() {
     onError: (e: any) => toast.error(e.message),
   });
 
-  const active = allRequests?.filter(r => r.status === "pending") ?? [];
-  const completed = allRequests?.filter(r => r.status === "completed") ?? [];
+  const cityFilter = (r: any) => !selectedCityId || districtCityMap.get(r.district) === selectedCityId;
+  const active = (allRequests?.filter(r => r.status === "pending") ?? []).filter(cityFilter);
+  const completed = (allRequests?.filter(r => r.status === "completed") ?? []).filter(cityFilter);
 
   const completedByDate: { date: string; label: string; items: typeof completed }[] = (() => {
     const map: Record<string, typeof completed> = {};
@@ -999,6 +1005,27 @@ function RequestsTab() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h2 className="text-xl font-bold text-gray-900">Управление на заявки</h2>
+        <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={() => setSelectedCityId(null)}
+            className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-colors ${
+              selectedCityId === null ? "bg-primary text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            Всички градове
+          </button>
+          {citiesData?.map((city: any) => (
+            <button
+              key={city.id}
+              onClick={() => setSelectedCityId(city.id)}
+              className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-colors ${
+                selectedCityId === city.id ? "bg-primary text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              {city.name}
+            </button>
+          ))}
+        </div>
         <div className="flex gap-2">
           <Button variant={view === "active" ? "default" : "outline"} size="sm" onClick={() => setView("active")}
             className={`rounded-xl ${view === "active" ? "bg-green-600 hover:bg-green-700" : ""}`}>
