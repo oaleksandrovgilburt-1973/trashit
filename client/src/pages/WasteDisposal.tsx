@@ -91,6 +91,7 @@ export default function WasteDisposal() {
   const [showSaveAddress, setShowSaveAddress] = useState(false);
   const [selectedType, setSelectedType] = useState<WasteType | null>(null);
   const [showWarning, setShowWarning] = useState(false);
+  const [cameFromDirectLink, setCameFromDirectLink] = useState(false);
   const [animating, setAnimating] = useState(false);
 
   // Pre-select type from URL param (e.g. ?type=standard)
@@ -100,6 +101,7 @@ export default function WasteDisposal() {
     if (typeParam && WASTE_TYPES.find(w => w.id === typeParam)) {
       const wt = WASTE_TYPES.find(w => w.id === typeParam)!;
       setSelectedType(typeParam);
+      setCameFromDirectLink(true);
       if (wt.warningBg) {
         setShowWarning(true);
       } else {
@@ -410,7 +412,7 @@ if (selectedType !== "nonstandard" && selectedType !== "construction") {
               {isBg ? selectedWasteType.warningBg : selectedWasteType.warningEn}
             </p>
             <div className="flex gap-3 justify-center">
-              <Button variant="outline" onClick={() => { setShowWarning(false); setStep("select"); }}>
+              <Button variant="outline" onClick={() => { if (cameFromDirectLink) { navigate("/"); } else { setShowWarning(false); setStep("select"); } }}>
                 {isBg ? "Назад" : "Back"}
               </Button>
               <Button onClick={() => { setShowWarning(false); setStep("form"); }} className="bg-primary hover:bg-primary/90">
