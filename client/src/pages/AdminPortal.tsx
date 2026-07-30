@@ -1,5 +1,5 @@
 import { normalizeEntrance } from "../../../shared/bgAlphabet";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import AdminDashboard from "@/components/AdminDashboard";
 
-type Tab = "dashboard" | "workers" | "districts" | "blocks" | "credits" | "requests" | "content" | "problems" | "descriptions" | "clients" | "subadmins" | "reports" | "subscriptions";
+type Tab = "dashboard" | "workers" | "cities" | "districts" | "blocks" | "credits" | "requests" | "content" | "problems" | "descriptions" | "clients" | "subadmins" | "reports" | "subscriptions";
 
 export default function AdminPortal() {
   const [, navigate] = useLocation();
@@ -36,6 +36,7 @@ export default function AdminPortal() {
     { id: "dashboard", icon: LayoutDashboard, label: "Табло" },
     { id: "clients", icon: UserCheck, label: "Клиенти" },
     { id: "workers", icon: Users, label: "Работници" },
+    { id: "cities", icon: MapPin, label: "Градове" },
     { id: "districts", icon: MapPin, label: "Квартали" },
     { id: "blocks", icon: Building2, label: "Блокове" },
     { id: "credits", icon: CreditCard, label: "Кредити" },
@@ -102,6 +103,7 @@ export default function AdminPortal() {
         {activeTab === "dashboard" && <AdminDashboard />}
         {activeTab === "clients" && <ClientsTab />}
         {activeTab === "workers" && <WorkersTab />}
+        {activeTab === "cities" && <CitiesTab />}
         {activeTab === "districts" && <DistrictsTab />}
         {activeTab === "blocks" && <BlocksTab />}
         {activeTab === "credits" && <CreditsTab />}
@@ -278,10 +280,96 @@ function WorkersTab() {
 }
 
 // ─── Tab 2: Districts ─────────────────────────────────────────────────────────
+function CitiesTab() {
+  const [newCity, setNewCity] = useState("");
+  const [search, setSearch] = useState("");
+
+  const { data: citiesData, refetch } = trpc.cities.list.useQuery();
+  const toggle = trpc.cities.toggleActive.useMutation({ onSuccess: () => refetch(), onError: (e: any) => toast.error(e.message) });
+  const create = trpc.cities.create.useMutation({
+    onSuccess: () => { toast.success("Градът е добавен"); setNewCity(""); refetch(); },
+    onError: (e: any) => toast.error(e.message),
+  });
+  const del = trpc.cities.delete.useMutation({ onSuccess: () => { toast.success("Изтрит"); refetch(); }, onError: (e: any) => toast.error(e.message) });
+
+  const filtered = citiesData?.filter(c => c.name.toLowerCase().includes(search.toLowerCase())) ?? [];
+  const activeCount = citiesData?.filter(c => c.isActive).length ?? 0;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">Управление на градове</h2>
+          <p className="text-sm text-gray-500 mt-0.5">
+            <span className="text-green-600 font-semibold">{activeCount} одобрени</span>
+            {" · "}
+            <span className="text-red-500 font-semibold">{(citiesData?.length ?? 0) - activeCount} неодобрени</span>
+            {" · "}само одобрените се показват в заявките
+          </p>
+        </div>
+        <Input placeholder="Търси град..." value={search} onChange={e => setSearch(e.target.value)} className="rounded-xl w-48" />
+      </div>
+
+      <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm flex gap-2">
+        <Input
+          placeholder="Добави нов град..."
+          value={newCity}
+          onChange={e => setNewCity(e.target.value)}
+          className="rounded-xl flex-1"
+          onKeyDown={e => e.key === "Enter" && newCity && create.mutate({ name: newCity })}
+        />
+        <Button onClick={() => newCity && create.mutate({ name: newCity })}
+          disabled={!newCity || create.isPending} className="bg-green-600 hover:bg-green-700 rounded-xl">
+          <Plus className="w-4 h-4 mr-1" />Добави
+        </Button>
+      </div>
+
+      <div className="flex gap-4 text-sm bg-white rounded-xl p-3 border border-gray-200">
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded-full bg-green-500" />
+          <span className="text-gray-600">Одобрен — показва се в заявките</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded-full bg-red-400" />
+          <span className="text-gray-600">Неодобрен — скрит от клиентите</span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+        {filtered.map(city => (
+          <div key={city.id}
+            className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all hover:shadow-sm select-none ${
+              city.isActive ? "bg-green-50 border-green-200 text-green-800" : "bg-red-50 border-red-200 text-red-700"
+            }`}
+            onClick={() => toggle.mutate({ id: city.id, isActive: !city.isActive })}
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${city.isActive ? "bg-green-500" : "bg-red-400"}`} />
+              <span className="text-sm font-medium truncate">{city.name}</span>
+            </div>
+            <button onClick={e => { e.stopPropagation(); if (confirm("Изтрий града?")) del.mutate({ id: city.id }); }}
+              className="ml-1 text-gray-400 hover:text-red-500 flex-shrink-0">
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ))}
+      </div>
+      {!filtered.length && (
+        <div className="text-center py-8 text-gray-400">
+          <MapPin className="w-10 h-10 mx-auto mb-2 opacity-30" />
+          <p>Няма намерени градове</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function DistrictsTab() {
   const [newDistrict, setNewDistrict] = useState("");
   const [search, setSearch] = useState("");
+  const [selectedCityId, setSelectedCityId] = useState<number | null>(null);
 
+  const { data: citiesData } = trpc.cities.list.useQuery();
   const { data: districts, refetch } = trpc.districts.listAll.useQuery();
   const toggle = trpc.districts.toggleActive.useMutation({ onSuccess: () => refetch(), onError: (e: any) => toast.error(e.message) });
   const create = trpc.districts.create.useMutation({
@@ -290,8 +378,15 @@ function DistrictsTab() {
   });
   const del = trpc.districts.delete.useMutation({ onSuccess: () => { toast.success("Изтрит"); refetch(); }, onError: (e: any) => toast.error(e.message) });
 
-  const filtered = districts?.filter(d => d.name.toLowerCase().includes(search.toLowerCase())) ?? [];
-  const activeCount = districts?.filter(d => d.isActive).length ?? 0;
+  useEffect(() => {
+    if (!selectedCityId && citiesData && citiesData.length > 0) {
+      setSelectedCityId(citiesData[0].id);
+    }
+  }, [citiesData, selectedCityId]);
+
+  const districtsForCity = districts?.filter(d => d.cityId === selectedCityId) ?? [];
+  const filtered = districtsForCity.filter(d => d.name.toLowerCase().includes(search.toLowerCase()));
+  const activeCount = districtsForCity.filter(d => d.isActive).length;
 
   return (
     <div className="space-y-6">
@@ -308,16 +403,33 @@ function DistrictsTab() {
         <Input placeholder="Търси квартал..." value={search} onChange={e => setSearch(e.target.value)} className="rounded-xl w-48" />
       </div>
 
+      {/* City selector */}
+      <div className="flex gap-2 flex-wrap">
+        {citiesData?.map(city => (
+          <button
+            key={city.id}
+            onClick={() => setSelectedCityId(city.id)}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+              selectedCityId === city.id
+                ? "bg-primary text-white"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            {city.name}
+          </button>
+        ))}
+      </div>
+
       <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm flex gap-2">
         <Input
           placeholder="Добави нов квартал..."
           value={newDistrict}
           onChange={e => setNewDistrict(e.target.value)}
           className="rounded-xl flex-1"
-          onKeyDown={e => e.key === "Enter" && newDistrict && create.mutate({ name: newDistrict })}
+          onKeyDown={e => e.key === "Enter" && newDistrict && selectedCityId && create.mutate({ name: newDistrict, cityId: selectedCityId })}
         />
-        <Button onClick={() => newDistrict && create.mutate({ name: newDistrict })}
-          disabled={!newDistrict || create.isPending} className="bg-green-600 hover:bg-green-700 rounded-xl">
+        <Button onClick={() => newDistrict && selectedCityId && create.mutate({ name: newDistrict, cityId: selectedCityId })}
+          disabled={!newDistrict || !selectedCityId || create.isPending} className="bg-green-600 hover:bg-green-700 rounded-xl">
           <Plus className="w-4 h-4 mr-1" />Добави
         </Button>
       </div>
