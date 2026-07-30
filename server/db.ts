@@ -1168,6 +1168,15 @@ export async function claimEntrance(
     return { success: true, alreadyClaimed: false }; // already owned by this worker
   }
   await db.insert(workerAssignments).values({ workerId, workerOpenId, district, blok, vhod });
+  // Mark matching pending requests as assigned to this worker, so clients see worker info
+  await db.update(requests)
+    .set({ workerOpenId, status: "assigned" })
+    .where(and(
+      eq(requests.district, district),
+      eq(requests.blok, blok),
+      eq(requests.vhod, vhod),
+      eq(requests.status, "pending")
+    ));
   return { success: true, alreadyClaimed: false };
 }
 
@@ -1187,6 +1196,16 @@ export async function unclaimEntrance(
       eq(workerAssignments.vhod, vhod),
     )
   );
+  // Revert matching assigned requests back to pending (worker no longer responsible)
+  await db.update(requests)
+    .set({ workerOpenId: null, status: "pending" })
+    .where(and(
+      eq(requests.district, district),
+      eq(requests.blok, blok),
+      eq(requests.vhod, vhod),
+      eq(requests.status, "assigned"),
+      eq(requests.workerOpenId, workerOpenId)
+    ));
 }
 
 export async function getWorkerAssignments(workerOpenId: string): Promise<WorkerAssignment[]> {
