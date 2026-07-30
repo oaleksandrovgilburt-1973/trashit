@@ -285,9 +285,26 @@ export default function Home() {
                       </div>
                     )}
                     {req.status === "assigned" && (
-                      <p className="text-xs text-green-600 font-medium mt-0.5">
-                        {isBg ? "В изпълнение" : "In progress"}
-                      </p>
+                      <div className="mt-1">
+                        <p className="text-xs text-green-600 font-medium">
+                          {isBg ? "В изпълнение" : "In progress"}
+                        </p>
+                        {(req as any).assignedWorkerName && (
+                          <div className="flex items-center gap-1.5 mt-1">
+                            {(req as any).workerPhotoUrl ? (
+                              <img src={(req as any).workerPhotoUrl} alt={(req as any).assignedWorkerName} className="w-5 h-5 rounded-full object-cover flex-shrink-0" />
+                            ) : (
+                              <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                                <span className="text-primary font-bold text-[10px]">{((req as any).assignedWorkerName as string).charAt(0).toUpperCase()}</span>
+                              </div>
+                            )}
+                            <span className="text-xs text-gray-600">
+                              {(req as any).assignedWorkerName}
+                              {(req as any).assignedWorkerNumber && <span className="text-gray-400"> · №{(req as any).assignedWorkerNumber}</span>}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
