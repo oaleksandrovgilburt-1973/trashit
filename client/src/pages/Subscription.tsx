@@ -208,8 +208,8 @@ export default function Subscription() {
           <button onClick={() => navigate("/")} className="p-2 rounded-full hover:bg-gray-100 transition-colors">
             <ChevronLeft className="w-5 h-5 text-gray-600" />
           </button>
-          <div className="w-10 h-10 rounded-2xl bg-blue-100 flex items-center justify-center">
-            <CalendarDays className="w-5 h-5 text-blue-700" />
+          <div className="w-10 h-10 rounded-2xl bg-green-100 flex items-center justify-center">
+            <CalendarDays className="w-5 h-5 text-green-700" />
           </div>
           <div>
             <h1 className="text-xl font-bold">{isBg ? "Месечен абонамент" : "Monthly Subscription"}</h1>
@@ -251,12 +251,12 @@ export default function Subscription() {
                 </div>
               )}
               {nextVisit && (
-                <div className="col-span-2 bg-blue-50 rounded-xl p-3 border border-blue-200">
-                  <p className="text-blue-800 text-xs font-semibold mb-0.5">📅 {isBg ? "Следващо посещение:" : "Next visit:"}</p>
-                  <p className="text-blue-900 font-bold text-sm">
+                <div className="col-span-2 bg-green-50 rounded-xl p-3 border border-green-200">
+                  <p className="text-green-800 text-xs font-semibold mb-0.5">📅 {isBg ? "Следващо посещение:" : "Next visit:"}</p>
+                  <p className="text-green-900 font-bold text-sm">
                     {new Date(nextVisit.visitDate).toLocaleDateString(isBg ? "bg-BG" : "en-GB", { day: "2-digit", month: "long", year: "numeric" })}
                   </p>
-                  <p className="text-blue-700 text-xs mt-0.5">
+                  <p className="text-green-700 text-xs mt-0.5">
                     {isBg ? "след" : "after"} {nextVisit.timeSlot === "morning" ? "08:00" : "20:00"} {isBg ? "часа" : "o'clock"}
                   </p>
                 </div>
@@ -281,7 +281,7 @@ export default function Subscription() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="rounded-xl text-xs border-blue-300 text-blue-600 hover:bg-blue-50"
+                    className="rounded-xl text-xs border-green-300 text-green-600 hover:bg-green-50"
                     onClick={() => {
                       if (confirm(isBg ? "Текущият абонамент ще бъде отказан и ще започне нов. Сигурни ли сте?" : "Current subscription will be cancelled and a new one will start. Are you sure?")) {
                         cancelSub.mutate({ id: activeSub.id });
@@ -311,14 +311,14 @@ export default function Subscription() {
                     key={t}
                     onClick={() => setType(t)}
                     className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${
-                      type === t ? "border-blue-500 bg-blue-50" : "border-border bg-background hover:border-blue-200"
+                      type === t ? "border-green-500 bg-green-50" : "border-border bg-background hover:border-green-200"
                     }`}
                   >
                     {t === "standard"
-                      ? <Trash2 className={`w-6 h-6 ${type === t ? "text-blue-600" : "text-muted-foreground"}`} />
-                      : <Recycle className={`w-6 h-6 ${type === t ? "text-blue-600" : "text-muted-foreground"}`} />
+                      ? <Trash2 className={`w-6 h-6 ${type === t ? "text-green-600" : "text-muted-foreground"}`} />
+                      : <Recycle className={`w-6 h-6 ${type === t ? "text-green-600" : "text-muted-foreground"}`} />
                     }
-                    <span className={`text-sm font-medium ${type === t ? "text-blue-700" : "text-foreground"}`}>
+                    <span className={`text-sm font-medium ${type === t ? "text-green-700" : "text-foreground"}`}>
                       {TYPE_LABELS[t]}
                     </span>
                   </button>
@@ -335,18 +335,18 @@ export default function Subscription() {
                     key={v}
                     onClick={() => setVisits(v)}
                     className={`flex flex-col items-center gap-1 p-4 rounded-2xl border-2 transition-all ${
-                      visits === v ? "border-blue-500 bg-blue-50" : "border-border bg-background hover:border-blue-200"
+                      visits === v ? "border-green-500 bg-green-50" : "border-border bg-background hover:border-green-200"
                     }`}
                   >
-                    <span className={`text-2xl font-black ${visits === v ? "text-blue-700" : "text-foreground"}`}>{v}</span>
-                    <span className={`text-xs ${visits === v ? "text-blue-600" : "text-muted-foreground"}`}>{isBg ? "посещения" : "visits"}</span>
+                    <span className={`text-2xl font-black ${visits === v ? "text-green-700" : "text-foreground"}`}>{v}</span>
+                    <span className={`text-xs ${visits === v ? "text-green-600" : "text-muted-foreground"}`}>{isBg ? "посещения" : "visits"}</span>
                     {OLD_PRICES[type]?.[v] && (
                       <div className="flex items-center gap-1">
                         <span className="text-xs line-through text-gray-400">€{OLD_PRICES[type][v].old.toFixed(2)}</span>
                         <span className="text-xs font-bold bg-red-100 text-red-600 px-1 py-0.5 rounded-full">-{OLD_PRICES[type][v].discount}%</span>
                       </div>
                     )}
-                    <span className={`text-sm font-bold ${visits === v ? "text-blue-700" : "text-muted-foreground"}`}>
+                    <span className={`text-sm font-bold ${visits === v ? "text-green-700" : "text-muted-foreground"}`}>
                       €{PRICES[type][v].toFixed(2)}/{isBg ? "мес" : "mo"}
                     </span>
                   </button>
@@ -365,11 +365,11 @@ export default function Subscription() {
                       key={d}
                       onClick={() => setVisitDays(d)}
                       className={`flex flex-col items-center gap-1 p-4 rounded-2xl border-2 transition-all ${
-                        visitDays === d ? "border-blue-500 bg-blue-50" : "border-border bg-background hover:border-blue-200"
+                        visitDays === d ? "border-green-500 bg-green-50" : "border-border bg-background hover:border-green-200"
                       }`}
                     >
-                      <span className={`text-xl font-black ${visitDays === d ? "text-blue-700" : "text-foreground"}`}>{d === "even" ? "2, 4, 6..." : "1, 3, 5..."}</span>
-                      <span className={`text-xs font-medium ${visitDays === d ? "text-blue-600" : "text-muted-foreground"}`}>
+                      <span className={`text-xl font-black ${visitDays === d ? "text-green-700" : "text-foreground"}`}>{d === "even" ? "2, 4, 6..." : "1, 3, 5..."}</span>
+                      <span className={`text-xs font-medium ${visitDays === d ? "text-green-600" : "text-muted-foreground"}`}>
                         {d === "even" ? (isBg ? "Четни дати" : "Even dates") : (isBg ? "Нечетни дати" : "Odd dates")}
                       </span>
                     </button>
@@ -387,15 +387,15 @@ export default function Subscription() {
                     key={s}
                     onClick={() => setTimeSlot(s)}
                     className={`flex items-center gap-3 p-4 rounded-2xl border-2 transition-all ${
-                      timeSlot === s ? "border-blue-500 bg-blue-50" : "border-border bg-background hover:border-blue-200"
+                      timeSlot === s ? "border-green-500 bg-green-50" : "border-border bg-background hover:border-green-200"
                     }`}
                   >
                     {s === "morning"
                       ? <Sun className={`w-5 h-5 ${timeSlot === s ? "text-yellow-500" : "text-muted-foreground"}`} />
-                      : <Moon className={`w-5 h-5 ${timeSlot === s ? "text-blue-500" : "text-muted-foreground"}`} />
+                      : <Moon className={`w-5 h-5 ${timeSlot === s ? "text-green-500" : "text-muted-foreground"}`} />
                     }
                     <div className="text-left">
-                      <p className={`text-sm font-medium ${timeSlot === s ? "text-blue-700" : "text-foreground"}`}>
+                      <p className={`text-sm font-medium ${timeSlot === s ? "text-green-700" : "text-foreground"}`}>
                         {s === "morning" ? (isBg ? "Сутрин" : "Morning") : (isBg ? "Вечер" : "Evening")}
                       </p>
                       <p className="text-xs text-muted-foreground">{SLOT_LABELS[s]}</p>
@@ -411,7 +411,7 @@ export default function Subscription() {
                 <p className="text-sm font-semibold text-foreground">{isBg ? "Адрес" : "Address"}</p>
                 {!editAddress && (
                   <button
-                    className="text-xs text-blue-600 underline"
+                    className="text-xs text-green-600 underline"
                     onClick={() => setEditAddress(true)}
                   >
                     {isBg ? "Смени" : "Change"}
@@ -499,22 +499,22 @@ export default function Subscription() {
             </div>
 
             {/* Price summary + CTA */}
-            <div className="rounded-2xl bg-blue-600 p-5 text-white space-y-3">
+            <div className="rounded-2xl bg-green-600 p-5 text-white space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-blue-100 text-sm">{isBg ? "Избран план" : "Selected plan"}</p>
+                  <p className="text-green-100 text-sm">{isBg ? "Избран план" : "Selected plan"}</p>
                   <p className="font-bold text-lg">{TYPE_LABELS[type]} — {visits} {isBg ? "посещения" : "visits"}</p>
-                  <p className="text-blue-200 text-sm">{SLOT_LABELS[timeSlot]}</p>
+                  <p className="text-green-200 text-sm">{SLOT_LABELS[timeSlot]}</p>
                 </div>
                 <div className="text-right">
                   {OLD_PRICES[type]?.[visits] && (
                     <div className="flex items-center justify-end gap-1.5 mb-0.5">
-                      <span className="text-sm line-through text-blue-200">€{OLD_PRICES[type][visits].old.toFixed(2)}</span>
+                      <span className="text-sm line-through text-green-200">€{OLD_PRICES[type][visits].old.toFixed(2)}</span>
                       <span className="text-xs font-bold bg-red-500 text-white px-1.5 py-0.5 rounded-full">-{OLD_PRICES[type][visits].discount}%</span>
                     </div>
                   )}
                   <p className="text-3xl font-black">€{price.toFixed(2)}</p>
-                  <p className="text-blue-200 text-xs">/{isBg ? "месец" : "month"}</p>
+                  <p className="text-green-200 text-xs">/{isBg ? "месец" : "month"}</p>
                 </div>
               </div>
               <label className="flex items-center gap-2 bg-white/10 rounded-xl px-3 py-2 cursor-pointer">
@@ -529,7 +529,7 @@ export default function Subscription() {
                 </span>
               </label>
               <Button
-                className="w-full bg-white text-blue-700 hover:bg-blue-50 font-bold rounded-xl"
+                className="w-full bg-white text-green-700 hover:bg-green-50 font-bold rounded-xl"
                 disabled={createCheckout.isPending}
                 onClick={handleSubscribe}
               >
@@ -538,7 +538,7 @@ export default function Subscription() {
                   : <><ChevronRight className="w-4 h-4 mr-1" />{isBg ? "Абонирай се" : "Subscribe"}</>
                 }
               </Button>
-              <p className="text-blue-200 text-xs text-center">
+              <p className="text-green-200 text-xs text-center">
                 {autoRenew
                   ? (isBg ? "Ще се подновява автоматично всеки месец · Отказ по всяко време" : "Renews automatically each month · Cancel anytime")
                   : (isBg ? "Няма да се поднови автоматично след края на периода" : "Will not renew automatically after this period")}
@@ -575,7 +575,7 @@ export default function Subscription() {
 
         {/* Info box */}
         <div className="rounded-2xl bg-secondary border border-border p-4 flex gap-3">
-          <AlertCircle className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
+          <AlertCircle className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
           <div className="text-sm text-muted-foreground space-y-1">
             <p className="font-medium text-foreground">{isBg ? "Как работи абонаментът?" : "How does the subscription work?"}</p>
             <p>{isBg ? "Работник ще посети вашия адрес в избрания часови слот за всяко посещение от плана ви." : "A worker will visit your address in the selected time slot for every visit in your plan."}</p>
