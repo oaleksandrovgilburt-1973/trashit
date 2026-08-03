@@ -2884,7 +2884,7 @@ export const appRouter = router({
         return prefs;
       }),
     setWorkerPref: publicProcedure
-      .input(z.object({ deviceToken: z.string(), acceptsSubscriptions: z.boolean(), acceptsNonstandard: z.boolean() }))
+      .input(z.object({ deviceToken: z.string(), acceptsSubscriptions: z.boolean(), acceptsNonstandard: z.boolean().optional() }))
       .mutation(async ({ input }) => {
         const session = await getWorkerSession(input.deviceToken);
         if (!session) throw new TRPCError({ code: "UNAUTHORIZED", message: "Невалидна сесия." });
