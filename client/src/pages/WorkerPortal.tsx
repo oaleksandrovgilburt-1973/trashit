@@ -904,10 +904,17 @@ function WorkerSubscriptionsTab({ deviceToken, isBg }: { deviceToken: string; is
     onError: (e: { message: string }) => toast.error(e.message),
   });
   const [expandedBlocks, setExpandedBlocks] = useState<Set<string>>(new Set());
+  const [subTab, setSubTab] = useState<"available" | "claimed">("available");
+  const claimEntranceMutation = trpc.workerAssignments.claim.useMutation({
+    onSuccess: () => { todayQ.refetch(); toast.success(isBg ? "Входът е приет!" : "Entrance claimed!"); },
+    onError: (e: { message: string }) => toast.error(e.message),
+  });
   const accepting = prefQ.data?.acceptsSubscriptions ?? false;
   const acceptingNonstandard = prefQ.data?.acceptsNonstandard ?? false;
   const morning = todayQ.data?.morning ?? [];
   const evening = todayQ.data?.evening ?? [];
+  const morningAvailable = (todayQ.data as any)?.morningAvailable ?? [];
+  const eveningAvailable = (todayQ.data as any)?.eveningAvailable ?? [];
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -928,10 +935,112 @@ function WorkerSubscriptionsTab({ deviceToken, isBg }: { deviceToken: string; is
           {isBg ? "Включете превключвателя, за да виждате и изпълнявате абонаментни посещения." : "Enable the toggle to see and complete subscription visits."}
         </div>
       )}
+      {accepting && (
+        <div className="flex bg-gray-100 rounded-2xl p-1 gap-1">
+          <button
+            onClick={() => setSubTab("available")}
+            className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
+              subTab === "available" ? "bg-white shadow text-primary" : "text-muted-foreground"
+            }`}
+          >
+            {isBg ? "Чакащи" : "Available"} ({morningAvailable.length + eveningAvailable.length})
+          </button>
+          <button
+            onClick={() => setSubTab("claimed")}
+            className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
+              subTab === "claimed" ? "bg-white shadow text-primary" : "text-muted-foreground"
+            }`}
+          >
+            {isBg ? "Приети" : "Claimed"} ({morning.length + evening.length})
+          </button>
+        </div>
+      )}
       {accepting && todayQ.isLoading && (
         <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
       )}
-      {accepting && !todayQ.isLoading && (
+      {accepting && !todayQ.isLoading && subTab === "available" && (
+        <>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Sun className="w-4 h-4 text-yellow-500" />
+              <span className="font-semibold text-sm">08:00 – 12:00</span>
+              <Badge variant="secondary" className="text-xs">{morningAvailable.length}</Badge>
+            </div>
+            {morningAvailable.length === 0 ? (
+              <p className="text-sm text-muted-foreground pl-6">{isBg ? "Няма чакащи адреси" : "No available addresses"}</p>
+            ) : (
+              (() => {
+                const grouped: Record<string, typeof morningAvailable> = {};
+                morningAvailable.forEach((visit: any) => {
+                  const sub = visit.subscription;
+                  const key = `${sub?.district}|${sub?.blok}|${sub?.vhod}`;
+                  if (!grouped[key]) grouped[key] = [];
+                  grouped[key].push(visit);
+                });
+                return Object.entries(grouped).map(([key, visits]) => {
+                  const sub = (visits[0] as any).subscription;
+                  return (
+                    <div key={key} className="rounded-2xl border bg-white p-3 flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium">{sub?.district}, Бл. {sub?.blok}, Вх. {sub?.vhod}</p>
+                        <p className="text-xs text-muted-foreground">{visits.length} {isBg ? "апартамента" : "apartments"}</p>
+                      </div>
+                      <Button
+                        size="sm"
+                        className="rounded-xl bg-primary hover:bg-primary/90 text-white text-xs"
+                        disabled={claimEntranceMutation.isPending}
+                        onClick={() => claimEntranceMutation.mutate({ deviceToken, district: sub.district, blok: sub.blok, vhod: sub.vhod })}
+                      >
+                        {isBg ? "Приеми" : "Claim"}
+                      </Button>
+                    </div>
+                  );
+                });
+              })()
+            )}
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Moon className="w-4 h-4 text-blue-500" />
+              <span className="font-semibold text-sm">20:00 – 00:00</span>
+              <Badge variant="secondary" className="text-xs">{eveningAvailable.length}</Badge>
+            </div>
+            {eveningAvailable.length === 0 ? (
+              <p className="text-sm text-muted-foreground pl-6">{isBg ? "Няма чакащи адреси" : "No available addresses"}</p>
+            ) : (
+              (() => {
+                const grouped: Record<string, typeof eveningAvailable> = {};
+                eveningAvailable.forEach((visit: any) => {
+                  const sub = visit.subscription;
+                  const key = `${sub?.district}|${sub?.blok}|${sub?.vhod}`;
+                  if (!grouped[key]) grouped[key] = [];
+                  grouped[key].push(visit);
+                });
+                return Object.entries(grouped).map(([key, visits]) => {
+                  const sub = (visits[0] as any).subscription;
+                  return (
+                    <div key={key} className="rounded-2xl border bg-white p-3 flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium">{sub?.district}, Бл. {sub?.blok}, Вх. {sub?.vhod}</p>
+                        <p className="text-xs text-muted-foreground">{visits.length} {isBg ? "апартамента" : "apartments"}</p>
+                      </div>
+                      <Button
+                        size="sm"
+                        className="rounded-xl bg-primary hover:bg-primary/90 text-white text-xs"
+                        disabled={claimEntranceMutation.isPending}
+                        onClick={() => claimEntranceMutation.mutate({ deviceToken, district: sub.district, blok: sub.blok, vhod: sub.vhod })}
+                      >
+                        {isBg ? "Приеми" : "Claim"}
+                      </Button>
+                    </div>
+                  );
+                });
+              })()
+            )}
+          </div>
+        </>
+      )}
+      {accepting && !todayQ.isLoading && subTab === "claimed" && (
         <>
           <div className="space-y-2">
             <div className="flex items-center gap-2">

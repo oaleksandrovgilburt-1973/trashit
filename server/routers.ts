@@ -2859,10 +2859,36 @@ export const appRouter = router({
       .query(async ({ input }) => {
         const session = await getWorkerSession(input.deviceToken);
         if (!session) throw new TRPCError({ code: "UNAUTHORIZED", message: "Невалидна сесия." });
+        const allWorkers = await getAllWorkers();
+        const worker = allWorkers.find(w => w.id === session.workerId);
+        if (!worker) throw new TRPCError({ code: "NOT_FOUND", message: "Работникът не е намерен." });
         const today = new Date().toISOString().split("T")[0];
-        const morning = await getTodayVisitsBySlot(today, "morning");
-        const evening = await getTodayVisitsBySlot(today, "evening");
-        return { morning, evening };
+        const morningAll = await getTodayVisitsBySlot(today, "morning");
+        const eveningAll = await getTodayVisitsBySlot(today, "evening");
+        const allAssignments = await getAllAssignments();
+        const entranceKey = (d: string, b: string, v: string) => `${d}|${b}|${v}`;
+        const claimedByAnyone = new Map<string, string>(); // key -> workerOpenId
+        allAssignments.forEach(a => claimedByAnyone.set(entranceKey(a.district, a.blok, a.vhod), a.workerOpenId));
+        const split = (visits: typeof morningAll) => {
+          const available: typeof morningAll = [];
+          const myClaimed: typeof morningAll = [];
+          for (const v of visits) {
+            const key = entranceKey(v.subscription.district, v.subscription.blok, v.subscription.vhod);
+            const claimedBy = claimedByAnyone.get(key);
+            if (!claimedBy) available.push(v);
+            else if (claimedBy === worker.openId) myClaimed.push(v);
+            // else: claimed by another worker — hidden from this view
+          }
+          return { available, myClaimed };
+        };
+        const morningSplit = split(morningAll);
+        const eveningSplit = split(eveningAll);
+        return {
+          morning: morningSplit.myClaimed,
+          evening: eveningSplit.myClaimed,
+          morningAvailable: morningSplit.available,
+          eveningAvailable: eveningSplit.available,
+        };
       }),
     markVisited: publicProcedure
       .input(z.object({ deviceToken: z.string(), visitId: z.number() }))
