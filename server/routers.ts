@@ -1,4 +1,5 @@
 import { TRPCError } from "@trpc/server";
+import { jwtVerify, createRemoteJWKSet } from "jose";
 import { z } from "zod";
 import { subscriptionVisits } from "../drizzle/schema";
 import bcrypt from "bcryptjs";
@@ -347,6 +348,58 @@ export const appRouter = router({
         const cookieOptions = getSessionCookieOptions(ctx.req);
         ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
         return { success: true, openId, isNew: !existing, reactivated: wasDeleted };
+      }),
+    loginApple: publicProcedure
+      .input(z.object({ idToken: z.string(), name: z.string().optional() }))
+      .mutation(async ({ ctx, input }) => {
+        const JWKS = createRemoteJWKSet(new URL("https://appleid.apple.com/auth/keys"));
+        let payload: any;
+        try {
+          const result = await jwtVerify(input.idToken, JWKS, {
+            issuer: "https://appleid.apple.com",
+            audience: process.env.APPLE_SERVICES_ID,
+          });
+          payload = result.payload;
+        } catch {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Невалиден Apple токен." });
+        }
+        const appleSub = payload.sub as string;
+        const appleEmail = payload.email as string | undefined;
+        const appleOpenId = `apple_${appleSub}`;
+        const appleExisting = await getUserByOpenId(appleOpenId);
+        const appleWasDeleted = appleExisting?.isDeleted === true;
+        const appleName = input.name ?? appleExisting?.name ?? undefined;
+        if (!appleExisting) {
+          const emailUsedBonus = appleEmail ? await hasUsedBonus(appleEmail) : false;
+          if (appleEmail && !emailUsedBonus) await markBonusUsed(appleEmail);
+          await upsertUser({
+            openId: appleOpenId,
+            name: appleName ?? null,
+            email: appleEmail ?? null,
+            loginMethod: "apple",
+            role: "user",
+            creditsStandard: emailUsedBonus ? "0" : BONUS_CREDITS,
+            credits: emailUsedBonus ? "0" : BONUS_CREDITS,
+            bonusGranted: !emailUsedBonus,
+            isFirstLogin: false,
+            lastSignedIn: new Date(),
+          });
+        } else if (appleWasDeleted) {
+          await upsertUser({
+            openId: appleOpenId,
+            name: appleName ?? null,
+            email: appleEmail ?? appleExisting.email,
+            isDeleted: false,
+            deletedAt: null,
+            lastSignedIn: new Date(),
+          });
+        } else {
+          await upsertUser({ openId: appleOpenId, lastSignedIn: new Date(), ...(input.name ? { name: input.name } : {}) });
+        }
+        const appleSessionToken = await sdk.createSessionToken(appleOpenId, { name: appleName ?? "", expiresInMs: ONE_YEAR_MS });
+        const appleCookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, appleSessionToken, { ...appleCookieOptions, maxAge: ONE_YEAR_MS });
+        return { success: true, openId: appleOpenId, isNew: !appleExisting, reactivated: appleWasDeleted };
       }),
   }),
   // ── Worker auth ──────────────────────────────────────────────────────────
