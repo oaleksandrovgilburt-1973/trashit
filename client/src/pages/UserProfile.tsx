@@ -12,7 +12,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
 export default function UserProfile() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const isBg = language === "bg";
   const { user, isAuthenticated, logout } = useAuth();
   const [, navigate] = useLocation();
 
@@ -535,29 +536,31 @@ export default function UserProfile() {
                   onClick={() => setShowDeleteConfirm(true)}
                   className="w-full py-2.5 rounded-xl border border-red-300 text-red-600 text-sm font-semibold hover:bg-red-50 transition-colors"
                 >
-                  Изтрий акаунта
+                  {isBg ? "Изтрий акаунта" : "Delete account"}
                 </button>
               ) : (
                 <div className="bg-red-50 border border-red-200 rounded-xl p-4 space-y-3">
                   <p className="text-sm font-semibold text-red-800">
-                    Сигурни ли сте, че искате да изтриете акаунта си?
+                    {isBg ? "Сигурни ли сте, че искате да изтриете акаунта си?" : "Are you sure you want to delete your account?"}
                   </p>
                   <p className="text-xs text-red-600">
-                    Това действие е необратимо. Личните ви данни (име, имейл, телефон, адрес) ще бъдат трайно изтрити. Активни абонаменти ще бъдат прекратени автоматично.
+                    {isBg
+                      ? "Това действие е необратимо. Личните ви данни (име, имейл, телефон, адрес) ще бъдат трайно изтрити. Активни абонаменти ще бъдат прекратени автоматично."
+                      : "This action is irreversible. Your personal data (name, email, phone, address) will be permanently deleted. Active subscriptions will be cancelled automatically."}
                   </p>
                   <div className="flex gap-2">
                     <button
                       onClick={() => setShowDeleteConfirm(false)}
                       className="flex-1 py-2 rounded-xl border border-gray-300 text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-colors"
                     >
-                      Отказ
+                      {isBg ? "Отказ" : "Cancel"}
                     </button>
                     <button
                       onClick={() => deleteAccountMutation.mutate()}
                       disabled={deleteAccountMutation.isPending}
                       className="flex-1 py-2 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors disabled:opacity-50"
                     >
-                      {deleteAccountMutation.isPending ? "Изтрива се..." : "Да, изтрий акаунта"}
+                      {deleteAccountMutation.isPending ? (isBg ? "Изтрива се..." : "Deleting...") : (isBg ? "Да, изтрий акаунта" : "Yes, delete account")}
                     </button>
                   </div>
                 </div>
