@@ -23,7 +23,6 @@ import Subscription from "./pages/Subscription";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import RefundPage from "./pages/RefundPage";
-import PWAInstallBanner from "./components/PWAInstallBanner";
 import { UpdateBanner } from "./components/UpdateBanner";
 import { FCMProvider } from "./components/FCMProvider";
 import { usePWA } from "./hooks/usePWA";
@@ -74,7 +73,6 @@ function AppInner() {
       <FCMProvider>
         <Router />
       </FCMProvider>
-      <PWAInstallBanner />
       {/*updateAvailable && <UpdateBanner onUpdate={triggerUpdate} />*/}
     </>
   );

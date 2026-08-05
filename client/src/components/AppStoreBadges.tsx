@@ -1,3 +1,5 @@
+import { usePWA } from "@/hooks/usePWA";
+
 /**
  * AppStoreBadges — стандартни бутони за App Store и Google Play.
  * Когато приложението бъде одобрено, смени съответния флаг на `true` и добави реалния линк.
@@ -8,9 +10,24 @@ const STORES_LIVE = {
 };
 
 export default function AppStoreBadges({ className = "", isBg = true }: { className?: string; isBg?: boolean }) {
+  const { canInstall, promptInstall } = usePWA();
   return (
     <div className={`flex flex-col items-center gap-3 ${className}`}>
       <div className="flex flex-wrap items-center justify-center gap-3">
+        {canInstall && (
+          <button
+            onClick={promptInstall}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-white hover:bg-primary/90 transition-colors"
+          >
+            <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 3v10.586l3.293-3.293 1.414 1.414L12 16.414l-4.707-4.707 1.414-1.414L12 13.586V3h0zM5 19h14v2H5v-2z"/>
+            </svg>
+            <div className="text-left leading-tight">
+              <div className="text-[10px] opacity-80">{isBg ? "Инсталирай за" : "Install for"}</div>
+              <div className="text-sm font-semibold">Desktop</div>
+            </div>
+          </button>
+        )}
         {/* App Store */}
         
          <a href={STORES_LIVE.ios ? "#" : undefined}
