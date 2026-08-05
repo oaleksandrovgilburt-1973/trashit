@@ -450,7 +450,7 @@ export default function Home() {
 
       {/* Services popup — shown once per session */}
       {showServicesPopup && (
-        <div className="fixed inset-x-0 top-4 z-50 flex justify-center px-4 pointer-events-none">
+        <div className="fixed inset-x-0 top-0 z-50 flex justify-center px-4 pointer-events-none" style={{ paddingTop: "calc(1rem + env(safe-area-inset-top))" }}>
           <div className="bg-white rounded-2xl shadow-2xl border border-border w-full max-w-sm pointer-events-auto animate-in slide-in-from-top-4 duration-300">
             <div className="flex items-start justify-between p-4 pb-2">
               <div className="flex items-center gap-2">
@@ -490,7 +490,7 @@ export default function Home() {
       )}
       {/* How it works popup */}
       {showHowItWorksPopup && (
-        <div className="fixed inset-x-0 top-4 z-50 flex justify-center px-4 pointer-events-none">
+        <div className="fixed inset-x-0 top-0 z-50 flex justify-center px-4 pointer-events-none" style={{ paddingTop: "calc(1rem + env(safe-area-inset-top))" }}>
           <div className="bg-white rounded-2xl shadow-2xl border border-border w-full max-w-sm pointer-events-auto animate-in slide-in-from-top-4 duration-300 max-h-[85vh] overflow-y-auto">
             <div className="flex items-start justify-between p-4 pb-2">
               <div className="flex items-center gap-2">
