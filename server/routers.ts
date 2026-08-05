@@ -2708,7 +2708,18 @@ export const appRouter = router({
       const sub = await getActiveSubscriptionByUser(ctx.user.openId);
       if (!sub) return null;
       const today = new Date().toISOString().slice(0, 10);
-      return await getNextPendingVisit(sub.id, today);
+      const visit = await getNextPendingVisit(sub.id, today);
+      if (!visit) return null;
+      const assignment = await getAssignmentByEntrance(sub.district, sub.blok, sub.vhod);
+      if (!assignment) return { ...visit, assignedWorkerName: null, workerPhotoUrl: null, assignedWorkerNumber: null };
+      const allWorkers = await getAllWorkers();
+      const worker = allWorkers.find(w => w.openId === assignment.workerOpenId);
+      return {
+        ...visit,
+        assignedWorkerName: worker?.name ?? null,
+        workerPhotoUrl: worker?.photoUrl ?? null,
+        assignedWorkerNumber: worker?.id ?? null,
+      };
     }),
     createCheckout: protectedProcedure
       .input(z.object({

@@ -81,6 +81,7 @@ export default function Subscription() {
   const [apartament, setApartament] = useState("");
   const [cancelNote, setCancelNote] = useState("");
   const [showCancelForm, setShowCancelForm] = useState(false);
+  const [workerModalInfo, setWorkerModalInfo] = useState<{ name: string; number?: number | null; photoUrl?: string | null } | null>(null);
   const [autoRenew, setAutoRenew] = useState(true);
 
   // Queries
@@ -261,6 +262,29 @@ export default function Subscription() {
                   <p className="text-green-700 text-xs mt-0.5">
                     {isBg ? "след" : "after"} {nextVisit.timeSlot === "morning" ? "08:00" : "20:00"} {isBg ? "часа" : "o'clock"}
                   </p>
+                  {(nextVisit as any).assignedWorkerName && (
+                    <button
+                      type="button"
+                      onClick={() => setWorkerModalInfo({
+                        name: (nextVisit as any).assignedWorkerName,
+                        number: (nextVisit as any).assignedWorkerNumber,
+                        photoUrl: (nextVisit as any).workerPhotoUrl,
+                      })}
+                      className="flex items-center gap-1.5 mt-2 pt-2 border-t border-green-200"
+                    >
+                      {(nextVisit as any).workerPhotoUrl ? (
+                        <img src={(nextVisit as any).workerPhotoUrl} alt={(nextVisit as any).assignedWorkerName} className="w-6 h-6 rounded-full object-cover flex-shrink-0" />
+                      ) : (
+                        <div className="w-6 h-6 rounded-full bg-green-200 flex items-center justify-center flex-shrink-0">
+                          <span className="text-green-700 font-bold text-[10px]">{((nextVisit as any).assignedWorkerName as string).charAt(0).toUpperCase()}</span>
+                        </div>
+                      )}
+                      <span className="text-xs text-green-700">
+                        {(nextVisit as any).assignedWorkerName}
+                        {(nextVisit as any).assignedWorkerNumber && <span className="text-green-500"> · №{(nextVisit as any).assignedWorkerNumber}</span>}
+                      </span>
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -604,6 +628,33 @@ export default function Subscription() {
           </div>
         </div>
       </div>
+      {/* Worker info modal */}
+      {workerModalInfo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setWorkerModalInfo(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs p-6 text-center relative" onClick={e => e.stopPropagation()}>
+            <button
+              onClick={() => setWorkerModalInfo(null)}
+              className="absolute top-3 right-3 p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            {workerModalInfo.photoUrl ? (
+              <img src={workerModalInfo.photoUrl} alt={workerModalInfo.name} className="w-24 h-24 rounded-full object-cover border-4 border-green-100 mx-auto mb-4" />
+            ) : (
+              <div className="w-24 h-24 rounded-full bg-green-200 flex items-center justify-center mx-auto mb-4">
+                <span className="text-green-700 font-bold text-3xl">{workerModalInfo.name.charAt(0).toUpperCase()}</span>
+              </div>
+            )}
+            <h3 className="text-lg font-bold text-gray-900">{workerModalInfo.name}</h3>
+            {workerModalInfo.number && (
+              <p className="text-sm text-gray-500 mt-1">{isBg ? "Работник №" : "Worker No."}{workerModalInfo.number}</p>
+            )}
+            <p className="text-xs text-green-600 font-medium mt-3 bg-green-50 rounded-xl py-2">
+              {isBg ? "Работник в изпълнение" : "Worker in progress"}
+            </p>
+          </div>
+        </div>
+      )}
     </MainLayout>
   );
 }
