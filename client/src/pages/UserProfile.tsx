@@ -452,7 +452,7 @@ export default function UserProfile() {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <User className="w-4 h-4 text-primary" />
-                <span className="font-semibold text-sm">Смяна на парола</span>
+                <span className="font-semibold text-sm">{isBg ? "Смяна на парола" : "Change password"}</span>
               </div>
               {!editingPassword ? (
                 <button
@@ -460,7 +460,7 @@ export default function UserProfile() {
                   className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 font-medium transition-colors"
                 >
                   <Edit2 className="w-3.5 h-3.5" />
-                  Смени
+                  {isBg ? "Смени" : "Change"}
                 </button>
               ) : (
                 <button
@@ -468,7 +468,7 @@ export default function UserProfile() {
                   className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
                 >
                   <X className="w-3.5 h-3.5" />
-                  Отказ
+                  {isBg ? "Отказ" : "Cancel"}
                 </button>
               )}
             </div>
@@ -478,7 +478,7 @@ export default function UserProfile() {
             ) : (
               <div className="space-y-3">
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Текуща парола</label>
+                  <label className="text-xs text-muted-foreground mb-1 block">{isBg ? "Текуща парола" : "Current password"}</label>
                   <input
                     type="password"
                     value={passwordForm.currentPassword}
@@ -487,7 +487,7 @@ export default function UserProfile() {
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Нова парола</label>
+                  <label className="text-xs text-muted-foreground mb-1 block">{isBg ? "Нова парола" : "New password"}</label>
                   <input
                     type="password"
                     value={passwordForm.newPassword}
@@ -496,7 +496,7 @@ export default function UserProfile() {
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Потвърди нова парола</label>
+                  <label className="text-xs text-muted-foreground mb-1 block">{isBg ? "Потвърди нова парола" : "Confirm new password"}</label>
                   <input
                     type="password"
                     value={passwordForm.confirmPassword}
@@ -507,11 +507,11 @@ export default function UserProfile() {
                 <button
                   onClick={() => {
                     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-                      toast.error("Паролите не съвпадат");
+                      toast.error(isBg ? "Паролите не съвпадат" : "Passwords do not match");
                       return;
                     }
                     if (passwordForm.newPassword.length < 6) {
-                      toast.error("Паролата трябва да е поне 6 символа");
+                      toast.error(isBg ? "Паролата трябва да е поне 6 символа" : "Password must be at least 6 characters");
                       return;
                     }
                     changePasswordMutation.mutate({
@@ -522,7 +522,7 @@ export default function UserProfile() {
                   disabled={!passwordForm.currentPassword || !passwordForm.newPassword || changePasswordMutation.isPending}
                   className="w-full py-2.5 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50"
                 >
-                  {changePasswordMutation.isPending ? "Сменя се..." : "Смени паролата"}
+                  {changePasswordMutation.isPending ? (isBg ? "Сменя се..." : "Changing...") : (isBg ? "Смени паролата" : "Change password")}
                 </button>
               </div>
             )}
