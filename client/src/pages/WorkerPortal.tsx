@@ -768,7 +768,9 @@ function GroupedRequestsView({ deviceToken }: { deviceToken: string }) {
                                     <span className="text-sm font-medium">
                                       {isBg ? `Вх. ${vhod}` : `Entr. ${vhod}`}
                                     </span>
-                                    <Badge variant="secondary" className="text-xs">{reqs.length}</Badge>
+                                    <Badge variant="secondary" className="text-xs">
+                                      {reqs.reduce((sum: number, r: any) => sum + ((r.type === "standard" || r.type === "recycling") ? parseFloat(r.creditsUsed || "1") : 1), 0)}
+                                    </Badge>
                                     {isEntrExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
                                   </button>
                                   <Button
@@ -1455,7 +1457,9 @@ function WorkerAssignmentsTab({ deviceToken }: { deviceToken: string }) {
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {isBg ? `Бл. ${a.blok}, Вх. ${a.vhod}` : `Bl. ${a.blok}, Entr. ${a.vhod}`}
                   {reqs.length > 0 && (
-                    <Badge variant="secondary" className="ml-2 text-xs">{reqs.length}</Badge>
+                    <Badge variant="secondary" className="ml-2 text-xs">
+                      {reqs.reduce((sum: number, r: any) => sum + ((r.type === "standard" || r.type === "recycling") ? parseFloat(r.creditsUsed || "1") : 1), 0)}
+                    </Badge>
                   )}
                 </p>
               </div>

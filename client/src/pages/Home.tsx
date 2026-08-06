@@ -279,6 +279,20 @@ export default function Home() {
                       <MapPin className="w-3 h-3 shrink-0" />
                       <span className="truncate">{req.district}, Бл. {req.blok}, Вх. {req.vhod}</span>
                     </div>
+                    {(req.type === "standard" || req.type === "recycling") && (req as any).creditsUsed && parseFloat((req as any).creditsUsed) > 1 && (
+                      <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 mt-1">
+                        {parseFloat((req as any).creditsUsed)} {isBg ? "плика" : "bags"}
+                      </span>
+                    )}
+                    {(req.type === "standard" || req.type === "recycling") && req.status === "pending" && (
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/waste-disposal?type=${req.type}`)}
+                        className="block text-xs font-semibold text-primary underline mt-1"
+                      >
+                        {isBg ? "+ Добави плик" : "+ Add bag"}
+                      </button>
+                    )}
                     {req.status === "pending" && (req.type === "standard" || req.type === "recycling") && (
                       <div className="flex items-center gap-1.5 text-xs text-blue-600 font-medium mt-0.5">
                         <Clock className="w-3 h-3 shrink-0" />
