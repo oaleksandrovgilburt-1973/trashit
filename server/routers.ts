@@ -31,7 +31,7 @@ import {
   getAllDistricts, getActiveDistricts, getDistrictsByCity, createDistrict,
   updateDistrictStatus, deleteDistrict,
   // Requests
-  createRequest, getRequestsByUser, getAllRequests,
+  createRequest, getRequestsByUser, getAllRequests, getMatchingPendingRequest, addQuantityToRequest,
   getPendingRequests, getRequestById,
   completeRequest, completeRequestPendingPayment, completeRequestsByEntrance, cancelRequest, updateRequestProblem, updateRequestStatus,
   // Cleaning
@@ -800,6 +800,15 @@ export const appRouter = router({
           creditsUsed = requestedQty.toFixed(2);
           creditType = "recycling";
         }
+        // Check for an existing matching pending request today (same user/type/address) — merge instead of duplicating
+        let mergedRequestId: number | null = null;
+        if (creditType !== "none") {
+          const match = await getMatchingPendingRequest(
+            ctx.user.openId, input.type as "standard" | "recycling",
+            input.district, input.blok, input.vhod, input.etaj, input.apartament
+          );
+          if (match) mergedRequestId = match.id;
+        }
         // Check credits if needed
         if (creditType !== "none") {
           const user = await getUserByOpenId(ctx.user.openId);
@@ -829,27 +838,33 @@ export const appRouter = router({
             }
           }
         }
-        const id = await createRequest({
-          type: input.type,
-          status: "pending",
-          userId: ctx.user.id,
-          userOpenId: ctx.user.openId,
-          description: input.description,
-          district: input.district,
-          blok: input.blok,
-          vhod: input.vhod,
-          etaj: input.etaj,
-          apartament: input.apartament,
-          contactPhone: input.contactPhone,
-          contactEmail: input.contactEmail,
-          gpsLat: input.gpsLat?.toString(),
-          gpsLng: input.gpsLng?.toString(),
-          imageUrl: input.imageUrl,
-          estimatedVolume: input.estimatedVolume,
-          estimatedVolumeDescription: input.estimatedVolumeDescription,
-          creditsUsed,
-          creditType,
-        });
+        let id: number;
+        if (mergedRequestId) {
+          await addQuantityToRequest(mergedRequestId, requestedQty);
+          id = mergedRequestId;
+        } else {
+          id = await createRequest({
+            type: input.type,
+            status: "pending",
+            userId: ctx.user.id,
+            userOpenId: ctx.user.openId,
+            description: input.description,
+            district: input.district,
+            blok: input.blok,
+            vhod: input.vhod,
+            etaj: input.etaj,
+            apartament: input.apartament,
+            contactPhone: input.contactPhone,
+            contactEmail: input.contactEmail,
+            gpsLat: input.gpsLat?.toString(),
+            gpsLng: input.gpsLng?.toString(),
+            imageUrl: input.imageUrl,
+            estimatedVolume: input.estimatedVolume,
+            estimatedVolumeDescription: input.estimatedVolumeDescription,
+            creditsUsed,
+            creditType,
+          });
+        }
         // Telegram: notify new request channel
         sendTelegramMessage(TELEGRAM_CHATS.requests,
           `📦 <b>Нова заявка #${id}</b>\nТип: ${input.type}\nАдрес: ${input.district}, Бл. ${input.blok}, Вх. ${input.vhod}${input.description ? `\nОписание: ${input.description}` : ""}`

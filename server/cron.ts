@@ -1,5 +1,5 @@
 import cron from "node-cron";
-import { getAllSubscriptions, createDailyVisitsForSubscription, getDb, deleteOldCompletedRequests } from "./db";
+import { getAllSubscriptions, createDailyVisitsForSubscription, getDb, deleteOldCompletedRequests, expireOldPendingRequests } from "./db";
 import { users, requests, subscriptions, transactions, workerProblems } from "../drizzle/schema";
 
 function shouldVisitToday(visitDays: string, todayDate: string): boolean {
@@ -124,4 +124,17 @@ export function startCronJobs(): void {
     }
   });
   console.log("[Cron] Daily old-request cleanup job scheduled (every day at 02:00)");
+
+  // ─── Expire pending standard/recycling requests older than 16h (refund credits) ──
+  cron.schedule("*/15 * * * *", async () => {
+    try {
+      const count = await expireOldPendingRequests();
+      if (count > 0) {
+        console.log(`[Cron/Expire] Expired ${count} stale pending requests (16h+), credits refunded`);
+      }
+    } catch (err) {
+      console.error("[Cron/Expire] Error expiring old pending requests:", err);
+    }
+  });
+  console.log("[Cron] Request expiration job scheduled (every 15 minutes)");
 }

@@ -777,6 +777,7 @@ if (selectedType !== "nonstandard" && selectedType !== "construction") {
                     onClick={async () => {
                       try {
                         await updateProfile.mutateAsync({
+                          addressCity: citiesData?.find((c) => c.id === selectedCityId)?.name,
                           addressKvartal: district,
                           addressBlok: blok,
                           addressVhod: vhod,

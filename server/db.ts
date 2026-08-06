@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { eq, and, asc, desc, gte } from "drizzle-orm";
+import { eq, and, asc, desc, gte, inArray, lt } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   InsertUser, users,
@@ -370,6 +370,32 @@ export async function getRequestsByUser(userOpenId: string) {
     .where(eq(requests.userOpenId, userOpenId))
     .orderBy(asc(requests.createdAt));
 }
+export async function getMatchingPendingRequest(
+  userOpenId: string, type: "standard" | "recycling",
+  district: string, blok: string, vhod: string, etaj: string, apartament: string
+) {
+  const db = await getDb();
+  if (!db) return null;
+  const candidates = await db.select().from(requests).where(and(
+    eq(requests.userOpenId, userOpenId),
+    eq(requests.type, type),
+    eq(requests.status, "pending"),
+    eq(requests.district, district),
+    eq(requests.blok, blok),
+    eq(requests.vhod, vhod),
+    eq(requests.etaj, etaj),
+    eq(requests.apartament, apartament),
+  ));
+  return candidates[0] ?? null;
+}
+export async function addQuantityToRequest(requestId: number, additionalCredits: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  const existing = await db.select().from(requests).where(eq(requests.id, requestId)).limit(1);
+  const current = parseFloat(existing[0]?.creditsUsed ?? "0");
+  const newTotal = (current + additionalCredits).toFixed(2);
+  await db.update(requests).set({ creditsUsed: newTotal }).where(eq(requests.id, requestId));
+}
 
 export async function getAllRequests() {
   const db = await getDb();
@@ -466,6 +492,33 @@ export async function cancelRequest(id: number, userOpenId: string): Promise<voi
   if (!db) return;
   await db.update(requests).set({ status: "cancelled" })
     .where(and(eq(requests.id, id), eq(requests.userOpenId, userOpenId)));
+}
+export async function expireOldPendingRequests(): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+  const cutoff = new Date(Date.now() - 16 * 60 * 60 * 1000);
+  const stale = await db.select().from(requests).where(and(
+    eq(requests.status, "pending"),
+    inArray(requests.type, ["standard", "recycling"]),
+    lt(requests.createdAt, cutoff)
+  ));
+  for (const r of stale) {
+    const refund = parseFloat(r.creditsUsed ?? "0");
+    if (refund > 0) {
+      const user = await getUserByOpenId(r.userOpenId);
+      if (user) {
+        if (r.creditType === "standard") {
+          const current = parseFloat(user.creditsStandard ?? "0");
+          await db.update(users).set({ creditsStandard: (current + refund).toFixed(2) }).where(eq(users.openId, r.userOpenId));
+        } else if (r.creditType === "recycling") {
+          const current = parseFloat(user.creditsRecycling ?? "0");
+          await db.update(users).set({ creditsRecycling: (current + refund).toFixed(2) }).where(eq(users.openId, r.userOpenId));
+        }
+      }
+    }
+    await db.update(requests).set({ status: "cancelled" }).where(eq(requests.id, r.id));
+  }
+  return stale.length;
 }
 
 // ─── Cleaning Requests ────────────────────────────────────────────────────────
