@@ -53,6 +53,7 @@ interface Request {
   hasProblem: boolean;
   problemDescription: string | null;
   createdAt: Date | string;
+  creditsUsed?: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -393,12 +394,16 @@ function RequestCard({
           <Badge variant="outline" className="text-xs">
             {isBg ? `Ет. ${req.etaj}, Ап. ${req.apartament}` : `Fl. ${req.etaj}, Apt. ${req.apartament}`}
           </Badge>
+          {(req.type === "standard" || req.type === "recycling") && req.creditsUsed && parseFloat(req.creditsUsed) > 1 && (
+            <Badge className="text-xs bg-orange-100 text-orange-700 font-bold">
+              {isBg ? `${parseFloat(req.creditsUsed)} плика!` : `${parseFloat(req.creditsUsed)} bags!`}
+            </Badge>
+          )}
         </div>
         <span className="text-xs text-muted-foreground">
           {new Date(req.createdAt).toLocaleDateString(isBg ? "bg-BG" : "en-GB")}
         </span>
       </div>
-
       {(req.type === "standard" || req.type === "recycling") && req.status === "pending" && (
         <Badge className={`text-xs ${getSessionInfo(req.createdAt, isBg).isEvening ? "bg-indigo-100 text-indigo-700" : "bg-amber-100 text-amber-700"}`}>
           {getSessionInfo(req.createdAt, isBg).label}
@@ -1007,6 +1012,11 @@ function WorkerSubscriptionsTab({ deviceToken, isBg }: { deviceToken: string; is
                       <div>
                         <p className="text-sm font-medium">{sub?.district}, Бл. {sub?.blok}, Вх. {sub?.vhod}</p>
                         <p className="text-xs text-muted-foreground">{visits.length} {isBg ? "апартамента" : "apartments"}</p>
+                        {visits.reduce((sum: number, v: any) => sum + (v.extraBags || 0), 0) > 0 && (
+                          <p className="text-xs font-bold text-orange-600 mt-0.5">
+                            +{visits.reduce((sum: number, v: any) => sum + (v.extraBags || 0), 0)} {isBg ? "допълнителни плика" : "extra bags"}
+                          </p>
+                        )}
                       </div>
                       <Button
                         size="sm"
@@ -1046,6 +1056,11 @@ function WorkerSubscriptionsTab({ deviceToken, isBg }: { deviceToken: string; is
                       <div>
                         <p className="text-sm font-medium">{sub?.district}, Бл. {sub?.blok}, Вх. {sub?.vhod}</p>
                         <p className="text-xs text-muted-foreground">{visits.length} {isBg ? "апартамента" : "apartments"}</p>
+                        {visits.reduce((sum: number, v: any) => sum + (v.extraBags || 0), 0) > 0 && (
+                          <p className="text-xs font-bold text-orange-600 mt-0.5">
+                            +{visits.reduce((sum: number, v: any) => sum + (v.extraBags || 0), 0)} {isBg ? "допълнителни плика" : "extra bags"}
+                          </p>
+                        )}
                       </div>
                       <Button
                         size="sm"
@@ -1101,6 +1116,11 @@ function WorkerSubscriptionsTab({ deviceToken, isBg }: { deviceToken: string; is
                         <div>
                           <p className="text-sm font-medium">{sub?.district}, Бл. {sub?.blok}, Вх. {sub?.vhod}</p>
                           <p className="text-xs text-muted-foreground">{visits.length} {isBg ? "апартамента" : "apartments"}</p>
+                          {visits.reduce((sum: number, v: any) => sum + (v.extraBags || 0), 0) > 0 && (
+                            <p className="text-xs font-bold text-orange-600 mt-0.5">
+                              +{visits.reduce((sum: number, v: any) => sum + (v.extraBags || 0), 0)} {isBg ? "допълнителни плика" : "extra bags"}
+                            </p>
+                          )}
                         </div>
                         <div className="flex items-center gap-2">
                           {allCompleted && <Badge className="bg-green-100 text-green-700 border-0 text-xs"><CheckCircle className="w-3 h-3 mr-1" />{isBg ? "Всички посетени" : "All visited"}</Badge>}
@@ -1112,11 +1132,17 @@ function WorkerSubscriptionsTab({ deviceToken, isBg }: { deviceToken: string; is
                           {visits.map(visit => {
                             const s = (visit as any).subscription;
                             const isCompleted = (visit as any).status === "completed";
+                            const extraBags = (visit as any).extraBags || 0;
                             return (
                               <div key={visit.id} className={`flex items-center justify-between px-4 py-2.5 ${isCompleted ? "bg-green-50" : "bg-gray-50"}`}>
-                                <p className="text-xs text-muted-foreground">
-                                  {s?.etaj ? `Ет. ${s.etaj}` : ""}{s?.etaj && s?.apartament ? ", " : ""}{s?.apartament ? `Ап. ${s.apartament}` : ""}
-                                </p>
+                                <div>
+                                  <p className="text-xs text-muted-foreground">
+                                    {s?.etaj ? `Ет. ${s.etaj}` : ""}{s?.etaj && s?.apartament ? ", " : ""}{s?.apartament ? `Ап. ${s.apartament}` : ""}
+                                  </p>
+                                  {extraBags > 0 && (
+                                    <p className="text-xs font-bold text-orange-600">+{extraBags} {isBg ? "плика" : "bags"}</p>
+                                  )}
+                                </div>
                                 {isCompleted ? (
                                   <Badge className="bg-green-100 text-green-700 border-0 text-xs"><CheckCircle className="w-3 h-3 mr-1" />{isBg ? "Посетен" : "Visited"}</Badge>
                                 ) : (
@@ -1173,6 +1199,11 @@ function WorkerSubscriptionsTab({ deviceToken, isBg }: { deviceToken: string; is
                         <div>
                           <p className="text-sm font-medium">{sub?.district}, Бл. {sub?.blok}, Вх. {sub?.vhod}</p>
                           <p className="text-xs text-muted-foreground">{visits.length} {isBg ? "апартамента" : "apartments"}</p>
+                          {visits.reduce((sum: number, v: any) => sum + (v.extraBags || 0), 0) > 0 && (
+                            <p className="text-xs font-bold text-orange-600 mt-0.5">
+                              +{visits.reduce((sum: number, v: any) => sum + (v.extraBags || 0), 0)} {isBg ? "допълнителни плика" : "extra bags"}
+                            </p>
+                          )}
                         </div>
                         <div className="flex items-center gap-2">
                           {allCompleted && <Badge className="bg-green-100 text-green-700 border-0 text-xs"><CheckCircle className="w-3 h-3 mr-1" />{isBg ? "Всички посетени" : "All visited"}</Badge>}
@@ -1184,11 +1215,17 @@ function WorkerSubscriptionsTab({ deviceToken, isBg }: { deviceToken: string; is
                           {visits.map(visit => {
                             const s = (visit as any).subscription;
                             const isCompleted = (visit as any).status === "completed";
+                            const extraBags = (visit as any).extraBags || 0;
                             return (
                               <div key={visit.id} className={`flex items-center justify-between px-4 py-2.5 ${isCompleted ? "bg-green-50" : "bg-gray-50"}`}>
-                                <p className="text-xs text-muted-foreground">
-                                  {s?.etaj ? `Ет. ${s.etaj}` : ""}{s?.etaj && s?.apartament ? ", " : ""}{s?.apartament ? `Ап. ${s.apartament}` : ""}
-                                </p>
+                                <div>
+                                  <p className="text-xs text-muted-foreground">
+                                    {s?.etaj ? `Ет. ${s.etaj}` : ""}{s?.etaj && s?.apartament ? ", " : ""}{s?.apartament ? `Ап. ${s.apartament}` : ""}
+                                  </p>
+                                  {extraBags > 0 && (
+                                    <p className="text-xs font-bold text-orange-600">+{extraBags} {isBg ? "плика" : "bags"}</p>
+                                  )}
+                                </div>
                                 {isCompleted ? (
                                   <Badge className="bg-green-100 text-green-700 border-0 text-xs"><CheckCircle className="w-3 h-3 mr-1" />{isBg ? "Посетен" : "Visited"}</Badge>
                                 ) : (
