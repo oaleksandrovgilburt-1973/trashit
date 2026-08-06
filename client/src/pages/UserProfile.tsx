@@ -21,6 +21,7 @@ export default function UserProfile() {
   const profile = profileQuery.data;
   const { data: citiesData } = trpc.cities.list.useQuery();
   const [selectedCityId, setSelectedCityId] = useState<number | null>(null);
+  const [cityOpen, setCityOpen] = useState(false);
   const { data: districtsData } = trpc.districts.list.useQuery();
   const [districtOpen, setDistrictOpen] = useState(false);
   const districts = districtsData?.filter(d => d.isActive && d.cityId === selectedCityId) ?? [];
@@ -325,25 +326,46 @@ export default function UserProfile() {
               </div>
               <div className="col-span-2">
                 <label className="text-xs text-muted-foreground mb-1 block">Град</label>
-                <div className="flex gap-2 flex-wrap mb-2">
-                  {citiesData?.map((city) => (
+                <Popover open={cityOpen} onOpenChange={setCityOpen}>
+                  <PopoverTrigger asChild>
                     <button
-                      key={city.id}
                       type="button"
-                      disabled={!city.isActive}
-                      onClick={() => { setSelectedCityId(city.id); setAddressForm(f => ({ ...f, addressKvartal: "" })); }}
-                      className={`px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
-                        !city.isActive
-                          ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                          : selectedCityId === city.id
-                            ? "bg-primary text-white"
-                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                      }`}
+                      className="w-full flex items-center justify-between rounded-xl border border-border bg-background px-3 py-2 text-sm mb-2"
                     >
-                      {city.name}
+                      <span className={selectedCityId ? "" : "text-muted-foreground"}>
+                        {citiesData?.find((c) => c.id === selectedCityId)?.name || "Изберете град..."}
+                      </span>
+                      <ChevronsUpDown className="w-4 h-4 opacity-50 flex-shrink-0" />
                     </button>
-                  ))}
-                </div>
+                  </PopoverTrigger>
+                  <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
+                    <Command>
+                      <CommandInput placeholder="Търси град..." />
+                      <CommandList>
+                        <CommandEmpty>Няма намерен град</CommandEmpty>
+                        <CommandGroup>
+                          {citiesData?.map((city) => (
+                            <CommandItem
+                              key={city.id}
+                              value={city.name}
+                              disabled={!city.isActive}
+                              onSelect={() => {
+                                if (!city.isActive) return;
+                                setSelectedCityId(city.id);
+                                setAddressForm(f => ({ ...f, addressKvartal: "" }));
+                                setCityOpen(false);
+                              }}
+                            >
+                              <Check className={`mr-2 w-4 h-4 ${selectedCityId === city.id ? "opacity-100" : "opacity-0"}`} />
+                              <span className={!city.isActive ? "text-muted-foreground" : ""}>{city.name}</span>
+                              {!city.isActive && <span className="ml-auto text-xs text-muted-foreground">неактивен</span>}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
                 <label className="text-xs text-muted-foreground mb-1 block">{t.addressKvartal}</label>
                 {districts.length > 0 ? (
                   <Popover open={districtOpen} onOpenChange={setDistrictOpen}>

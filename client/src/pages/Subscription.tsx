@@ -73,6 +73,7 @@ export default function Subscription() {
   const [districtOpen, setDistrictOpen] = useState(false);
   const { data: citiesData } = trpc.cities.list.useQuery();
   const [selectedCityId, setSelectedCityId] = useState<number | null>(null);
+  const [cityOpen, setCityOpen] = useState(false);
   const { data: districtsData } = trpc.districts.list.useQuery();
   const districts = districtsData?.filter(d => d.isActive && d.cityId === selectedCityId) ?? [];
   const [blok, setBlok] = useState("");
@@ -511,24 +512,47 @@ export default function Subscription() {
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="col-span-2 flex gap-2 flex-wrap">
-                    {citiesData?.map((city) => (
-                      <button
-                        key={city.id}
-                        type="button"
-                        disabled={!city.isActive}
-                        onClick={() => { setSelectedCityId(city.id); setDistrict(""); }}
-                        className={`px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
-                          !city.isActive
-                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                            : selectedCityId === city.id
-                              ? "bg-primary text-white"
-                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                        }`}
-                      >
-                        {city.name}
-                      </button>
-                    ))}
+                  <div className="col-span-2">
+                    <Popover open={cityOpen} onOpenChange={setCityOpen}>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className="w-full flex items-center justify-between rounded-xl border border-border p-3 text-sm bg-background"
+                        >
+                          <span className={selectedCityId ? "" : "text-muted-foreground"}>
+                            {citiesData?.find((c) => c.id === selectedCityId)?.name || (isBg ? "Град *" : "City *")}
+                          </span>
+                          <ChevronsUpDown className="w-4 h-4 opacity-50 flex-shrink-0" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
+                        <Command>
+                          <CommandInput placeholder={isBg ? "Търси град..." : "Search city..."} />
+                          <CommandList>
+                            <CommandEmpty>{isBg ? "Няма намерен град" : "No city found"}</CommandEmpty>
+                            <CommandGroup>
+                              {citiesData?.map((city) => (
+                                <CommandItem
+                                  key={city.id}
+                                  value={city.name}
+                                  disabled={!city.isActive}
+                                  onSelect={() => {
+                                    if (!city.isActive) return;
+                                    setSelectedCityId(city.id);
+                                    setDistrict("");
+                                    setCityOpen(false);
+                                  }}
+                                >
+                                  <Check className={`mr-2 w-4 h-4 ${selectedCityId === city.id ? "opacity-100" : "opacity-0"}`} />
+                                  <span className={!city.isActive ? "text-muted-foreground" : ""}>{city.name}</span>
+                                  {!city.isActive && <span className="ml-auto text-xs text-muted-foreground">{isBg ? "неактивен" : "inactive"}</span>}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                   <div className="col-span-2">
                     <Popover open={districtOpen} onOpenChange={setDistrictOpen}>

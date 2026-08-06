@@ -140,6 +140,7 @@ export default function WasteDisposal() {
   // Load districts
   const { data: citiesData } = trpc.cities.list.useQuery();
   const [selectedCityId, setSelectedCityId] = useState<number | null>(null);
+  const [cityOpen, setCityOpen] = useState(false);
   const { data: districtsData } = trpc.districts.list.useQuery();
   const districtsForCity = districtsData?.filter(d => d.cityId === selectedCityId) ?? [];
   // Entrance access check (only when district, blok, vhod are filled)
@@ -577,25 +578,46 @@ if (selectedType !== "nonstandard" && selectedType !== "construction") {
               <Label className="text-sm font-semibold">
                 {isBg ? "Град *" : "City *"}
               </Label>
-              <div className="flex gap-2 flex-wrap">
-                {citiesData?.map((city) => (
+              <Popover open={cityOpen} onOpenChange={setCityOpen}>
+                <PopoverTrigger asChild>
                   <button
-                    key={city.id}
                     type="button"
-                    disabled={!city.isActive}
-                    onClick={() => { setSelectedCityId(city.id); setDistrict(""); }}
-                    className={`px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
-                      !city.isActive
-                        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                        : selectedCityId === city.id
-                          ? "bg-primary text-white"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    }`}
+                    className="w-full flex items-center justify-between rounded-xl border border-input bg-background px-3 py-2 text-sm"
                   >
-                    {city.name}
+                    <span className={selectedCityId ? "" : "text-muted-foreground"}>
+                      {citiesData?.find((c) => c.id === selectedCityId)?.name || (isBg ? "Изберете град" : "Select city")}
+                    </span>
+                    <ChevronsUpDown className="w-4 h-4 opacity-50 flex-shrink-0" />
                   </button>
-                ))}
-              </div>
+                </PopoverTrigger>
+                <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
+                  <Command>
+                    <CommandInput placeholder={isBg ? "Търси град..." : "Search city..."} />
+                    <CommandList>
+                      <CommandEmpty>{isBg ? "Няма намерен град" : "No city found"}</CommandEmpty>
+                      <CommandGroup>
+                        {citiesData?.map((city) => (
+                          <CommandItem
+                            key={city.id}
+                            value={city.name}
+                            disabled={!city.isActive}
+                            onSelect={() => {
+                              if (!city.isActive) return;
+                              setSelectedCityId(city.id);
+                              setDistrict("");
+                              setCityOpen(false);
+                            }}
+                          >
+                            <Check className={`mr-2 w-4 h-4 ${selectedCityId === city.id ? "opacity-100" : "opacity-0"}`} />
+                            <span className={!city.isActive ? "text-muted-foreground" : ""}>{city.name}</span>
+                            {!city.isActive && <span className="ml-auto text-xs text-muted-foreground">{isBg ? "неактивен" : "inactive"}</span>}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
             {/* District */}
             <div className="space-y-1.5">

@@ -6,13 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { toast } from "sonner";
 import {
   MapPin, Navigation, Phone, Mail, AlertTriangle,
   CheckCircle, ChevronDown, ChevronRight, LogOut,
   Trash2, Recycle, Package, HardHat, Camera, Map,
   Settings, List, X, ArrowLeft, Send, Upload,
-  CalendarDays, Sun, Moon, Loader2, ClipboardList
+  CalendarDays, Sun, Moon, Loader2, ClipboardList, Check, ChevronsUpDown
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
@@ -91,6 +93,7 @@ function DistrictSelector({ deviceToken }: { deviceToken: string }) {
 
   const { data: citiesData } = trpc.cities.list.useQuery();
   const [selectedCityId, setSelectedCityId] = useState<number | null>(null);
+  const [cityOpen, setCityOpen] = useState(false);
   const { data: allDistricts = [] } = trpc.districts.list.useQuery();
   const districtsForCity = allDistricts.filter(d => d.cityId === selectedCityId);
   const { data: myDistricts = [], refetch } = trpc.workerDistricts.getMyDistricts.useQuery(
@@ -133,25 +136,45 @@ function DistrictSelector({ deviceToken }: { deviceToken: string }) {
         </p>
       </div>
 
-      <div className="flex gap-2 flex-wrap">
-        {citiesData?.map((city) => (
+      <Popover open={cityOpen} onOpenChange={setCityOpen}>
+        <PopoverTrigger asChild>
           <button
-            key={city.id}
             type="button"
-            disabled={!city.isActive}
-            onClick={() => setSelectedCityId(city.id)}
-            className={`px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
-              !city.isActive
-                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                : selectedCityId === city.id
-                  ? "bg-primary text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
+            className="w-full flex items-center justify-between rounded-xl border border-input bg-background px-3 py-2 text-sm"
           >
-            {city.name}
+            <span className={selectedCityId ? "" : "text-muted-foreground"}>
+              {citiesData?.find((c) => c.id === selectedCityId)?.name || (isBg ? "Изберете град" : "Select city")}
+            </span>
+            <ChevronsUpDown className="w-4 h-4 opacity-50 flex-shrink-0" />
           </button>
-        ))}
-      </div>
+        </PopoverTrigger>
+        <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
+          <Command>
+            <CommandInput placeholder={isBg ? "Търси град..." : "Search city..."} />
+            <CommandList>
+              <CommandEmpty>{isBg ? "Няма намерен град" : "No city found"}</CommandEmpty>
+              <CommandGroup>
+                {citiesData?.map((city) => (
+                  <CommandItem
+                    key={city.id}
+                    value={city.name}
+                    disabled={!city.isActive}
+                    onSelect={() => {
+                      if (!city.isActive) return;
+                      setSelectedCityId(city.id);
+                      setCityOpen(false);
+                    }}
+                  >
+                    <Check className={`mr-2 w-4 h-4 ${selectedCityId === city.id ? "opacity-100" : "opacity-0"}`} />
+                    <span className={!city.isActive ? "text-muted-foreground" : ""}>{city.name}</span>
+                    {!city.isActive && <span className="ml-auto text-xs text-muted-foreground">{isBg ? "неактивен" : "inactive"}</span>}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
       <div className="flex gap-2 flex-wrap">
         <Button size="sm" variant="outline" onClick={() => setSelected(districtsForCity.map(d => d.name))} className="rounded-2xl text-xs">
           {isBg ? "Избери всички" : "Select all"}
