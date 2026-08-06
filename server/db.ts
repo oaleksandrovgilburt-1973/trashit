@@ -430,26 +430,47 @@ export async function updateRequestProblem(id: number, hasProblem: boolean, prob
   await db.update(requests).set({ hasProblem, problemDescription: problemDescription ?? null }).where(eq(requests.id, id));
 }
 
+async function releaseEntranceIfNoMoreWork(district: string, blok: string, vhod: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  const { or } = await import("drizzle-orm");
+  const remaining = await db.select().from(requests).where(and(
+    eq(requests.district, district),
+    eq(requests.blok, blok),
+    eq(requests.vhod, vhod),
+    or(eq(requests.status, "pending"), eq(requests.status, "assigned"))
+  ));
+  if (remaining.length === 0) {
+    await db.delete(workerAssignments).where(and(
+      eq(workerAssignments.district, district),
+      eq(workerAssignments.blok, blok),
+      eq(workerAssignments.vhod, vhod)
+    ));
+  }
+}
 export async function completeRequest(id: number, workerOpenId: string, workerId: number): Promise<void> {
   const db = await getDb();
   if (!db) return;
+  const req = await db.select().from(requests).where(eq(requests.id, id)).limit(1);
   await db.update(requests).set({
     status: "completed",
     workerOpenId,
     workerId,
     completedAt: new Date(),
   }).where(eq(requests.id, id));
+  if (req[0]) await releaseEntranceIfNoMoreWork(req[0].district, req[0].blok, req[0].vhod);
 }
-
 export async function completeRequestPendingPayment(id: number, workerOpenId: string, workerId: number): Promise<void> {
   const db = await getDb();
   if (!db) return;
+  const req = await db.select().from(requests).where(eq(requests.id, id)).limit(1);
   await db.update(requests).set({
     status: "pending_payment",
     workerOpenId,
     workerId,
     completedAt: new Date(),
   }).where(eq(requests.id, id));
+  if (req[0]) await releaseEntranceIfNoMoreWork(req[0].district, req[0].blok, req[0].vhod);
 }
 
 export async function completeRequestsByEntrance(
@@ -484,6 +505,7 @@ export async function completeRequestsByEntrance(
       notInArray(requests.type, ["nonstandard", "construction"])
     )
   );
+  await releaseEntranceIfNoMoreWork(district, blok, vhod);
   return active.length;
 }
 

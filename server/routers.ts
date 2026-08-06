@@ -843,9 +843,10 @@ export const appRouter = router({
           await addQuantityToRequest(mergedRequestId, requestedQty);
           id = mergedRequestId;
         } else {
+          const existingClaim = await getAssignmentByEntrance(input.district, input.blok, input.vhod);
           id = await createRequest({
             type: input.type,
-            status: "pending",
+            status: existingClaim ? "assigned" : "pending",
             userId: ctx.user.id,
             userOpenId: ctx.user.openId,
             description: input.description,
@@ -863,7 +864,9 @@ export const appRouter = router({
             estimatedVolumeDescription: input.estimatedVolumeDescription,
             creditsUsed,
             creditType,
-          });
+            workerOpenId: existingClaim?.workerOpenId,
+            workerId: existingClaim?.workerId,
+          } as any);
         }
         // Telegram: notify new request channel
         sendTelegramMessage(TELEGRAM_CHATS.requests,

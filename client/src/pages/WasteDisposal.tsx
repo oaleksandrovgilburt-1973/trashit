@@ -160,8 +160,12 @@ export default function WasteDisposal() {
       if (profile.addressKvartal) setDistrict(profile.addressKvartal);
       if (profile.phone) setContactPhone(profile.phone);
       if (profile.email) setContactEmail(profile.email);
+      if (profile.addressCity && citiesData) {
+        const matchedCity = citiesData.find(c => c.name === profile.addressCity);
+        if (matchedCity) setSelectedCityId(matchedCity.id);
+      }
     }
-  }, [profile]);
+  }, [profile, citiesData]);
 
   const updateProfile = trpc.users.updateProfile.useMutation();
 

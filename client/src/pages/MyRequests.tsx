@@ -370,9 +370,23 @@ export default function MyRequests() {
                       {statusInfo.icon}
                       {isBg ? statusInfo.bg : statusInfo.en}
                     </span>
+                    {(req.type === "standard" || req.type === "recycling") && (req as any).creditsUsed && parseFloat((req as any).creditsUsed) > 1 && (
+                      <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full bg-orange-100 text-orange-700">
+                        {parseFloat((req as any).creditsUsed)} {isBg ? "плика" : "bags"}
+                      </span>
+                    )}
                   </div>
                   <span className="text-xs text-gray-400 flex-shrink-0">{date}</span>
                 </div>
+                {(req.type === "standard" || req.type === "recycling") && req.status === "pending" && (
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/waste-disposal?type=${req.type}`)}
+                    className="text-xs font-semibold text-primary underline mt-2"
+                  >
+                    {isBg ? "+ Добави плик към тази заявка" : "+ Add bag to this request"}
+                  </button>
+                )}
 
                 <div className="mt-3 flex items-center gap-1.5 text-sm text-gray-600">
                   <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
