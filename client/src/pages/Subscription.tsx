@@ -89,6 +89,17 @@ export default function Subscription() {
   const activeSubQ = trpc.subscriptions.myActive.useQuery(undefined, { enabled: !!user });
   const nextVisitQ = trpc.subscriptions.myNextVisit.useQuery(undefined, { enabled: !!user });
   const nextVisit = nextVisitQ.data;
+  const [extraBagsQty, setExtraBagsQty] = useState(1);
+  const [showAddBags, setShowAddBags] = useState(false);
+  const addExtraBags = trpc.subscriptions.addExtraBags.useMutation({
+    onSuccess: () => {
+      toast.success(isBg ? "Пликовете са добавени!" : "Bags added!");
+      nextVisitQ.refetch();
+      setShowAddBags(false);
+      setExtraBagsQty(1);
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
   const allSubsQ = trpc.subscriptions.myList.useQuery(undefined, { enabled: !!user });
   const normalizedVhod = vhod ? normalizeEntrance(vhod) : "";
   const { data: entranceCheck } = trpc.entranceAccess.check.useQuery(
@@ -285,6 +296,59 @@ export default function Subscription() {
                       </span>
                     </button>
                   )}
+                  <div className="mt-2 pt-2 border-t border-green-200">
+                    {(nextVisit as any).extraBags > 0 && (
+                      <p className="text-xs text-green-700 font-medium mb-1.5">
+                        {isBg ? `+${(nextVisit as any).extraBags} добавени плика` : `+${(nextVisit as any).extraBags} extra bags added`}
+                      </p>
+                    )}
+                    {!showAddBags ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowAddBags(true)}
+                        className="text-xs font-semibold text-green-700 underline"
+                      >
+                        {isBg ? "+ Добави плик към заявката" : "+ Add bag to the request"}
+                      </button>
+                    ) : (
+                      <div className="space-y-2">
+                        <p className="text-xs text-green-700">{isBg ? "Брой пликове (1 кредит = 1 плик):" : "Number of bags (1 credit = 1 bag):"}</p>
+                        <div className="flex gap-1.5">
+                          {[1, 2, 3, 4, 5].map((n) => (
+                            <button
+                              key={n}
+                              type="button"
+                              onClick={() => setExtraBagsQty(n)}
+                              className={`flex-1 py-1.5 rounded-lg text-xs font-semibold border-2 transition-colors ${
+                                extraBagsQty === n
+                                  ? "border-green-600 bg-green-100 text-green-800"
+                                  : "border-green-200 text-green-600 hover:border-green-400"
+                              }`}
+                            >
+                              {n}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setShowAddBags(false)}
+                            className="flex-1 py-1.5 rounded-lg text-xs font-semibold text-gray-600 border border-gray-300"
+                          >
+                            {isBg ? "Отказ" : "Cancel"}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={addExtraBags.isPending}
+                            onClick={() => addExtraBags.mutate({ visitId: (nextVisit as any).id, quantity: extraBagsQty })}
+                            className="flex-1 py-1.5 rounded-lg text-xs font-semibold text-white bg-green-600 hover:bg-green-700 disabled:opacity-50"
+                          >
+                            {addExtraBags.isPending ? (isBg ? "Добавя се..." : "Adding...") : (isBg ? "Потвърди" : "Confirm")}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -367,10 +431,7 @@ export default function Subscription() {
                     <span className={`text-2xl font-black ${visits === v ? "text-green-700" : "text-foreground"}`}>{v}</span>
                     <span className={`text-xs ${visits === v ? "text-green-600" : "text-muted-foreground"}`}>{isBg ? "посещения" : "visits"}</span>
                     {OLD_PRICES[type]?.[v] && (
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs line-through text-gray-400">€{OLD_PRICES[type][v].old.toFixed(2)}</span>
-                        <span className="text-xs font-bold bg-red-100 text-red-600 px-1 py-0.5 rounded-full">-{OLD_PRICES[type][v].discount}%</span>
-                      </div>
+                      <span className="text-xs line-through text-gray-400">€{OLD_PRICES[type][v].old.toFixed(2)}</span>
                     )}
                     <span className={`text-sm font-bold ${visits === v ? "text-green-700" : "text-muted-foreground"}`}>
                       €{PRICES[type][v].toFixed(2)}/{isBg ? "мес" : "mo"}
@@ -553,9 +614,8 @@ export default function Subscription() {
                 </div>
                 <div className="text-right">
                   {OLD_PRICES[type]?.[visits] && (
-                    <div className="flex items-center justify-end gap-1.5 mb-0.5">
+                    <div className="mb-0.5">
                       <span className="text-sm line-through text-green-200">€{OLD_PRICES[type][visits].old.toFixed(2)}</span>
-                      <span className="text-xs font-bold bg-red-500 text-white px-1.5 py-0.5 rounded-full">-{OLD_PRICES[type][visits].discount}%</span>
                     </div>
                   )}
                   <p className="text-3xl font-black">€{price.toFixed(2)}</p>

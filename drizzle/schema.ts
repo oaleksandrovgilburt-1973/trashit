@@ -405,6 +405,8 @@ export const subscriptionVisits = mysqlTable("subscription_visits", {
   visitDate: varchar("visitDate", { length: 10 }).notNull(),
   timeSlot: mysqlEnum("timeSlot", ["morning", "evening"]).notNull(),
   status: mysqlEnum("status", ["pending", "completed"]).default("pending").notNull(),
+  /** Extra bags added by client on top of the subscription plan (1 credit = 1 extra bag) */
+  extraBags: int("extraBags").default(0).notNull(),
   completedAt: timestamp("completedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });

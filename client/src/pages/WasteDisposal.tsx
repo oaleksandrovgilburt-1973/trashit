@@ -90,6 +90,7 @@ export default function WasteDisposal() {
   const [step, setStep] = useState<"select" | "form" | "success">("select");
   const [showSaveAddress, setShowSaveAddress] = useState(false);
   const [selectedType, setSelectedType] = useState<WasteType | null>(null);
+  const [quantity, setQuantity] = useState(1);
   const [showWarning, setShowWarning] = useState(false);
   const [cameFromDirectLink, setCameFromDirectLink] = useState(false);
   const [animating, setAnimating] = useState(false);
@@ -196,6 +197,7 @@ export default function WasteDisposal() {
 
   const handleTypeSelect = (type: WasteType) => {
     setSelectedType(type);
+    setQuantity(1);
     const wt = WASTE_TYPES.find(w => w.id === type);
     if (wt?.warningBg) {
       setShowWarning(true);
@@ -310,6 +312,7 @@ if (selectedType !== "nonstandard" && selectedType !== "construction") {
 }
     createRequest.mutate({
       type: selectedType,
+      quantity: (selectedType === "standard" || selectedType === "recycling") ? quantity : undefined,
       description: description || undefined,
       district,
       blok,
@@ -448,13 +451,43 @@ if (selectedType !== "nonstandard" && selectedType !== "construction") {
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Credit info banner */}
             {(selectedType === "standard" || selectedType === "recycling") && (
-              <div className="bg-primary/10 border border-primary/20 rounded-xl p-3 flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
-                <p className="text-sm text-primary font-medium">
-                  {selectedType === "standard"
-                    ? (isBg ? "Ще бъде приспаднат 1 стандартен кредит при потвърждение" : "1 standard credit will be deducted")
-                    : (isBg ? "Ще бъде приспаднат 1 кредит за разделно събиране" : "1 recycling credit will be deducted")}
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold">
+                  {isBg ? "Брой пликове" : "Number of bags"}
+                </Label>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setQuantity(n)}
+                      className={`flex-1 py-2 rounded-xl text-sm font-semibold border-2 transition-colors ${
+                        quantity === n
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-gray-200 text-gray-500 hover:border-gray-300"
+                      }`}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500">
+                  {isBg
+                    ? "Повече от 5 плика? Използвайте \"Нестандартна заявка\"."
+                    : "More than 5 bags? Use a \"Non-standard request\" instead."}
                 </p>
+                <div className="bg-primary/10 border border-primary/20 rounded-xl p-3 flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
+                  <p className="text-sm text-primary font-medium">
+                    {selectedType === "standard"
+                      ? (isBg
+                          ? `${quantity} ${quantity === 1 ? "плик" : "плика"} = ${quantity} стандартен кредит${quantity === 1 ? "" : "а"} при потвърждение`
+                          : `${quantity} ${quantity === 1 ? "bag" : "bags"} = ${quantity} standard credit${quantity === 1 ? "" : "s"} will be deducted`)
+                      : (isBg
+                          ? `${quantity} кредит${quantity === 1 ? "" : "а"} за разделно събиране (до ${quantity * 3} плика)`
+                          : `${quantity} recycling credit${quantity === 1 ? "" : "s"} (up to ${quantity * 3} bags)`)}
+                  </p>
+                </div>
               </div>
             )}
 

@@ -1041,6 +1041,13 @@ export async function getNextPendingVisit(subscriptionId: number, today: string)
     .limit(1);
   return visits[0] ?? null;
 }
+export async function addExtraBagsToVisit(visitId: number, quantity: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  const visit = await db.select().from(subscriptionVisits).where(eq(subscriptionVisits.id, visitId)).limit(1);
+  const current = visit[0]?.extraBags ?? 0;
+  await db.update(subscriptionVisits).set({ extraBags: current + quantity }).where(eq(subscriptionVisits.id, visitId));
+}
 
 // ─── Worker Subscription Preferences ─────────────────────────────────────────
 

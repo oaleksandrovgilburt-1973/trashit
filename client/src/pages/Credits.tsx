@@ -326,9 +326,8 @@ export default function Credits() {
                     </div>
                     <div className="text-right">
                       {promoData[pkg.id] && (
-                        <div className="flex items-center justify-end gap-1.5 mb-0.5">
+                        <div className="mb-0.5">
                           <span className="text-xs text-gray-400 line-through">{promoData[pkg.id].oldPrice.toFixed(2)} €</span>
-                          <span className="text-xs font-bold bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full">-{promoData[pkg.id].discount}%</span>
                         </div>
                       )}
                       <div className="text-xl font-black text-gray-900">{pkg.price.toFixed(2)} €</div>

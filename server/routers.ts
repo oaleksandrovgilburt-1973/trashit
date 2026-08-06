@@ -69,7 +69,7 @@ import {
   getAllSubscriptions, updateSubscriptionStripe, cancelSubscription,
   getSubscriptionByStripeId, getTodayVisitsBySlot, markVisitCompleted,
   createDailyVisitsForSubscription, getWorkerSubscriptionPref, setWorkerSubscriptionPref,
-  getSubscriptionById, getNextPendingVisit,
+  getSubscriptionById, getNextPendingVisit, addExtraBagsToVisit,
   // Request Messages
   getMessagesByRequestId, addRequestMessage,
   // Web Push
@@ -758,6 +758,7 @@ export const appRouter = router({
     create: protectedProcedure
       .input(z.object({
         type: z.enum(["standard", "recycling", "nonstandard", "construction"]),
+        quantity: z.number().min(1).max(5).default(1),
         description: z.string().optional(),
         district: z.string().min(1, "Кварталът е задължителен"),
         blok: z.string().min(1, "Блокът е задължителен"),
@@ -789,13 +790,14 @@ export const appRouter = router({
           throw new TRPCError({ code: "BAD_REQUEST", message: "Трябва да въведете телефон или имейл за обратна връзка." });
         }
         // Determine credit cost
+        const requestedQty = input.quantity ?? 1;
         let creditsUsed = "0.00";
         let creditType: "standard" | "recycling" | "none" = "none";
         if (input.type === "standard") {
-          creditsUsed = "1.00";
+          creditsUsed = requestedQty.toFixed(2);
           creditType = "standard";
         } else if (input.type === "recycling") {
-          creditsUsed = "1.00";
+          creditsUsed = requestedQty.toFixed(2);
           creditType = "recycling";
         }
         // Check credits if needed
@@ -805,11 +807,11 @@ export const appRouter = router({
           const available = creditType === "standard"
             ? parseFloat(user.creditsStandard ?? "0")
             : parseFloat(user.creditsRecycling ?? "0");
-          if (available < 1) {
+          if (available < requestedQty) {
             throw new TRPCError({ code: "BAD_REQUEST", message: `Нямате достатъчно ${creditType === "standard" ? "стандартни" : "рециклиращи"} кредити.` });
           }
-          // Deduct credit
-          const newVal = (available - 1).toFixed(2);
+          // Deduct credits
+          const newVal = (available - requestedQty).toFixed(2);
           if (creditType === "standard") {
             // Direct update
             const dbInst = await import("./db").then(m => m.getDb());
@@ -2721,6 +2723,34 @@ export const appRouter = router({
         assignedWorkerNumber: worker?.id ?? null,
       };
     }),
+    addExtraBags: protectedProcedure
+      .input(z.object({ visitId: z.number(), quantity: z.number().min(1).max(5) }))
+      .mutation(async ({ ctx, input }) => {
+        const sub = await getActiveSubscriptionByUser(ctx.user.openId);
+        if (!sub) throw new TRPCError({ code: "NOT_FOUND", message: "Нямате активен абонамент." });
+        const user = await getUserByOpenId(ctx.user.openId);
+        if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "Потребителят не е намерен." });
+        const creditType = sub.type;
+        const available = creditType === "standard"
+          ? parseFloat(user.creditsStandard ?? "0")
+          : parseFloat(user.creditsRecycling ?? "0");
+        if (available < input.quantity) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: `Нямате достатъчно ${creditType === "standard" ? "стандартни" : "рециклиращи"} кредити.` });
+        }
+        const newVal = (available - input.quantity).toFixed(2);
+        const dbInst = await import("./db").then(m => m.getDb());
+        if (dbInst) {
+          const { users } = await import("../drizzle/schema");
+          const { eq } = await import("drizzle-orm");
+          if (creditType === "standard") {
+            await dbInst.update(users).set({ creditsStandard: newVal }).where(eq(users.openId, ctx.user.openId));
+          } else {
+            await dbInst.update(users).set({ creditsRecycling: newVal }).where(eq(users.openId, ctx.user.openId));
+          }
+        }
+        await addExtraBagsToVisit(input.visitId, input.quantity);
+        return { success: true };
+      }),
     createCheckout: protectedProcedure
       .input(z.object({
         type: z.enum(["standard", "recycling"]),
