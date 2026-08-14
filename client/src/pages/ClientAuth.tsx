@@ -12,7 +12,8 @@ type Tab = "social" | "email" | "phone";
 type Mode = "login" | "register";
 
 export default function ClientAuth() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const isBg = language === "bg";
   const [, navigate] = useLocation();
   const utils = trpc.useUtils();
   const [tab, setTab] = useState<Tab>("social");
