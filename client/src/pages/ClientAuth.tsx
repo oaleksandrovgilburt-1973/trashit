@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { Mail, Phone, ArrowLeft, Sparkles, Eye, EyeOff, X } from "lucide-react";
-import { TERMS_TEXT } from "@/lib/termsContent";
+import { TERMS_TEXT, TERMS_TEXT_EN } from "@/lib/termsContent";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
 import { getLoginUrl } from "@/const";
@@ -593,7 +593,7 @@ export default function ClientAuth() {
               </button>
             </div>
             <div className="overflow-y-auto p-4 flex-1">
-              <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{TERMS_TEXT}</p>
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{isBg ? TERMS_TEXT : TERMS_TEXT_EN}</p>
             </div>
             <div className="p-4 border-t border-border">
               <button
