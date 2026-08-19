@@ -1,4 +1,5 @@
 import { usePWA } from "@/hooks/usePWA";
+import { Capacitor } from "@capacitor/core";
 
 /**
  * AppStoreBadges — стандартни бутони за App Store и Google Play.
@@ -11,6 +12,7 @@ const STORES_LIVE = {
 
 export default function AppStoreBadges({ className = "", isBg = true }: { className?: string; isBg?: boolean }) {
   const { canInstall, promptInstall } = usePWA();
+  const isIOSApp = Capacitor.getPlatform() === "ios";
   return (
     <div className={`flex flex-col items-center gap-3 ${className}`}>
       <div className="flex flex-wrap items-center justify-center gap-3">
@@ -45,7 +47,7 @@ export default function AppStoreBadges({ className = "", isBg = true }: { classN
           </div>
         </a>
         {/* Google Play */}
-        
+        {!isIOSApp && (
         <a href={STORES_LIVE.android ? "#" : undefined}
           aria-label="Get it on Google Play"
           className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl transition-colors ${
@@ -60,6 +62,7 @@ export default function AppStoreBadges({ className = "", isBg = true }: { classN
             <div className="text-sm font-semibold">Google Play</div>
           </div>
         </a>
+        )}
       </div>
       {(!STORES_LIVE.ios || !STORES_LIVE.android) && (
         <p className="text-xs text-muted-foreground text-center max-w-xs">
