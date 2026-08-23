@@ -6,8 +6,8 @@ import { Capacitor } from "@capacitor/core";
  * Когато приложението бъде одобрено, смени съответния флаг на `true` и добави реалния линк.
  */
 const STORES_LIVE = {
-  ios: false,
-  android: false,
+  ios: true,
+  android: true,
 };
 
 export default function AppStoreBadges({ className = "", isBg = true }: { className?: string; isBg?: boolean }) {
@@ -32,8 +32,10 @@ export default function AppStoreBadges({ className = "", isBg = true }: { classN
         )}
         {/* App Store */}
         
-         <a href={STORES_LIVE.ios ? "#" : undefined}
+         <a href={STORES_LIVE.ios ? "https://apps.apple.com/app/trashit-bg/id6798248622" : undefined}
           aria-label="Download on the App Store"
+          target="_blank"
+          rel="noopener noreferrer"
           className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl transition-colors ${
             STORES_LIVE.ios ? "bg-black text-white hover:bg-gray-800 cursor-pointer" : "bg-gray-300 text-gray-500 cursor-default"
           }`}
@@ -48,8 +50,10 @@ export default function AppStoreBadges({ className = "", isBg = true }: { classN
         </a>
         {/* Google Play */}
         {!isIOSApp && (
-        <a href={STORES_LIVE.android ? "#" : undefined}
+        <a href={STORES_LIVE.android ? "https://play.google.com/store/apps/details?id=bg.trashit.app" : undefined}
           aria-label="Get it on Google Play"
+          target="_blank"
+          rel="noopener noreferrer"
           className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl transition-colors ${
             STORES_LIVE.android ? "bg-black text-white hover:bg-gray-800 cursor-pointer" : "bg-gray-300 text-gray-500 cursor-default"
           }`}

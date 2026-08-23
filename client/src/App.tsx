@@ -21,6 +21,7 @@ import WorkerRequests from "./pages/WorkerRequests";
 import Credits from "./pages/Credits";
 import Subscription from "./pages/Subscription";
 import TermsPage from "./pages/TermsPage";
+import DownloadPage from "@/pages/DownloadPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import RefundPage from "./pages/RefundPage";
 import { UpdateBanner } from "./components/UpdateBanner";
@@ -55,6 +56,7 @@ function Router() {
       <Route path="/subadmin" component={SubAdminPortal} />
 
       {/* Legal */}
+      <Route path="/download" component={DownloadPage} />
       <Route path="/terms" component={TermsPage} />
       <Route path="/privacy" component={PrivacyPage} />
       <Route path="/refund" component={RefundPage} />
