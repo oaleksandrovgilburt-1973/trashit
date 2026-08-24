@@ -18,7 +18,7 @@ import {
   CheckCircle2, Loader2, Navigation, X,
   Check, ChevronsUpDown
 } from "lucide-react";
-import { normalizeEntrance } from "../../../shared/bgAlphabet";
+import { normalizeEntrance, normalizeAddress } from "../../../shared/bgAlphabet";
 
 type WasteType = "standard" | "recycling" | "nonstandard" | "construction";
 
@@ -117,6 +117,11 @@ export default function WasteDisposal() {
   const [district, setDistrict] = useState("");
   const [districtOpen, setDistrictOpen] = useState(false);
   const [blok, setBlok] = useState("");
+  const [addressSuggestOpen, setAddressSuggestOpen] = useState(false);
+  const { data: addressSuggestions } = trpc.requests.addressSuggestions.useQuery(
+    { district, query: blok },
+    { enabled: !!district && blok.length >= 1 }
+  );
   const [vhod, setVhod] = useState("");
   const [etaj, setEtaj] = useState("");
   const [apartament, setApartament] = useState("");
@@ -681,9 +686,32 @@ if (selectedType !== "nonstandard" && selectedType !== "construction") {
             <div className="space-y-1.5">
               <Label className="text-sm font-semibold">{isBg ? "Адрес *" : "Address *"}</Label>
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs text-gray-500">{isBg ? "Блок" : "Block"}</Label>
-                  <Input value={blok} onChange={e => setBlok(e.target.value)} placeholder="358" required className="rounded-xl mt-1" />
+                <div className="relative">
+                  <Label className="text-xs text-gray-500">{isBg ? "Блок / Улица №" : "Block / Street No."}</Label>
+                  <Input
+                    value={blok}
+                    onChange={e => { setBlok(e.target.value); setAddressSuggestOpen(true); }}
+                    onBlur={() => { setBlok(v => normalizeAddress(v)); setTimeout(() => setAddressSuggestOpen(false), 150); }}
+                    onFocus={() => setAddressSuggestOpen(true)}
+                    placeholder={isBg ? "358 или Ул. Сребърна 26" : "358 or Str. Srebarna 26"}
+                    required
+                    autoComplete="off"
+                    className="rounded-xl mt-1"
+                  />
+                  {addressSuggestOpen && addressSuggestions && addressSuggestions.length > 0 && (
+                    <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                      {addressSuggestions.map((s) => (
+                        <button
+                          key={s}
+                          type="button"
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50"
+                          onMouseDown={(e) => { e.preventDefault(); setBlok(s); setAddressSuggestOpen(false); }}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <Label className="text-xs text-gray-500">{isBg ? "Вход" : "Entrance"}</Label>

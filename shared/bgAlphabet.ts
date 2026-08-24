@@ -43,3 +43,11 @@ export function normalizeEntrance(value: string): string {
   }
   return trimmed.toUpperCase();
 }
+
+/**
+ * Normalizes a free-text address field (street/block combo) by trimming
+ * and collapsing multiple internal spaces into one, while preserving casing.
+ */
+export function normalizeAddress(value: string): string {
+  return value.trim().replace(/\s+/g, " ");
+}

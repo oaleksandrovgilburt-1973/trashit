@@ -754,6 +754,33 @@ export const appRouter = router({
 
   // ── Requests ──────────────────────────────────────────────────────────────────────────────
   requests: router({
+    // Client: autocomplete suggestions for the address field, based on existing entries
+    addressSuggestions: protectedProcedure
+      .input(z.object({
+        district: z.string().min(1),
+        query: z.string().optional(),
+      }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        const { eq } = await import("drizzle-orm");
+        const { requests: reqTable, subscriptions: subTable } = await import("../drizzle/schema");
+        const q = (input.query ?? "").trim().toLowerCase();
+        const [fromRequests, fromSubs] = await Promise.all([
+          db.selectDistinct({ blok: reqTable.blok }).from(reqTable).where(eq(reqTable.district, input.district)).limit(50),
+          db.selectDistinct({ blok: subTable.blok }).from(subTable).where(eq(subTable.district, input.district)).limit(50),
+        ]);
+        const unique = new Map<string, string>();
+        for (const row of [...fromRequests, ...fromSubs]) {
+          const trimmed = row.blok.trim();
+          if (!trimmed) continue;
+          const key = trimmed.toLowerCase();
+          if (!unique.has(key) && (!q || key.includes(q))) {
+            unique.set(key, trimmed);
+          }
+        }
+        return Array.from(unique.values()).slice(0, 8);
+      }),
     // Client: create a new waste disposal request
     create: protectedProcedure
       .input(z.object({
