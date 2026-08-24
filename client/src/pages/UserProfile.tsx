@@ -5,6 +5,7 @@ import { ArrowLeft, User, MapPin, Phone, Mail, Edit2, Save, X, Calendar, Check, 
 import { StandardCoin, RecyclingCoin } from "@/components/CreditCoin";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
+import { normalizeAddress } from "../../../shared/bgAlphabet";
 import { useAuth } from "@/_core/hooks/useAuth";
 import MainLayout from "@/components/MainLayout";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -14,6 +15,11 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 export default function UserProfile() {
   const { t, language } = useLanguage();
   const isBg = language === "bg";
+  const [addressSuggestOpen, setAddressSuggestOpen] = useState(false);
+  const { data: addressSuggestions } = trpc.requests.addressSuggestions.useQuery(
+    { district: addressForm.addressKvartal, query: addressForm.addressBlok },
+    { enabled: !!addressForm.addressKvartal && addressForm.addressBlok.length >= 1 }
+  );
   const { user, isAuthenticated, logout } = useAuth();
   const [, navigate] = useLocation();
 
@@ -424,15 +430,32 @@ export default function UserProfile() {
                   />
                 )}
               </div>
-              <div>
+              <div className="relative">
                 <label className="text-xs text-muted-foreground mb-1 block">{t.addressBlok}</label>
                 <input
                   type="text"
                   value={addressForm.addressBlok}
-                  onChange={e => setAddressForm(f => ({ ...f, addressBlok: e.target.value }))}
-                  placeholder="123"
+                  onChange={e => { setAddressForm(f => ({ ...f, addressBlok: e.target.value })); setAddressSuggestOpen(true); }}
+                  onBlur={() => { setAddressForm(f => ({ ...f, addressBlok: normalizeAddress(f.addressBlok) })); setTimeout(() => setAddressSuggestOpen(false), 150); }}
+                  onFocus={() => setAddressSuggestOpen(true)}
+                  placeholder={isBg ? "123 или Ул. Сребърна 26" : "123 or Str. Srebarna 26"}
+                  autoComplete="off"
                   className="w-full px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
                 />
+                {addressSuggestOpen && addressSuggestions && addressSuggestions.length > 0 && (
+                  <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                    {addressSuggestions.map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50"
+                        onMouseDown={(e) => { e.preventDefault(); setAddressForm(f => ({ ...f, addressBlok: s })); setAddressSuggestOpen(false); }}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">{t.addressVhod}</label>
