@@ -13,7 +13,7 @@ import {
   Check, ChevronsUpDown
 } from "lucide-react";
 import { Link } from "wouter";
-import { normalizeEntrance } from "../../../shared/bgAlphabet";
+import { normalizeEntrance, normalizeAddress } from "../../../shared/bgAlphabet";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
@@ -77,6 +77,11 @@ export default function Subscription() {
   const { data: districtsData } = trpc.districts.list.useQuery();
   const districts = districtsData?.filter(d => d.isActive && d.cityId === selectedCityId) ?? [];
   const [blok, setBlok] = useState("");
+  const [addressSuggestOpen, setAddressSuggestOpen] = useState(false);
+  const { data: addressSuggestions } = trpc.requests.addressSuggestions.useQuery(
+    { district, query: blok },
+    { enabled: !!district && blok.length >= 1 }
+  );
   const [vhod, setVhod] = useState("");
   const [etaj, setEtaj] = useState("");
   const [apartament, setApartament] = useState("");
@@ -592,12 +597,31 @@ export default function Subscription() {
                       </PopoverContent>
                     </Popover>
                   </div>
-                  <input
-                    className="rounded-xl border border-border p-3 text-sm"
-                    placeholder={isBg ? "Блок *" : "Block *"}
-                    value={blok}
-                    onChange={e => setBlok(e.target.value)}
-                  />
+                  <div className="relative">
+                    <input
+                      className="w-full rounded-xl border border-border p-3 text-sm"
+                      placeholder={isBg ? "Блок / Улица № *" : "Block / Street No. *"}
+                      value={blok}
+                      onChange={e => { setBlok(e.target.value); setAddressSuggestOpen(true); }}
+                      onBlur={() => { setBlok(v => normalizeAddress(v)); setTimeout(() => setAddressSuggestOpen(false), 150); }}
+                      onFocus={() => setAddressSuggestOpen(true)}
+                      autoComplete="off"
+                    />
+                    {addressSuggestOpen && addressSuggestions && addressSuggestions.length > 0 && (
+                      <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                        {addressSuggestions.map((s) => (
+                          <button
+                            key={s}
+                            type="button"
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50"
+                            onMouseDown={(e) => { e.preventDefault(); setBlok(s); setAddressSuggestOpen(false); }}
+                          >
+                            {s}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <div>
                     <input
                       className={`w-full rounded-xl border p-3 text-sm ${district && blok && normalizedVhod && entranceCheck?.approved ? "border-green-400" : "border-border"}`}
