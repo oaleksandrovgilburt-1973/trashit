@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+﻿import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -745,7 +745,7 @@ function GroupedRequestsView({ deviceToken }: { deviceToken: string }) {
                       >
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-semibold">
-                            {isBg ? `Бл. ${blok}` : `Bl. ${blok}`}
+                            {isBg ? `${blok}` : `${blok}`}
                           </span>
                           <Badge variant="outline" className="text-xs">{totalInBlock}</Badge>
                         </div>
@@ -852,8 +852,8 @@ function GroupedRequestsView({ deviceToken }: { deviceToken: string }) {
             {problemReq && (
               <div className="bg-orange-50 rounded-xl p-3 text-sm text-orange-800">
                 {isBg
-                  ? `Заявка #${problemReq.id} — ${problemReq.district}, Бл. ${problemReq.blok}, Вх. ${problemReq.vhod}, Ап. ${problemReq.apartament}`
-                  : `Request #${problemReq.id} — ${problemReq.district}, Bl. ${problemReq.blok}, Entr. ${problemReq.vhod}, Apt. ${problemReq.apartament}`}
+                  ? `Заявка #${problemReq.id} — ${problemReq.district}, ${problemReq.blok}, Вх. ${problemReq.vhod}, Ап. ${problemReq.apartament}`
+                  : `Request #${problemReq.id} — ${problemReq.district}, ${problemReq.blok}, Entr. ${problemReq.vhod}, Apt. ${problemReq.apartament}`}
               </div>
             )}
             <textarea
@@ -1012,7 +1012,7 @@ function WorkerSubscriptionsTab({ deviceToken, isBg }: { deviceToken: string; is
                   return (
                     <div key={key} className="rounded-2xl border bg-white p-3 flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium">{sub?.district}, Бл. {sub?.blok}, Вх. {sub?.vhod}</p>
+                        <p className="text-sm font-medium">{sub?.district}, {sub?.blok}, Вх. {sub?.vhod}</p>
                         <p className="text-xs text-muted-foreground">{visits.length} {isBg ? "апартамента" : "apartments"}</p>
                         {visits.reduce((sum: number, v: any) => sum + (v.extraBags || 0), 0) > 0 && (
                           <p className="text-xs font-bold text-orange-600 mt-0.5">
@@ -1056,7 +1056,7 @@ function WorkerSubscriptionsTab({ deviceToken, isBg }: { deviceToken: string; is
                   return (
                     <div key={key} className="rounded-2xl border bg-white p-3 flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium">{sub?.district}, Бл. {sub?.blok}, Вх. {sub?.vhod}</p>
+                        <p className="text-sm font-medium">{sub?.district}, {sub?.blok}, Вх. {sub?.vhod}</p>
                         <p className="text-xs text-muted-foreground">{visits.length} {isBg ? "апартамента" : "apartments"}</p>
                         {visits.reduce((sum: number, v: any) => sum + (v.extraBags || 0), 0) > 0 && (
                           <p className="text-xs font-bold text-orange-600 mt-0.5">
@@ -1116,7 +1116,7 @@ function WorkerSubscriptionsTab({ deviceToken, isBg }: { deviceToken: string; is
                         }}
                       >
                         <div>
-                          <p className="text-sm font-medium">{sub?.district}, Бл. {sub?.blok}, Вх. {sub?.vhod}</p>
+                          <p className="text-sm font-medium">{sub?.district}, {sub?.blok}, Вх. {sub?.vhod}</p>
                           <p className="text-xs text-muted-foreground">{visits.length} {isBg ? "апартамента" : "apartments"}</p>
                           {visits.reduce((sum: number, v: any) => sum + (v.extraBags || 0), 0) > 0 && (
                             <p className="text-xs font-bold text-orange-600 mt-0.5">
@@ -1199,7 +1199,7 @@ function WorkerSubscriptionsTab({ deviceToken, isBg }: { deviceToken: string; is
                         }}
                       >
                         <div>
-                          <p className="text-sm font-medium">{sub?.district}, Бл. {sub?.blok}, Вх. {sub?.vhod}</p>
+                          <p className="text-sm font-medium">{sub?.district}, {sub?.blok}, Вх. {sub?.vhod}</p>
                           <p className="text-xs text-muted-foreground">{visits.length} {isBg ? "апартамента" : "apartments"}</p>
                           {visits.reduce((sum: number, v: any) => sum + (v.extraBags || 0), 0) > 0 && (
                             <p className="text-xs font-bold text-orange-600 mt-0.5">
@@ -1340,7 +1340,7 @@ function WorkerQuotesTab({ deviceToken, isBg }: { deviceToken: string; isBg: boo
               {new Date(req.createdAt).toLocaleDateString(isBg ? "bg-BG" : "en-GB")}
             </span>
           </div>
-          <p className="text-xs text-muted-foreground">{req.district}, {isBg ? "Бл." : "Bl."} {req.blok}, {isBg ? "Вх." : "Entr."} {req.vhod}</p>
+          <p className="text-xs text-muted-foreground">{req.district}, {req.blok}, {isBg ? "Вх." : "Entr."} {req.vhod}</p>
           {req.gpsLat && req.gpsLng && (
             <div className="flex gap-2 flex-wrap">
               <a href={`https://www.google.com/maps/dir/?api=1&destination=${req.gpsLat},${req.gpsLng}`} target="_blank" rel="noreferrer">
@@ -1455,7 +1455,7 @@ function WorkerAssignmentsTab({ deviceToken }: { deviceToken: string }) {
                   <span className="font-semibold text-sm">{a.district}</span>
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {isBg ? `Бл. ${a.blok}, Вх. ${a.vhod}` : `Bl. ${a.blok}, Entr. ${a.vhod}`}
+                  {isBg ? `${a.blok}, Вх. ${a.vhod}` : `${a.blok}, Entr. ${a.vhod}`}
                   {reqs.length > 0 && (
                     <Badge variant="secondary" className="ml-2 text-xs">
                       {reqs.reduce((sum: number, r: any) => sum + ((r.type === "standard" || r.type === "recycling") ? parseFloat(r.creditsUsed || "1") : 1), 0)}

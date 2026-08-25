@@ -1,4 +1,4 @@
-import { normalizeEntrance } from "../../../shared/bgAlphabet";
+﻿import { normalizeEntrance } from "../../../shared/bgAlphabet";
 import React, { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -299,7 +299,7 @@ function WorkersTab() {
                       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
                       .map(r => (
                       <div key={r.id} className="text-xs bg-gray-50 rounded-lg p-2 flex justify-between">
-                        <span>{r.district}, Бл. {r.blok}, Вх. {r.vhod}, Ап. {r.apartament}</span>
+                        <span>{r.district}, {r.blok}, Вх. {r.vhod}, Ап. {r.apartament}</span>
                         <span className="text-gray-400">{new Date(r.createdAt).toLocaleDateString("bg-BG")}</span>
                       </div>
                     ))}
@@ -634,7 +634,7 @@ function BlocksTab() {
                 <div key={blok} className="px-4 py-3">
                   <div className="flex items-center gap-2 mb-2">
                     <Building2 className="w-3.5 h-3.5 text-gray-400" />
-                    <span className="text-sm font-medium text-gray-700">Бл. {blok}</span>
+                    <span className="text-sm font-medium text-gray-700">{blok}</span>
                   </div>
                   <div className="grid grid-cols-1 gap-2 pl-5">
                     {entrances.sort((a,b) => a.vhod.localeCompare(b.vhod)).map(entrance => {
@@ -670,7 +670,7 @@ function BlocksTab() {
                             <button
                               disabled={deleteMutation.isPending}
                               onClick={() => {
-                                if (window.confirm(`Изтриване на Вх. ${entrance.vhod}, Бл. ${entrance.blok}, ${entrance.district}?`)) {
+                                if (window.confirm(`Изтриване на Вх. ${entrance.vhod}, ${entrance.blok}, ${entrance.district}?`)) {
                                   deleteMutation.mutate({ district: entrance.district, blok: entrance.blok, vhod: entrance.vhod });
                                 }
                               }}
@@ -819,7 +819,7 @@ function CreditsTab() {
                 {tx.note && <p className="text-xs text-gray-500">{tx.note}</p>}
                 {tx.type === "purchase" && (tx.purchaseDistrict || tx.purchaseBlok || tx.purchaseVhod) && (
                   <p className="text-xs text-blue-600 mt-0.5">
-                    📍 {tx.purchaseDistrict}{tx.purchaseBlok ? `, Бл. ${tx.purchaseBlok}` : ""}{tx.purchaseVhod ? `, Вх. ${tx.purchaseVhod}` : ""}
+                    📍 {tx.purchaseDistrict}{tx.purchaseBlok ? `, ${tx.purchaseBlok}` : ""}{tx.purchaseVhod ? `, Вх. ${tx.purchaseVhod}` : ""}
                   </p>
                 )}
               </div>
@@ -1095,7 +1095,7 @@ function RequestsTab() {
               {Object.entries(bloks).map(([blok, vhods]) => (
                 <div key={blok} className="border-b border-gray-100 last:border-0">
                   <div className="px-4 py-2 bg-gray-50 font-medium text-gray-700 text-sm flex items-center gap-2">
-                    <Building2 className="w-3.5 h-3.5 text-gray-400" />Бл. {blok}
+                    <Building2 className="w-3.5 h-3.5 text-gray-400" />{blok}
                   </div>
                   {Object.entries(vhods).map(([vhod, reqs]) => (
                     <div key={vhod} className="px-4 py-3 border-t border-gray-50">
@@ -1217,7 +1217,7 @@ function RequestsTab() {
                       <div key={r.id} className="px-4 py-3 flex items-center justify-between">
                         <div>
                           <span className="font-medium text-gray-800 text-sm">
-                            {r.district}, Бл. {r.blok}, Вх. {r.vhod}, Ап. {r.apartament}
+                            {r.district}, {r.blok}, Вх. {r.vhod}, Ап. {r.apartament}
                           </span>
                           <p className="text-xs text-gray-500 mt-0.5">
                             {typeLabel[r.type] ?? r.type}
@@ -1259,7 +1259,7 @@ function RequestsTab() {
                   </div>
                   <span className="text-xs text-gray-400">{new Date(r.createdAt).toLocaleDateString("bg-BG")}</span>
                 </div>
-                <p className="text-sm text-gray-700">{r.district}, Бл. {r.blok}, Вх. {r.vhod}, Ет. {r.etaj}, Ап. {r.apartament}</p>
+                <p className="text-sm text-gray-700">{r.district}, {r.blok}, Вх. {r.vhod}, Ет. {r.etaj}, Ап. {r.apartament}</p>
                 {(r as any).acceptedQuotePrice && (
                   <p className="text-sm font-bold text-red-700 mt-1">💰 Дължи: {parseFloat((r as any).acceptedQuotePrice).toFixed(2)} €</p>
                 )}
@@ -1717,7 +1717,7 @@ function ProblemsTab() {
                 {problem.requestId && <span className="text-xs text-gray-500">Заявка #{problem.requestId}</span>}
                 {(problem.reqDistrict || problem.reqBlok) && (
                   <span className="text-xs text-gray-500">
-                    {[problem.reqDistrict, problem.reqBlok && `Бл. ${problem.reqBlok}`, problem.reqVhod && `Вх. ${problem.reqVhod}`, problem.reqEtaj && `Ет. ${problem.reqEtaj}`, problem.reqApartament && `Ап. ${problem.reqApartament}`].filter(Boolean).join(", ")}
+                    {[problem.reqDistrict, problem.reqBlok && `${problem.reqBlok}`, problem.reqVhod && `Вх. ${problem.reqVhod}`, problem.reqEtaj && `Ет. ${problem.reqEtaj}`, problem.reqApartament && `Ап. ${problem.reqApartament}`].filter(Boolean).join(", ")}
                   </span>
                 )}
               </div>
@@ -1958,7 +1958,7 @@ function ClientsTab() {
                       <div className="bg-white rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-700">
                         {[
                           client.addressKvartal,
-                          client.addressBlok && `Бл. ${client.addressBlok}`,
+                          client.addressBlok && `${client.addressBlok}`,
                           client.addressVhod && `Вх. ${client.addressVhod}`,
                           client.addressEtaj && `Ет. ${client.addressEtaj}`,
                           client.addressApartament && `Ап. ${client.addressApartament}`,
@@ -2074,7 +2074,7 @@ function ClientsTab() {
                             <div className="flex items-center gap-2 min-w-0">
                               <span className="text-xs text-gray-500 flex-shrink-0">{formatDate(r.createdAt)}</span>
                               <span className="text-sm font-medium text-gray-800 truncate">{formatReqType(r.type)}</span>
-                              <span className="text-xs text-gray-400 truncate">{r.district}, Бл.{r.blok} Вх.{r.vhod}</span>
+                              <span className="text-xs text-gray-400 truncate">{r.district}, {r.blok} Вх.{r.vhod}</span>
                             </div>
                             <Badge className={`text-xs flex-shrink-0 ${statusColor(r.status)}`}>{formatReqStatus(r.status)}</Badge>
                           </div>
@@ -2539,7 +2539,7 @@ function ReportsTab() {
                           >
                             <div className="flex items-center gap-2">
                               <Building2 className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                              <span className="text-sm font-medium text-gray-800">Бл. {blok}</span>
+                              <span className="text-sm font-medium text-gray-800">{blok}</span>
                               <span className="text-xs text-gray-400">{vhods.length} входа</span>
                             </div>
                             <div className="flex items-center gap-2">
@@ -2820,7 +2820,7 @@ function SubscriptionsTab() {
                       <Badge variant="outline" className="text-xs">{slotLabel(sub.timeSlot)}</Badge>
                     </div>
                     <p className="text-sm text-gray-600">
-                      {sub.district}, Бл. {sub.blok}, Вх. {sub.vhod}
+                      {sub.district}, {sub.blok}, Вх. {sub.vhod}
                       {sub.etaj ? `, Ет. ${sub.etaj}` : ""}
                       {sub.apartament ? `, Ап. ${sub.apartament}` : ""}
                     </p>
@@ -2863,7 +2863,7 @@ function SubscriptionsTab() {
                       <Badge className={statusColor(sub.status)}>{sub.status === "cancelled" ? "Отказан" : "Изтекъл"}</Badge>
                       <span className="text-sm font-semibold">{typeLabel(sub.type)} — {sub.visits} посещения/мес.</span>
                     </div>
-                    <p className="text-sm text-gray-600">{sub.district}, Бл. {sub.blok}, Вх. {sub.vhod}</p>
+                    <p className="text-sm text-gray-600">{sub.district}, {sub.blok}, Вх. {sub.vhod}</p>
                     <p className="text-xs text-gray-400">
                       {(sub as any).clientName ?? (sub as any).clientEmail ?? sub.userOpenId}
                       {sub.cancellationNote ? ` | Причина: ${sub.cancellationNote}` : ""}
@@ -2879,3 +2879,4 @@ function SubscriptionsTab() {
     </div>
   );
 }
+
