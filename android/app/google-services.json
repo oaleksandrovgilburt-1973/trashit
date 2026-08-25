@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "1007790802752",
+    "project_id": "trashit-c02a2",
+    "storage_bucket": "trashit-c02a2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1007790802752:android:ec6533f2e03409ff769ca5",
+        "android_client_info": {
+          "package_name": "bg.trashit.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1007790802752-qvc11eo6iuh6mvt3vhkmluqm2adhu9b8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCgT2bvIuKzdYqJlVla5ZRWhftl_BNP4B0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1007790802752-qvc11eo6iuh6mvt3vhkmluqm2adhu9b8.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
