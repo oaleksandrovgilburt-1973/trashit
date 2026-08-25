@@ -4,4 +4,5 @@
     <string name="title_activity_main">TRASHit</string>
     <string name="package_name">bg.trashit.app</string>
     <string name="custom_url_scheme">bg.trashit.app</string>
+    <string name="server_client_id">1007790802752-qvc11eo6iuh6mvt3vhkmluqm2adhu9b8.apps.googleusercontent.com</string>
 </resources>
