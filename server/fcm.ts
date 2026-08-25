@@ -3,6 +3,7 @@
  * Uses firebase-admin initialized with the service account from FCM_SERVICE_ACCOUNT_JSON env var.
  */
 import admin from "firebase-admin";
+import { sendApnsNotification } from "./apns";
 
 let initialized = false;
 
@@ -42,6 +43,9 @@ export async function sendPushNotification(
   fcmToken: string,
   payload: PushPayload
 ): Promise<boolean> {
+  if (fcmToken.startsWith("apns:")) {
+    return sendApnsNotification(fcmToken.slice(5), payload);
+  }
   const app = getApp();
   console.log("[FCM] initialized:", initialized);
   console.log("[FCM] token received:", fcmToken ? fcmToken.substring(0, 20) + "..." : "EMPTY");

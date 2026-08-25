@@ -23,8 +23,10 @@ export function useNativePush() {
         await PushNotifications.register();
 
         PushNotifications.addListener("registration", async (token) => {
-          console.log("[NativePush] Registration success, token:", token.value.substring(0, 20) + "...");
-          await saveFcmToken.mutateAsync({ token: token.value });
+          const isIOS = Capacitor.getPlatform() === "ios";
+          const tokenValue = isIOS ? `apns:${token.value}` : token.value;
+          console.log("[NativePush] Registration success:", tokenValue.substring(0, 20) + "...");
+          await saveFcmToken.mutateAsync({ token: tokenValue });
           registered.current = true;
         });
 
