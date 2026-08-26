@@ -1044,11 +1044,24 @@ export const appRouter = router({
         if (ctx.user.role !== "worker" && ctx.user.role !== "admin") {
           throw new TRPCError({ code: "FORBIDDEN", message: "Достъпът е забранен." });
         }
-        const count = await completeRequestsByEntrance(
+        const completedRequests = await completeRequestsByEntrance(
           input.district, input.blok, input.vhod,
           ctx.user.openId, ctx.user.id
         );
-        return { success: true, completedCount: count };
+        // Push notification to each client whose request was completed
+        for (const req of completedRequests) {
+          if (req.userOpenId) {
+            const client = await getUserByOpenId(req.userOpenId);
+            if (client?.fcmToken) {
+              await sendPushNotification(client.fcmToken, {
+                title: "✅ Заявката е изпълнена",
+                body: "Заявката е изпълнена.",
+                data: { requestId: String(req.id), type: "completed" },
+              });
+            }
+          }
+        }
+        return { success: true, completedCount: completedRequests.length };
       }),
 
     // Admin: list all requests

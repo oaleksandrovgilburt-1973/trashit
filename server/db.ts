@@ -476,37 +476,43 @@ export async function completeRequestPendingPayment(id: number, workerOpenId: st
 export async function completeRequestsByEntrance(
   district: string, blok: string, vhod: string,
   workerOpenId: string, workerId: number
-): Promise<number> {
+) {
   const db = await getDb();
   if (!db) return 0;
-  // Get all pending + assigned requests for this entrance
   const { or, notInArray } = await import("drizzle-orm");
-  const active = await db.select().from(requests).where(
-    and(
-      eq(requests.district, district),
-      eq(requests.blok, blok),
-      eq(requests.vhod, vhod),
-      or(eq(requests.status, "pending"), eq(requests.status, "assigned")),
-      notInArray(requests.type, ["nonstandard", "construction"])
-    )
-  );
+  const { workerProblems: wp } = await import("../drizzle/schema");
+
+  // Find requests with an unresolved ("open") problem report — these must NOT be auto-completed
+  const openProblems = await db.select({ requestId: wp.requestId })
+    .from(wp)
+    .where(eq(wp.status, "open"));
+  const excludedIds = openProblems
+    .map(p => p.requestId)
+    .filter((id): id is number => id !== null);
+
+  const baseConditions = [
+    eq(requests.district, district),
+    eq(requests.blok, blok),
+    eq(requests.vhod, vhod),
+    or(eq(requests.status, "pending"), eq(requests.status, "assigned")),
+    notInArray(requests.type, ["nonstandard", "construction"]),
+  ];
+  if (excludedIds.length > 0) {
+    baseConditions.push(notInArray(requests.id, excludedIds));
+  }
+
+  const active = await db.select().from(requests).where(and(...baseConditions));
   if (active.length === 0) return 0;
+
   await db.update(requests).set({
     status: "completed",
     workerOpenId,
     workerId,
     completedAt: new Date(),
-  }).where(
-    and(
-      eq(requests.district, district),
-      eq(requests.blok, blok),
-      eq(requests.vhod, vhod),
-      or(eq(requests.status, "pending"), eq(requests.status, "assigned")),
-      notInArray(requests.type, ["nonstandard", "construction"])
-    )
-  );
+  }).where(and(...baseConditions));
+
   await releaseEntranceIfNoMoreWork(district, blok, vhod);
-  return active.length;
+  return active;
 }
 
 export async function cancelRequest(id: number, userOpenId: string): Promise<void> {
