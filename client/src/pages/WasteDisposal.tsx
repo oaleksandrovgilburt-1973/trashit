@@ -252,7 +252,6 @@ export default function WasteDisposal() {
     const img = new Image();
     const objectUrl = URL.createObjectURL(file);
     img.onload = () => {
-      URL.revokeObjectURL(objectUrl);
       try {
         const MAX = 800;
         let w = img.width, h = img.height;
@@ -275,6 +274,8 @@ export default function WasteDisposal() {
         moderateImageMutation.mutate({ imageUrl: compressed });
       } catch (err) {
         toast.error(isBg ? "Грешка при обработка на снимката." : "Error processing the photo.");
+      } finally {
+        URL.revokeObjectURL(objectUrl);
       }
     };
     img.onerror = () => {
