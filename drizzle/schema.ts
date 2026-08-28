@@ -479,6 +479,7 @@ export const partners = mysqlTable("partners", {
   username: varchar("username", { length: 64 }).notNull().unique(),
   passwordHash: varchar("passwordHash", { length: 256 }).notNull(),
   isActive: boolean("isActive").default(true).notNull(),
+  activeTokenHash: varchar("activeTokenHash", { length: 256 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 export type Partner = typeof partners.$inferSelect;

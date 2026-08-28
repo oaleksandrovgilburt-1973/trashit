@@ -87,6 +87,7 @@ const BONUS_CREDITS = "2.00";
 const MAX_WORKER_DEVICES = 4;
 const WORKER_SESSION_COOKIE = "trashit_worker_session";
 const ADMIN_SESSION_COOKIE = "trashit_admin_session";
+const PARTNER_SESSION_COOKIE = "trashit_partner_session";
 
 // ─── In-memory rate limiters ──────────────────────────────────────────────────
 /** requests.create: max 15 per IP per hour */
@@ -147,6 +148,10 @@ function setWorkerCookie(ctx: { res: any; req: any }, token: string) {
 function setAdminCookie(ctx: { res: any; req: any }, token: string) {
   const opts = getAdminSessionCookieOptions(ctx.req);
   ctx.res.cookie(ADMIN_SESSION_COOKIE, token, { ...opts, maxAge: 8 * 60 * 60 * 1000 });
+}
+function setPartnerCookie(ctx: { res: any; req: any }, token: string) {
+  const opts = getAdminSessionCookieOptions(ctx.req);
+  ctx.res.cookie(PARTNER_SESSION_COOKIE, token, { ...opts, maxAge: 30 * 24 * 60 * 60 * 1000 });
 }
 
 // ─── Router ───────────────────────────────────────────────────────────────────
@@ -3210,6 +3215,65 @@ export const appRouter = router({
         await db.update(pt).set({ isActive: input.isActive }).where(eq(pt.id, input.id));
         return { success: true };
       }),
+  }),
+
+  partnerAuth: router({
+    login: publicProcedure
+      .input(z.object({
+        username: z.string().min(1, "Въведете потребителско име"),
+        password: z.string().min(1, "Въведете парола"),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const { partners: pt } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        const rows = await db.select().from(pt).where(eq(pt.username, input.username)).limit(1);
+        const partner = rows[0];
+        if (!partner || !partner.isActive) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Грешно потребителско име или парола." });
+        }
+        const passwordMatch = await bcrypt.compare(input.password, partner.passwordHash);
+        if (!passwordMatch) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Грешно потребителско име или парола." });
+        }
+        const token = nanoid(32);
+        const tokenHash = await bcrypt.hash(token, 10);
+        await db.update(pt).set({ activeTokenHash: tokenHash }).where(eq(pt.id, partner.id));
+        setPartnerCookie(ctx, token);
+        return { success: true, token, partnerName: partner.name };
+      }),
+    changePassword: publicProcedure
+      .input(z.object({
+        partnerToken: z.string(),
+        currentPassword: z.string().min(1),
+        newPassword: z.string().min(6, "Паролата трябва да е поне 6 символа"),
+      }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const { partners: pt } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        const all = await db.select().from(pt);
+        let matched = null;
+        for (const p of all) {
+          if (p.activeTokenHash && await bcrypt.compare(input.partnerToken, p.activeTokenHash)) {
+            matched = p;
+            break;
+          }
+        }
+        if (!matched) throw new TRPCError({ code: "UNAUTHORIZED" });
+        const passwordMatch = await bcrypt.compare(input.currentPassword, matched.passwordHash);
+        if (!passwordMatch) throw new TRPCError({ code: "UNAUTHORIZED", message: "Грешна текуща парола." });
+        const newHash = await bcrypt.hash(input.newPassword, 10);
+        await db.update(pt).set({ passwordHash: newHash }).where(eq(pt.id, matched.id));
+        return { success: true };
+      }),
+    logout: publicProcedure.mutation(async ({ ctx }) => {
+      const opts = getAdminSessionCookieOptions(ctx.req);
+      ctx.res.clearCookie(PARTNER_SESSION_COOKIE, { ...opts, maxAge: -1 });
+      return { success: true };
+    }),
   }),
 });
 export type AppRouter = typeof appRouter;
