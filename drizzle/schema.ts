@@ -46,6 +46,8 @@ export const users = mysqlTable("users", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
+  /** Nullable — set on first promo code entry, changeable later from profile */
+  partnerId: int("partnerId"),
 });
 
 export type User = typeof users.$inferSelect;
@@ -465,3 +467,47 @@ export const workerAssignments = mysqlTable("worker_assignments", {
 });
 export type WorkerAssignment = typeof workerAssignments.$inferSelect;
 export type InsertWorkerAssignment = typeof workerAssignments.$inferInsert;
+
+// ─── Promo Codes / Partners ─────────────────────────────────────
+export const partners = mysqlTable("partners", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 128 }).notNull(),
+  username: varchar("username", { length: 64 }).notNull().unique(),
+  passwordHash: varchar("passwordHash", { length: 256 }).notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type Partner = typeof partners.$inferSelect;
+export type InsertPartner = typeof partners.$inferInsert;
+
+export const promoCodes = mysqlTable("promo_codes", {
+  id: int("id").autoincrement().primaryKey(),
+  code: varchar("code", { length: 64 }).notNull().unique(),
+  discountPercent: decimal("discountPercent", { precision: 5, scale: 2 }).notNull(),
+  /** Nullable — plain marketing codes have no partner and no commission */
+  partnerId: int("partnerId"),
+  commissionPercent: decimal("commissionPercent", { precision: 5, scale: 2 }),
+  maxUses: int("maxUses"),
+  usedCount: int("usedCount").default(0).notNull(),
+  expiresAt: timestamp("expiresAt"),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type PromoCode = typeof promoCodes.$inferSelect;
+export type InsertPromoCode = typeof promoCodes.$inferInsert;
+
+export const partnerEarnings = mysqlTable("partner_earnings", {
+  id: int("id").autoincrement().primaryKey(),
+  partnerId: int("partnerId").notNull(),
+  requestId: int("requestId"),
+  subscriptionVisitId: int("subscriptionVisitId"),
+  grossAmount: decimal("grossAmount", { precision: 10, scale: 2 }).notNull(),
+  stripeFee: decimal("stripeFee", { precision: 10, scale: 2 }).notNull(),
+  netAmount: decimal("netAmount", { precision: 10, scale: 2 }).notNull(),
+  commissionPercentSnapshot: decimal("commissionPercentSnapshot", { precision: 5, scale: 2 }).notNull(),
+  commissionAmount: decimal("commissionAmount", { precision: 10, scale: 2 }).notNull(),
+  status: mysqlEnum("status", ["pending", "paid", "completed"]).default("pending").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type PartnerEarning = typeof partnerEarnings.$inferSelect;
+export type InsertPartnerEarning = typeof partnerEarnings.$inferInsert;

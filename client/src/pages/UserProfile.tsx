@@ -14,12 +14,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 
 export default function UserProfile() {
   const { t, language } = useLanguage();
-  const isBg = language === "bg";
-  const [addressSuggestOpen, setAddressSuggestOpen] = useState(false);
-  const { data: addressSuggestions } = trpc.requests.addressSuggestions.useQuery(
-    { district: addressForm.addressKvartal, query: addressForm.addressBlok },
-    { enabled: !!addressForm.addressKvartal && addressForm.addressBlok.length >= 1 }
-  );
+  const isBg = language === "bg"; 
   const { user, isAuthenticated, logout } = useAuth();
   const [, navigate] = useLocation();
 
@@ -71,6 +66,12 @@ export default function UserProfile() {
     addressApartament: "",
     addressCity: "",
   });
+
+  const [addressSuggestOpen, setAddressSuggestOpen] = useState(false);
+  const { data: addressSuggestions } = trpc.requests.addressSuggestions.useQuery(
+    { district: addressForm.addressKvartal, query: addressForm.addressBlok },
+    { enabled: !!addressForm.addressKvartal && addressForm.addressBlok.length >= 1 }
+  );
 
   useEffect(() => {
     if (profile) {
