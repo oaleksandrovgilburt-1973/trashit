@@ -244,45 +244,37 @@ export default function WasteDisposal() {
     );
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setIsImageApproved(false);
-    const canvas = document.createElement("canvas");
-    const img = new Image();
-    const objectUrl = URL.createObjectURL(file);
-    img.onload = () => {
-      try {
-        const MAX = 800;
-        let w = img.width, h = img.height;
-        if (w > MAX || h > MAX) {
-          if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
-          else { w = Math.round(w * MAX / h); h = MAX; }
-        }
-        canvas.width = w;
-        canvas.height = h;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) {
-          toast.error(isBg ? "Грешка при обработка на снимката." : "Error processing the photo.");
-          return;
-        }
-        ctx.drawImage(img, 0, 0, w, h);
-        const compressed = canvas.toDataURL("image/jpeg", 0.7);
-        setImagePreview(compressed);
-        setImageUrl(compressed);
-        // Auto-moderate: check for inappropriate content
-        moderateImageMutation.mutate({ imageUrl: compressed });
-      } catch (err) {
-        toast.error(isBg ? "Грешка при обработка на снимката." : "Error processing the photo.");
-      } finally {
-        URL.revokeObjectURL(objectUrl);
+    try {
+      const bitmap = await createImageBitmap(file);
+      const MAX = 800;
+      let w = bitmap.width, h = bitmap.height;
+      if (w > MAX || h > MAX) {
+        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+        else { w = Math.round(w * MAX / h); h = MAX; }
       }
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
-      toast.error(isBg ? "Неуспешно зареждане на снимката." : "Failed to load the photo.");
-    };
-    img.src = objectUrl;
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        toast.error(isBg ? "Грешка при обработка на снимката." : "Error processing the photo.");
+        return;
+      }
+      ctx.drawImage(bitmap, 0, 0, w, h);
+      bitmap.close();
+      const compressed = canvas.toDataURL("image/jpeg", 0.7);
+      setImagePreview(compressed);
+      setImageUrl(compressed);
+      // Auto-moderate: check for inappropriate content
+      moderateImageMutation.mutate({ imageUrl: compressed });
+    } catch (err) {
+      console.error("Image processing error:", err);
+      toast.error(isBg ? "Грешка при обработка на снимката." : "Error processing the photo.");
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
