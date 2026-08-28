@@ -3309,6 +3309,85 @@ export const appRouter = router({
       ctx.res.clearCookie(PARTNER_SESSION_COOKIE, { ...opts, maxAge: -1 });
       return { success: true };
     }),
+    getStats: publicProcedure
+      .input(z.object({
+        partnerToken: z.string(),
+        mode: z.enum(["day", "month"]),
+        date: z.string(),
+      }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const { partners: pt, promoCodes: pc, requests: reqTable, subscriptions: subTable, workerQuotes: wq } = await import("../drizzle/schema");
+        const { eq, and, gte, lt, inArray } = await import("drizzle-orm");
+
+        const all = await db.select().from(pt);
+        let partner = null;
+        for (const p of all) {
+          if (p.activeTokenHash && await bcrypt.compare(input.partnerToken, p.activeTokenHash)) {
+            partner = p;
+            break;
+          }
+        }
+        if (!partner) throw new TRPCError({ code: "UNAUTHORIZED" });
+
+        const codes = await db.select({ id: pc.id }).from(pc).where(eq(pc.partnerId, partner.id));
+        const codeIds = codes.map(c => c.id);
+
+        const byType: Record<string, { acceptedCount: number; paidCount: number; paidSum: number }> = {
+          standard: { acceptedCount: 0, paidCount: 0, paidSum: 0 },
+          recycling: { acceptedCount: 0, paidCount: 0, paidSum: 0 },
+          nonstandard: { acceptedCount: 0, paidCount: 0, paidSum: 0 },
+          construction: { acceptedCount: 0, paidCount: 0, paidSum: 0 },
+          subscription15: { acceptedCount: 0, paidCount: 0, paidSum: 0 },
+          subscription30: { acceptedCount: 0, paidCount: 0, paidSum: 0 },
+        };
+        if (codeIds.length === 0) return byType;
+
+        let startDate: Date, endDate: Date;
+        if (input.mode === "day") {
+          startDate = new Date(input.date + "T00:00:00");
+          endDate = new Date(startDate);
+          endDate.setDate(endDate.getDate() + 1);
+        } else {
+          startDate = new Date(input.date + "-01T00:00:00");
+          endDate = new Date(startDate);
+          endDate.setMonth(endDate.getMonth() + 1);
+        }
+
+        const reqs = await db.select().from(reqTable).where(and(
+          inArray(reqTable.promoCodeId, codeIds),
+          gte(reqTable.createdAt, startDate),
+          lt(reqTable.createdAt, endDate)
+        ));
+        const subs = await db.select().from(subTable).where(and(
+          inArray(subTable.promoCodeId, codeIds),
+          gte(subTable.createdAt, startDate),
+          lt(subTable.createdAt, endDate)
+        ));
+
+        for (const r of reqs) {
+          const bucket = byType[r.type];
+          if (!bucket) continue;
+          if (r.status === "completed") {
+            bucket.paidCount++;
+            if (r.type === "nonstandard" || r.type === "construction") {
+              const quotes = await db.select().from(wq).where(and(eq(wq.requestId, r.id), eq(wq.status, "accepted")));
+              if (quotes[0]) bucket.paidSum += parseFloat(quotes[0].price);
+            }
+          } else if (r.status === "assigned" && (r.type === "nonstandard" || r.type === "construction")) {
+            bucket.acceptedCount++;
+          }
+        }
+        for (const s of subs) {
+          if (s.status === "active" || s.status === "expired") {
+            const bucket = s.visits === "15" ? byType.subscription15 : byType.subscription30;
+            bucket.paidCount++;
+          }
+        }
+
+        return byType;
+      }),
   }),
 });
 export type AppRouter = typeof appRouter;

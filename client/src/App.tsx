@@ -14,6 +14,7 @@ import WorkerAssignments from "@/pages/WorkerAssignments";
 import AdminPortal from "./pages/AdminPortal";
 import AdminLogin from "./pages/AdminLogin";
 import SubAdminPortal from "./pages/SubAdminPortal";
+import PartnerPortal from "./pages/PartnerPortal";
 import ClientAuth from "./pages/ClientAuth";
 import UserProfile from "./pages/UserProfile";
 import MyRequests from "./pages/MyRequests";
@@ -54,6 +55,7 @@ function Router() {
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin" component={AdminPortal} />
       <Route path="/subadmin" component={SubAdminPortal} />
+      <Route path="/partner" component={PartnerPortal} />
 
       {/* Legal */}
       <Route path="/download" component={DownloadPage} />
