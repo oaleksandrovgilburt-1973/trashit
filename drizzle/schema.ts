@@ -181,6 +181,8 @@ export const requests = mysqlTable("requests", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   completedAt: timestamp("completedAt"),
+  /** Nullable — snapshot of the promo code used at time of request, if any */
+  promoCodeId: int("promoCodeId"),
 });
 
 export type Request = typeof requests.$inferSelect;
@@ -394,6 +396,8 @@ export const subscriptions = mysqlTable("subscriptions", {
   currentPeriodEnd: timestamp("currentPeriodEnd"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  /** Nullable — snapshot of the promo code used at time of subscription, if any */
+  promoCodeId: int("promoCodeId"),
 });
 export type Subscription = typeof subscriptions.$inferSelect;
 export type InsertSubscription = typeof subscriptions.$inferInsert;

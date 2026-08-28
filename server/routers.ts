@@ -1141,7 +1141,7 @@ export const appRouter = router({
                 },
                 {
                   type: "text",
-                  text: "Review this image before analyzing the waste item. Reject ONLY if the image clearly shows genuinely inappropriate content: nudity or sexual content, graphic violence/blood/gore, dead animals or human remains, or disturbing medical content.\n\nDo NOT reject for incidental normal things like: a hand or fingers holding/near the item, feet or legs in frame, a pet or person casually visible in the background, or ordinary household surroundings. These are completely normal in everyday photos and must be allowed.\n\nIf the image clearly shows genuinely inappropriate content as described above, respond ONLY with this exact JSON:\n{\"rejected\": true, \"reason\": \"Неподходящо съдържание. Моля качете снимка само на отпадъка без хора или животни.\"}\n\nOtherwise, analyze the waste object and return ONLY this JSON:\n{\n  \"object\": \"what the item is\",\n  \"volume\": \"volume in liters as string, e.g. '~50 litres'\",\n  \"description\": \"brief description in Bulgarian (1-2 sentences)\",\n  \"serviceType\": \"standard or nonstandard or construction\"\n}",
+                  text: "Carefully examine this image before analyzing the waste item. Reject if the image shows ANY of the following, even partially or ambiguously — when in doubt, reject:\n- Any nudity or exposed private body parts (even partial)\n- Sexual or suggestive content\n- Graphic violence, blood, or gore\n- Dead animals or human remains\n- Disturbing medical content\n\nDo NOT reject for completely normal, non-sexual things like: a hand or fingers holding/near the item, feet or legs in ordinary clothing, a pet or fully-clothed person casually visible in the background, or ordinary household surroundings.\n\nIf ANY of the reject criteria above apply (even partially/ambiguously), respond ONLY with this exact JSON:\n{\"rejected\": true, \"reason\": \"Неподходящо съдържание. Моля качете снимка само на отпадъка без хора или животни.\"}\n\nOtherwise, analyze the waste object and return ONLY this JSON:\n{\n  \"object\": \"what the item is\",\n  \"volume\": \"volume in liters as string, e.g. '~50 litres'\",\n  \"description\": \"brief description in Bulgarian (1-2 sentences)\",\n  \"serviceType\": \"standard or nonstandard or construction\"\n}",
                 },
               ],
             },
@@ -3084,6 +3084,130 @@ export const appRouter = router({
         } else if (input.status === "past_due" || input.status === "unpaid") {
           await updateSubscriptionStripe(sub.id, { status: "expired" });
         }
+        return { success: true };
+      }),
+  }),
+
+  promoCodes: router({
+    // Admin: list all promo codes with partner info
+    adminList: adminProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return [];
+      const { promoCodes: pc, partners: pt } = await import("../drizzle/schema");
+      const { eq } = await import("drizzle-orm");
+      const rows = await db.select({
+        id: pc.id, code: pc.code, discountPercent: pc.discountPercent,
+        partnerId: pc.partnerId, commissionPercent: pc.commissionPercent,
+        maxUses: pc.maxUses, usedCount: pc.usedCount, expiresAt: pc.expiresAt,
+        isActive: pc.isActive, createdAt: pc.createdAt,
+        partnerName: pt.name,
+      }).from(pc).leftJoin(pt, eq(pc.partnerId, pt.id));
+      return rows;
+    }),
+    // Admin: create a new promo code
+    adminCreate: adminProcedure
+      .input(z.object({
+        code: z.string().min(3).max(64),
+        discountPercent: z.number().min(0).max(100),
+        partnerId: z.number().nullable().optional(),
+        commissionPercent: z.number().min(0).max(100).nullable().optional(),
+        maxUses: z.number().int().positive().nullable().optional(),
+        expiresAt: z.string().nullable().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const { promoCodes: pc } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        const existing = await db.select().from(pc).where(eq(pc.code, input.code)).limit(1);
+        if (existing.length > 0) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Този код вече съществува." });
+        }
+        await db.insert(pc).values({
+          code: input.code,
+          discountPercent: String(input.discountPercent),
+          partnerId: input.partnerId ?? null,
+          commissionPercent: input.commissionPercent != null ? String(input.commissionPercent) : null,
+          maxUses: input.maxUses ?? null,
+          expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
+        });
+        return { success: true };
+      }),
+    // Admin: update maxUses / isActive / expiresAt for an existing code
+    adminUpdate: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        maxUses: z.number().int().positive().nullable().optional(),
+        isActive: z.boolean().optional(),
+        expiresAt: z.string().nullable().optional(),
+        discountPercent: z.number().min(0).max(100).optional(),
+        commissionPercent: z.number().min(0).max(100).nullable().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const { promoCodes: pc } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        const updates: Record<string, unknown> = {};
+        if (input.maxUses !== undefined) updates.maxUses = input.maxUses;
+        if (input.isActive !== undefined) updates.isActive = input.isActive;
+        if (input.expiresAt !== undefined) updates.expiresAt = input.expiresAt ? new Date(input.expiresAt) : null;
+        if (input.discountPercent !== undefined) updates.discountPercent = String(input.discountPercent);
+        if (input.commissionPercent !== undefined) updates.commissionPercent = input.commissionPercent != null ? String(input.commissionPercent) : null;
+        await db.update(pc).set(updates).where(eq(pc.id, input.id));
+        return { success: true };
+      }),
+  }),
+
+  partnersMgmt: router({
+    // Admin: list all partners
+    adminList: adminProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return [];
+      const { partners: pt } = await import("../drizzle/schema");
+      return db.select({ id: pt.id, name: pt.name, username: pt.username, isActive: pt.isActive, createdAt: pt.createdAt }).from(pt);
+    }),
+    // Admin: create a new partner
+    adminCreate: adminProcedure
+      .input(z.object({
+        name: z.string().min(2).max(128),
+        username: z.string().min(3).max(64),
+        password: z.string().min(6),
+      }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const { partners: pt } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        const existing = await db.select().from(pt).where(eq(pt.username, input.username)).limit(1);
+        if (existing.length > 0) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Това потребителско име вече съществува." });
+        }
+        const passwordHash = await bcrypt.hash(input.password, 10);
+        await db.insert(pt).values({ name: input.name, username: input.username, passwordHash });
+        return { success: true };
+      }),
+    // Admin: reset a partner's password
+    adminResetPassword: adminProcedure
+      .input(z.object({ id: z.number(), newPassword: z.string().min(6) }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const { partners: pt } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        const passwordHash = await bcrypt.hash(input.newPassword, 10);
+        await db.update(pt).set({ passwordHash }).where(eq(pt.id, input.id));
+        return { success: true };
+      }),
+    // Admin: toggle partner active status
+    adminSetActive: adminProcedure
+      .input(z.object({ id: z.number(), isActive: z.boolean() }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const { partners: pt } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        await db.update(pt).set({ isActive: input.isActive }).where(eq(pt.id, input.id));
         return { success: true };
       }),
   }),
