@@ -631,7 +631,42 @@ export const appRouter = router({
         await updateUserFcmToken(ctx.user.openId, input.token);
         return { success: true };
       }),
-
+    // Client: apply a promo code (sets/changes their linked partner)
+    applyPromoCode: protectedProcedure
+      .input(z.object({ code: z.string().min(1) }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const { promoCodes: pc, users: usersTable } = await import("../drizzle/schema");
+        const { eq, and, gt, or, isNull } = await import("drizzle-orm");
+        const rows = await db.select().from(pc).where(eq(pc.code, input.code)).limit(1);
+        const promo = rows[0];
+        if (!promo || !promo.isActive) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Невалиден промокод." });
+        }
+        if (promo.expiresAt && new Date(promo.expiresAt) < new Date()) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Този промокод е изтекъл." });
+        }
+        if (promo.maxUses != null && promo.usedCount >= promo.maxUses) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Този промокод е достигнал лимита си на употреба." });
+        }
+        await db.update(usersTable).set({ partnerId: promo.partnerId }).where(eq(usersTable.openId, ctx.user.openId));
+        await db.update(pc).set({ usedCount: promo.usedCount + 1 }).where(eq(pc.id, promo.id));
+        return { success: true, discountPercent: promo.discountPercent };
+      }),
+    // Client: get info about their currently linked promo code / partner, if any
+    getPromoCodeInfo: protectedProcedure.query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return null;
+      const { users: usersTable, partners: pt } = await import("../drizzle/schema");
+      const { eq } = await import("drizzle-orm");
+      const rows = await db.select({ partnerId: usersTable.partnerId, partnerName: pt.name })
+        .from(usersTable)
+        .leftJoin(pt, eq(usersTable.partnerId, pt.id))
+        .where(eq(usersTable.openId, ctx.user.openId))
+        .limit(1);
+      return rows[0] ?? null;
+    }),
     updateProfile: protectedProcedure
       .input(z.object({
         name: z.string().min(2).optional(),

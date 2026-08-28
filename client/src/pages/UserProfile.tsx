@@ -72,6 +72,16 @@ export default function UserProfile() {
     { district: addressForm.addressKvartal, query: addressForm.addressBlok },
     { enabled: !!addressForm.addressKvartal && addressForm.addressBlok.length >= 1 }
   );
+  const [promoCodeInput, setPromoCodeInput] = useState("");
+  const { data: promoInfo, refetch: refetchPromoInfo } = trpc.users.getPromoCodeInfo.useQuery(undefined, { enabled: isAuthenticated });
+  const applyPromoCodeMutation = trpc.users.applyPromoCode.useMutation({
+    onSuccess: () => {
+      toast.success(isBg ? "Промокодът е приложен успешно!" : "Promo code applied successfully!");
+      setPromoCodeInput("");
+      refetchPromoInfo();
+    },
+    onError: (err) => toast.error(err.message),
+  });
 
   useEffect(() => {
     if (profile) {
@@ -491,7 +501,37 @@ export default function UserProfile() {
             </div>
           )}
         </div>
-
+        {/* Promo Code card */}
+        <div className="bg-card rounded-2xl border border-border p-5 mt-4 shadow-sm">
+          <h3 className="font-semibold text-sm mb-3">{isBg ? "Промокод" : "Promo Code"}</h3>
+          {promoInfo?.partnerName && (
+            <p className="text-xs text-muted-foreground mb-3">
+              {isBg ? "Свързан партньор: " : "Linked partner: "}<span className="font-medium text-foreground">{promoInfo.partnerName}</span>
+            </p>
+          )}
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={promoCodeInput}
+              onChange={e => setPromoCodeInput(e.target.value)}
+              placeholder={isBg ? "Въведете промокод" : "Enter promo code"}
+              className="flex-1 px-3 py-2 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+            />
+            <button
+              type="button"
+              disabled={!promoCodeInput.trim() || applyPromoCodeMutation.isPending}
+              onClick={() => {
+                if (promoInfo?.partnerName) {
+                  if (!window.confirm(isBg ? `Сигурни ли сте? Ще смените партньора си от "${promoInfo.partnerName}".` : `Are you sure? This will change your partner from "${promoInfo.partnerName}".`)) return;
+                }
+                applyPromoCodeMutation.mutate({ code: promoCodeInput.trim() });
+              }}
+              className="px-4 py-2 rounded-xl bg-primary text-white text-sm font-semibold disabled:opacity-50"
+            >
+              {applyPromoCodeMutation.isPending ? (isBg ? "..." : "...") : (isBg ? "Приложи" : "Apply")}
+            </button>
+          </div>
+        </div>
         {/* Change Password card */}
         {(profile?.loginMethod === "email" || profile?.loginMethod === "phone") && (
           <div className="bg-card rounded-2xl border border-border p-5 mt-4 shadow-sm">
