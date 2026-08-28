@@ -12,12 +12,12 @@ import {
   PowerOff, CheckCircle, Phone, Mail, ChevronRight,
   RefreshCw, Eye, Send, ShieldAlert, Pencil, Save, LayoutDashboard,
   FileText, UserCheck, Search, ChevronDown, ChevronUp, Coins, History,
-  Shield, Lock, DollarSign, CalendarDays, CheckCheck, X, KeyRound, BarChart2, XCircle, Camera
+  Shield, Lock, DollarSign, CalendarDays, CheckCheck, X, KeyRound, BarChart2, XCircle, Camera, Percent
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import AdminDashboard from "@/components/AdminDashboard";
 
-type Tab = "dashboard" | "workers" | "cities" | "districts" | "blocks" | "credits" | "requests" | "content" | "problems" | "descriptions" | "clients" | "subadmins" | "reports" | "subscriptions";
+type Tab = "dashboard" | "workers" | "cities" | "districts" | "blocks" | "credits" | "requests" | "content" | "problems" | "descriptions" | "clients" | "subadmins" | "reports" | "subscriptions" | "partners";
 
 export default function AdminPortal() {
   const [, navigate] = useLocation();
@@ -47,6 +47,7 @@ export default function AdminPortal() {
     { id: "subadmins", icon: Shield, label: "Подадмини" },
     { id: "reports", icon: BarChart2, label: "Отчети" },
     { id: "subscriptions", icon: CalendarDays, label: "Абонаменти" },
+    { id: "partners", icon: Percent, label: "Партньори" },
   ];
 
   return (
@@ -114,6 +115,7 @@ export default function AdminPortal() {
         {activeTab === "subadmins" && <SubAdminsTab />}
         {activeTab === "reports" && <ReportsTab />}
         {activeTab === "subscriptions" && <SubscriptionsTab />}
+        {activeTab === "partners" && <PartnersTab />}
       </div>
     </div>
   );
@@ -2880,3 +2882,259 @@ function SubscriptionsTab() {
   );
 }
 
+// ─── Tab: Partners & Promo Codes ─────────────────────────────────────────
+function PartnersTab() {
+  const utils = trpc.useUtils();
+  const [showCreatePartner, setShowCreatePartner] = useState(false);
+  const [newPartnerName, setNewPartnerName] = useState("");
+  const [newPartnerUsername, setNewPartnerUsername] = useState("");
+  const [newPartnerPassword, setNewPartnerPassword] = useState("");
+  const [resetPasswords, setResetPasswords] = useState<Record<number, string>>({});
+
+  const [showCreateCode, setShowCreateCode] = useState(false);
+  const [newCode, setNewCode] = useState("");
+  const [newDiscount, setNewDiscount] = useState("");
+  const [newCommission, setNewCommission] = useState("");
+  const [newCodePartnerId, setNewCodePartnerId] = useState<string>("");
+  const [newMaxUses, setNewMaxUses] = useState("");
+
+  const { data: partners = [], isLoading: loadingPartners } = trpc.partnersMgmt.adminList.useQuery();
+  const { data: promoCodesData = [], isLoading: loadingCodes } = trpc.promoCodes.adminList.useQuery();
+
+  const createPartner = trpc.partnersMgmt.adminCreate.useMutation({
+    onSuccess: () => {
+      toast.success("Партньорът е създаден");
+      setNewPartnerName(""); setNewPartnerUsername(""); setNewPartnerPassword(""); setShowCreatePartner(false);
+      utils.partnersMgmt.adminList.invalidate();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+  const setActivePartner = trpc.partnersMgmt.adminSetActive.useMutation({
+    onSuccess: () => utils.partnersMgmt.adminList.invalidate(),
+    onError: (e) => toast.error(e.message),
+  });
+  const resetPartnerPassword = trpc.partnersMgmt.adminResetPassword.useMutation({
+    onSuccess: (_, vars) => {
+      toast.success("Паролата е сменена");
+      setResetPasswords(prev => ({ ...prev, [vars.id]: "" }));
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const createCode = trpc.promoCodes.adminCreate.useMutation({
+    onSuccess: () => {
+      toast.success("Промокодът е създаден");
+      setNewCode(""); setNewDiscount(""); setNewCommission(""); setNewCodePartnerId(""); setNewMaxUses(""); setShowCreateCode(false);
+      utils.promoCodes.adminList.invalidate();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+  const updateCode = trpc.promoCodes.adminUpdate.useMutation({
+    onSuccess: () => { toast.success("Обновено"); utils.promoCodes.adminList.invalidate(); },
+    onError: (e) => toast.error(e.message),
+  });
+
+  return (
+    <div className="space-y-8">
+      {/* Partners section */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">Партньори</h2>
+            <p className="text-sm text-gray-500 mt-0.5">{partners.length} партньора в системата</p>
+          </div>
+          <Button onClick={() => setShowCreatePartner(!showCreatePartner)} className="bg-green-600 hover:bg-green-700 rounded-2xl">
+            <Plus className="w-4 h-4 mr-2" />Нов партньор
+          </Button>
+        </div>
+
+        {showCreatePartner && (
+          <div className="bg-white rounded-2xl border border-green-200 p-5 shadow-sm mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Име на фирма *</label>
+                <Input placeholder="ТопВход ЕООД" value={newPartnerName} onChange={e => setNewPartnerName(e.target.value)} className="rounded-xl" />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Потребителско име *</label>
+                <Input placeholder="topvhod" value={newPartnerUsername} onChange={e => setNewPartnerUsername(e.target.value)} className="rounded-xl" />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Парола *</label>
+                <Input type="password" placeholder="••••••••" value={newPartnerPassword} onChange={e => setNewPartnerPassword(e.target.value)} className="rounded-xl" />
+              </div>
+            </div>
+            <div className="flex gap-2 mt-3">
+              <Button
+                onClick={() => createPartner.mutate({ name: newPartnerName, username: newPartnerUsername, password: newPartnerPassword })}
+                disabled={!newPartnerName || !newPartnerUsername || !newPartnerPassword || createPartner.isPending}
+                className="bg-green-600 hover:bg-green-700 rounded-xl"
+              >
+                Създай
+              </Button>
+              <Button variant="outline" onClick={() => setShowCreatePartner(false)} className="rounded-xl">Откажи</Button>
+            </div>
+          </div>
+        )}
+
+        {loadingPartners ? (
+          <p className="text-gray-500">Зареждане...</p>
+        ) : partners.length === 0 ? (
+          <div className="text-center py-10 text-gray-400">
+            <Percent className="w-10 h-10 mx-auto mb-2 opacity-30" />
+            <p>Няма партньори</p>
+          </div>
+        ) : (
+          <div className="grid gap-3">
+            {partners.map((p: any) => (
+              <div key={p.id} className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-gray-900">{p.name}</span>
+                      <Badge variant={p.isActive ? "default" : "secondary"} className="text-xs">{p.isActive ? "Активен" : "Неактивен"}</Badge>
+                    </div>
+                    <p className="text-sm text-gray-500">@{p.username}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="password"
+                      placeholder="Нова парола"
+                      value={resetPasswords[p.id] ?? ""}
+                      onChange={e => setResetPasswords(prev => ({ ...prev, [p.id]: e.target.value }))}
+                      className="w-36 rounded-lg text-sm h-8"
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="rounded-xl text-amber-600 border-amber-200 hover:bg-amber-50"
+                      disabled={!resetPasswords[p.id] || resetPasswords[p.id].length < 6 || resetPartnerPassword.isPending}
+                      onClick={() => resetPartnerPassword.mutate({ id: p.id, newPassword: resetPasswords[p.id] })}
+                    >
+                      <KeyRound className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className={`rounded-xl ${p.isActive ? "text-orange-600 border-orange-200 hover:bg-orange-50" : "text-green-600 border-green-200 hover:bg-green-50"}`}
+                      onClick={() => setActivePartner.mutate({ id: p.id, isActive: !p.isActive })}
+                    >
+                      {p.isActive ? <PowerOff className="w-3.5 h-3.5" /> : <Power className="w-3.5 h-3.5" />}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Promo codes section */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">Промокодове</h2>
+            <p className="text-sm text-gray-500 mt-0.5">{promoCodesData.length} кода в системата</p>
+          </div>
+          <Button onClick={() => setShowCreateCode(!showCreateCode)} className="bg-green-600 hover:bg-green-700 rounded-2xl">
+            <Plus className="w-4 h-4 mr-2" />Нов код
+          </Button>
+        </div>
+
+        {showCreateCode && (
+          <div className="bg-white rounded-2xl border border-green-200 p-5 shadow-sm mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Код *</label>
+                <Input placeholder="ТопВход" value={newCode} onChange={e => setNewCode(e.target.value)} className="rounded-xl" />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Отстъпка за клиента (%) *</label>
+                <Input type="number" placeholder="10" value={newDiscount} onChange={e => setNewDiscount(e.target.value)} className="rounded-xl" />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Партньор (по избор)</label>
+                <select
+                  value={newCodePartnerId}
+                  onChange={e => setNewCodePartnerId(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white h-10"
+                >
+                  <option value="">— Без партньор —</option>
+                  {partners.map((p: any) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+              {newCodePartnerId && (
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">Комисион за партньора (%)</label>
+                  <Input type="number" placeholder="15" value={newCommission} onChange={e => setNewCommission(e.target.value)} className="rounded-xl" />
+                </div>
+              )}
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Макс. брой употреби (по избор)</label>
+                <Input type="number" placeholder="25000" value={newMaxUses} onChange={e => setNewMaxUses(e.target.value)} className="rounded-xl" />
+              </div>
+            </div>
+            <div className="flex gap-2 mt-3">
+              <Button
+                onClick={() => createCode.mutate({
+                  code: newCode,
+                  discountPercent: parseFloat(newDiscount),
+                  partnerId: newCodePartnerId ? parseInt(newCodePartnerId) : null,
+                  commissionPercent: newCodePartnerId && newCommission ? parseFloat(newCommission) : null,
+                  maxUses: newMaxUses ? parseInt(newMaxUses) : null,
+                })}
+                disabled={!newCode || !newDiscount || createCode.isPending}
+                className="bg-green-600 hover:bg-green-700 rounded-xl"
+              >
+                Създай
+              </Button>
+              <Button variant="outline" onClick={() => setShowCreateCode(false)} className="rounded-xl">Откажи</Button>
+            </div>
+          </div>
+        )}
+
+        {loadingCodes ? (
+          <p className="text-gray-500">Зареждане...</p>
+        ) : promoCodesData.length === 0 ? (
+          <div className="text-center py-10 text-gray-400">
+            <Percent className="w-10 h-10 mx-auto mb-2 opacity-30" />
+            <p>Няма промокодове</p>
+          </div>
+        ) : (
+          <div className="grid gap-3">
+            {promoCodesData.map((c: any) => (
+              <div key={c.id} className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-bold text-gray-900">{c.code}</span>
+                      <Badge variant={c.isActive ? "default" : "secondary"} className="text-xs">{c.isActive ? "Активен" : "Неактивен"}</Badge>
+                      {c.partnerName && <Badge variant="outline" className="text-xs">{c.partnerName}</Badge>}
+                    </div>
+                    <p className="text-sm text-gray-500 mt-0.5">
+                      -{c.discountPercent}% за клиента
+                      {c.commissionPercent && ` · ${c.commissionPercent}% комисион`}
+                      {" · "}{c.usedCount}{c.maxUses ? ` / ${c.maxUses}` : ""} употреби
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className={`rounded-xl ${c.isActive ? "text-orange-600 border-orange-200 hover:bg-orange-50" : "text-green-600 border-green-200 hover:bg-green-50"}`}
+                      onClick={() => updateCode.mutate({ id: c.id, isActive: !c.isActive })}
+                    >
+                      {c.isActive ? <PowerOff className="w-3.5 h-3.5" /> : <Power className="w-3.5 h-3.5" />}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
