@@ -1521,6 +1521,8 @@ export const appRouter = router({
         if (!acceptedQuote) throw new TRPCError({ code: "NOT_FOUND", message: "Не е намерена приета оферта за тази заявка." });
         const priceEur = parseFloat(acceptedQuote.price);
         if (priceEur < 0.5) throw new TRPCError({ code: "BAD_REQUEST", message: "Сумата е под минималния праг за плащане (0.50 EUR)." });
+        const requestDiscount = await getUserActiveDiscount(ctx.user.openId);
+        const finalPriceEur = requestDiscount ? Math.round(priceEur * (1 - requestDiscount.discountPercent / 100) * 100) / 100 : priceEur;
         const stripe = new Stripe(stripeKey, { apiVersion: "2026-02-25.clover" });
         const session = await stripe.checkout.sessions.create({
           payment_method_types: ["card"],
@@ -1532,6 +1534,7 @@ export const appRouter = router({
             user_open_id: ctx.user.openId,
             request_id: input.requestId.toString(),
             payment_type: "request",
+            promo_code_id: requestDiscount ? String(requestDiscount.promoCodeId) : "",
           },
           line_items: [{
             price_data: {
@@ -1540,7 +1543,7 @@ export const appRouter = router({
                 name: `TRASHit — Плащане за заявка #${input.requestId}`,
                 description: `${req.type === "nonstandard" ? "Нестандартен" : "Строителен"} отпадък — ${req.district}, Бл. ${req.blok}`,
               },
-              unit_amount: Math.round(priceEur * 100),
+              unit_amount: Math.round(finalPriceEur * 100),
             },
             quantity: 1,
           }],
@@ -1571,6 +1574,14 @@ export const appRouter = router({
           await db.update(requests).set({ status: "paid" }).where(eq(requests.id, requestId));
         }
         const pricePaid = (session.amount_total ?? 0) / 100;
+        if (meta.promo_code_id) {
+          await recordPartnerEarningIfApplicable({
+            userOpenId: ctx.user.openId,
+            promoCodeId: parseInt(meta.promo_code_id),
+            grossAmount: pricePaid,
+            requestId,
+          });
+        }
         await createTransaction({
           userId: ctx.user.id,
           userOpenId: ctx.user.openId,
