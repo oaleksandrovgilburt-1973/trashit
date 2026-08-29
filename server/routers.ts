@@ -126,18 +126,25 @@ const adminProcedure = publicProcedure.use(async ({ ctx, next }) => {
   const cookies = parseCookies(ctx.req.headers.cookie ?? "");
   const adminToken = cookies[ADMIN_SESSION_COOKIE];
   if (!adminToken || adminToken.length < 10) {
-    throw new TRPCError({ code: "UNAUTHORIZED", message: "Необходим е администраторски вход." });
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "Липсва администраторски токен." });
   }
-  // Validate token against DB-stored bcrypt hash
+  // Check against the original single-row adminConfig first
   const config = await getAdminConfig();
-  if (!config?.activeTokenHash) {
-    throw new TRPCError({ code: "UNAUTHORIZED", message: "Необходим е администраторски вход." });
+  if (config?.activeTokenHash && await bcrypt.compare(adminToken, config.activeTokenHash)) {
+    return next({ ctx });
   }
-  const valid = await bcrypt.compare(adminToken, config.activeTokenHash);
-  if (!valid) {
-    throw new TRPCError({ code: "UNAUTHORIZED", message: "Невалидна или изтекла сесия." });
+  // Fall back to the new multi-row admins table
+  const db = await getDb();
+  if (db) {
+    const { admins } = await import("../drizzle/schema");
+    const allAdmins = await db.select().from(admins);
+    for (const a of allAdmins) {
+      if (a.isActive && a.activeTokenHash && await bcrypt.compare(adminToken, a.activeTokenHash)) {
+        return next({ ctx });
+      }
+    }
   }
-  return next({ ctx });
+  throw new TRPCError({ code: "UNAUTHORIZED", message: "Невалидна или изтекла сесия." });
 });
 
 // ─── Shared cookie helpers ────────────────────────────────────────────────────
@@ -660,9 +667,83 @@ export const appRouter = router({
       await updateAdminTokenHash(null);
       return { success: true };
     }),
+    // Login for additional admin accounts (the `admins` table, distinct from the original single adminConfig)
+    loginAdditional: publicProcedure
+      .input(z.object({ username: z.string().min(1), password: z.string().min(1) }))
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const { admins } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        const rows = await db.select().from(admins).where(eq(admins.username, input.username)).limit(1);
+        const admin = rows[0];
+        if (!admin || !admin.isActive) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Грешно потребителско име или парола." });
+        }
+        const passwordMatch = await bcrypt.compare(input.password, admin.passwordHash);
+        if (!passwordMatch) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Грешно потребителско име или парола." });
+        }
+        const token = nanoid(32);
+        const tokenHash = await bcrypt.hash(token, 10);
+        await db.update(admins).set({ activeTokenHash: tokenHash }).where(eq(admins.id, admin.id));
+        setAdminCookie(ctx, token);
+        return { success: true, token, name: admin.name };
+      }),
+    // Only the ORIGINAL admin (adminConfig, not the `admins` table) can create additional admin accounts
+    createAdmin: publicProcedure
+      .input(z.object({
+        originalAdminToken: z.string(),
+        name: z.string().min(2),
+        username: z.string().min(3),
+        password: z.string().min(6),
+      }))
+      .mutation(async ({ input }) => {
+        const config = await getAdminConfig();
+        if (!config?.activeTokenHash) throw new TRPCError({ code: "UNAUTHORIZED" });
+        const valid = await bcrypt.compare(input.originalAdminToken, config.activeTokenHash);
+        if (!valid) throw new TRPCError({ code: "UNAUTHORIZED", message: "Само главният администратор може да добавя нови." });
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const { admins } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        const existing = await db.select().from(admins).where(eq(admins.username, input.username)).limit(1);
+        if (existing.length > 0) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Това потребителско име вече съществува." });
+        }
+        const passwordHash = await bcrypt.hash(input.password, 10);
+        await db.insert(admins).values({ name: input.name, username: input.username, passwordHash });
+        return { success: true };
+      }),
+    // Only the ORIGINAL admin can list/deactivate additional admins
+    listAdditional: publicProcedure
+      .input(z.object({ originalAdminToken: z.string() }))
+      .query(async ({ input }) => {
+        const config = await getAdminConfig();
+        if (!config?.activeTokenHash) throw new TRPCError({ code: "UNAUTHORIZED" });
+        const valid = await bcrypt.compare(input.originalAdminToken, config.activeTokenHash);
+        if (!valid) throw new TRPCError({ code: "UNAUTHORIZED" });
+        const db = await getDb();
+        if (!db) return [];
+        const { admins } = await import("../drizzle/schema");
+        return db.select({ id: admins.id, name: admins.name, username: admins.username, isActive: admins.isActive }).from(admins);
+      }),
+    setAdditionalActive: publicProcedure
+      .input(z.object({ originalAdminToken: z.string(), id: z.number(), isActive: z.boolean() }))
+      .mutation(async ({ input }) => {
+        const config = await getAdminConfig();
+        if (!config?.activeTokenHash) throw new TRPCError({ code: "UNAUTHORIZED" });
+        const valid = await bcrypt.compare(input.originalAdminToken, config.activeTokenHash);
+        if (!valid) throw new TRPCError({ code: "UNAUTHORIZED" });
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const { admins } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        await db.update(admins).set({ isActive: input.isActive }).where(eq(admins.id, input.id));
+        return { success: true };
+      }),
   }),
-
-  // ── Settings ──────────────────────────────────────────────────────────────
+  // ─── Settings ─────────────────────────────────────────────────────────
   settings: router({
     getAll: publicProcedure.query(async () => getAllSettings()),
     get: publicProcedure

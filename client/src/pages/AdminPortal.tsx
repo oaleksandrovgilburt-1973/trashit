@@ -1590,6 +1590,79 @@ function ContentTab() {
           {changeCredentials.isPending ? "Обновява се..." : "Обнови данните"}
         </Button>
       </div>
+      <AdditionalAdminsSection />
+    </div>
+  );
+}
+
+function AdditionalAdminsSection() {
+  const originalToken = typeof window !== "undefined" ? localStorage.getItem("admin_session") ?? "" : "";
+  const [showCreate, setShowCreate] = useState(false);
+  const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+
+  const { data: additionalAdmins = [], refetch } = trpc.adminAuth.listAdditional.useQuery(
+    { originalAdminToken: originalToken },
+    { enabled: !!originalToken }
+  );
+  const createAdmin = trpc.adminAuth.createAdmin.useMutation({
+    onSuccess: () => {
+      toast.success("Администраторът е създаден");
+      setName(""); setUsername(""); setPassword(""); setShowCreate(false);
+      refetch();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+  const setActive = trpc.adminAuth.setAdditionalActive.useMutation({
+    onSuccess: () => refetch(),
+    onError: (e) => toast.error(e.message),
+  });
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm mt-4">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+          <Shield className="w-4 h-4 text-green-600" />Допълнителни администратори
+        </h3>
+        <Button onClick={() => setShowCreate(!showCreate)} size="sm" className="bg-green-600 hover:bg-green-700 rounded-xl">
+          <Plus className="w-4 h-4 mr-1" />Нов
+        </Button>
+      </div>
+      {showCreate && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+          <Input placeholder="Пълно име" value={name} onChange={e => setName(e.target.value)} className="rounded-xl" />
+          <Input placeholder="Потребителско име" value={username} onChange={e => setUsername(e.target.value)} className="rounded-xl" />
+          <Input type="password" placeholder="Парола (мин. 6 симв.)" value={password} onChange={e => setPassword(e.target.value)} className="rounded-xl" />
+          <Button
+            onClick={() => createAdmin.mutate({ originalAdminToken: originalToken, name, username, password })}
+            disabled={!name || !username || password.length < 6 || createAdmin.isPending}
+            className="bg-green-600 hover:bg-green-700 rounded-xl md:col-span-3"
+          >
+            Създай
+          </Button>
+        </div>
+      )}
+      <div className="space-y-2">
+        {additionalAdmins.map((a: any) => (
+          <div key={a.id} className="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2">
+            <div>
+              <span className="font-medium text-sm">{a.name}</span>
+              <span className="text-xs text-gray-500 ml-2">@{a.username}</span>
+              <Badge variant={a.isActive ? "default" : "secondary"} className="text-xs ml-2">{a.isActive ? "Активен" : "Неактивен"}</Badge>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className={`rounded-xl ${a.isActive ? "text-orange-600 border-orange-200" : "text-green-600 border-green-200"}`}
+              onClick={() => setActive.mutate({ originalAdminToken: originalToken, id: a.id, isActive: !a.isActive })}
+            >
+              {a.isActive ? <PowerOff className="w-3.5 h-3.5" /> : <Power className="w-3.5 h-3.5" />}
+            </Button>
+          </div>
+        ))}
+        {additionalAdmins.length === 0 && <p className="text-sm text-gray-400 text-center py-2">Няма допълнителни администратори</p>}
+      </div>
     </div>
   );
 }
@@ -2894,6 +2967,7 @@ function PartnersTab() {
   const [resetPasswords, setResetPasswords] = useState<Record<number, string>>({});
 
   const [showCreateCode, setShowCreateCode] = useState(false);
+  const [editMaxUses, setEditMaxUses] = useState<Record<number, string>>({});
   const [newCode, setNewCode] = useState("");
   const [newDiscount, setNewDiscount] = useState("");
   const [newCommission, setNewCommission] = useState("");
@@ -3122,6 +3196,25 @@ function PartnersTab() {
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      placeholder={c.maxUses ? String(c.maxUses) : "Без лимит"}
+                      value={editMaxUses[c.id] ?? ""}
+                      onChange={e => setEditMaxUses(prev => ({ ...prev, [c.id]: e.target.value }))}
+                      className="w-28 h-8 rounded-lg text-sm"
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="rounded-xl text-blue-600 border-blue-200 hover:bg-blue-50"
+                      disabled={!editMaxUses[c.id] || updateCode.isPending}
+                      onClick={() => {
+                        updateCode.mutate({ id: c.id, maxUses: parseInt(editMaxUses[c.id]) });
+                        setEditMaxUses(prev => ({ ...prev, [c.id]: "" }));
+                      }}
+                    >
+                      <Save className="w-3.5 h-3.5" />
+                    </Button>
                     <Button
                       size="sm"
                       variant="outline"

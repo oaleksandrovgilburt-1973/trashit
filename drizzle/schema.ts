@@ -517,3 +517,15 @@ export const partnerEarnings = mysqlTable("partner_earnings", {
 });
 export type PartnerEarning = typeof partnerEarnings.$inferSelect;
 export type InsertPartnerEarning = typeof partnerEarnings.$inferInsert;
+
+export const admins = mysqlTable("admins", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 128 }).notNull(),
+  username: varchar("username", { length: 64 }).notNull().unique(),
+  passwordHash: varchar("passwordHash", { length: 256 }).notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
+  activeTokenHash: varchar("activeTokenHash", { length: 256 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type Admin = typeof admins.$inferSelect;
+export type InsertAdmin = typeof admins.$inferInsert;
