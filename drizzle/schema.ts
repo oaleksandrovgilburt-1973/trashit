@@ -48,8 +48,9 @@ export const users = mysqlTable("users", {
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
   /** Nullable — set on first promo code entry, changeable later from profile */
   partnerId: int("partnerId"),
+  /** Nullable — the exact promo code linked, needed since a partner can have multiple codes with different discount/commission */
+  linkedPromoCodeId: int("linkedPromoCodeId"),
 });
-
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 

@@ -43,6 +43,15 @@ export async function handleStripeWebhook(req: Request, res: Response) {
             if (!autoRenew) {
               await stripe.subscriptions.update(stripeSubId, { cancel_at_period_end: true });
             }
+            // Record partner earning, if this subscription was linked to a promo code
+            if (session.metadata?.promo_code_id) {
+              const { recordPartnerEarningIfApplicable } = await import("./routers");
+              await recordPartnerEarningIfApplicable({
+                userOpenId: session.metadata.user_open_id,
+                promoCodeId: parseInt(session.metadata.promo_code_id),
+                grossAmount: (session.amount_total ?? 0) / 100,
+              });
+            }
           }
         }
         break;

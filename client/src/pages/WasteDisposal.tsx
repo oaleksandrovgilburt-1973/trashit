@@ -194,7 +194,14 @@ export default function WasteDisposal() {
   });
 
   const moderateImageMutation = trpc.requests.estimateVolume.useMutation({
-    onSuccess: () => {
+    onSuccess: (data: any) => {
+      if (data?.rejected) {
+        setImagePreview(null);
+        setImageUrl("");
+        setIsImageApproved(false);
+        toast.error(isBg ? "⚠️ Тази снимка не е разрешена. Моля качете снимка само на отпадъка без хора или животни." : "⚠️ This image is not allowed. Please upload a photo of waste only, without people or animals.");
+        return;
+      }
       setIsImageApproved(true);
     },
     onError: (err) => {

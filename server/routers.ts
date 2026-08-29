@@ -154,6 +154,62 @@ function setPartnerCookie(ctx: { res: any; req: any }, token: string) {
   ctx.res.cookie(PARTNER_SESSION_COOKIE, token, { ...opts, maxAge: 30 * 24 * 60 * 60 * 1000 });
 }
 
+/**
+ * Looks up the user's linked promo code (if any) and returns the discount percent to apply.
+ * Returns null if the user has no linked code, or the code is no longer active/valid.
+ */
+export async function getUserActiveDiscount(userOpenId: string): Promise<{ discountPercent: number; promoCodeId: number } | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const { users: usersTable, promoCodes: pc } = await import("../drizzle/schema");
+  const { eq } = await import("drizzle-orm");
+  const rows = await db.select({ linkedPromoCodeId: usersTable.linkedPromoCodeId })
+    .from(usersTable).where(eq(usersTable.openId, userOpenId)).limit(1);
+  const linkedId = rows[0]?.linkedPromoCodeId;
+  if (!linkedId) return null;
+  const codeRows = await db.select().from(pc).where(eq(pc.id, linkedId)).limit(1);
+  const code = codeRows[0];
+  if (!code || !code.isActive) return null;
+  if (code.expiresAt && new Date(code.expiresAt) < new Date()) return null;
+  return { discountPercent: parseFloat(code.discountPercent), promoCodeId: code.id };
+}
+
+/**
+ * Records a partner_earnings row after a successful payment, if the payer has a linked promo code with a partner.
+ * grossAmount = the amount actually charged (already after the client's own discount).
+ * Approximates the Stripe fee (1.4% + €0.25 for EU cards) since exact per-charge fee data requires an extra Stripe API call.
+ */
+export async function recordPartnerEarningIfApplicable(params: {
+  userOpenId: string;
+  promoCodeId: number;
+  grossAmount: number;
+  requestId?: number;
+  subscriptionVisitId?: number;
+}): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  const { promoCodes: pc, partnerEarnings: pe } = await import("../drizzle/schema");
+  const { eq } = await import("drizzle-orm");
+  const codeRows = await db.select().from(pc).where(eq(pc.id, params.promoCodeId)).limit(1);
+  const code = codeRows[0];
+  if (!code || !code.partnerId || !code.commissionPercent) return; // plain discount code, no partner commission
+  const stripeFee = Math.round((params.grossAmount * 0.014 + 0.25) * 100) / 100;
+  const netAmount = Math.round((params.grossAmount - stripeFee) * 100) / 100;
+  const commissionPercent = parseFloat(code.commissionPercent);
+  const commissionAmount = Math.round((netAmount * commissionPercent / 100) * 100) / 100;
+  await db.insert(pe).values({
+    partnerId: code.partnerId,
+    requestId: params.requestId,
+    subscriptionVisitId: params.subscriptionVisitId,
+    grossAmount: String(params.grossAmount),
+    stripeFee: String(stripeFee),
+    netAmount: String(netAmount),
+    commissionPercentSnapshot: String(commissionPercent),
+    commissionAmount: String(commissionAmount),
+    status: "pending",
+  });
+}
+
 // ─── Router ───────────────────────────────────────────────────────────────────
 export const appRouter = router({
   system: systemRouter,
@@ -650,7 +706,7 @@ export const appRouter = router({
         if (promo.maxUses != null && promo.usedCount >= promo.maxUses) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "Този промокод е достигнал лимита си на употреба." });
         }
-        await db.update(usersTable).set({ partnerId: promo.partnerId }).where(eq(usersTable.openId, ctx.user.openId));
+        await db.update(usersTable).set({ partnerId: promo.partnerId, linkedPromoCodeId: promo.id }).where(eq(usersTable.openId, ctx.user.openId));
         await db.update(pc).set({ usedCount: promo.usedCount + 1 }).where(eq(pc.id, promo.id));
         return { success: true, discountPercent: promo.discountPercent };
       }),
@@ -658,11 +714,12 @@ export const appRouter = router({
     getPromoCodeInfo: protectedProcedure.query(async ({ ctx }) => {
       const db = await getDb();
       if (!db) return null;
-      const { users: usersTable, partners: pt } = await import("../drizzle/schema");
+      const { users: usersTable, partners: pt, promoCodes: pc } = await import("../drizzle/schema");
       const { eq } = await import("drizzle-orm");
-      const rows = await db.select({ partnerId: usersTable.partnerId, partnerName: pt.name })
+      const rows = await db.select({ partnerId: usersTable.partnerId, partnerName: pt.name, code: pc.code, discountPercent: pc.discountPercent })
         .from(usersTable)
         .leftJoin(pt, eq(usersTable.partnerId, pt.id))
+        .leftJoin(pc, eq(usersTable.linkedPromoCodeId, pc.id))
         .where(eq(usersTable.openId, ctx.user.openId))
         .limit(1);
       return rows[0] ?? null;
@@ -1350,12 +1407,27 @@ export const appRouter = router({
         if (expectedPrice > 0 && Math.abs(input.price - expectedPrice) > 0.01) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "Невалидна цена. Моля опреснете страницата." });
         }
+        const discount = await getUserActiveDiscount(ctx.user.openId);
+        const finalPrice = discount ? Math.round(input.price * (1 - discount.discountPercent / 100) * 100) / 100 : input.price;
         const session = await stripe.checkout.sessions.create({
           payment_method_types: ["card"],
           mode: "payment",
           allow_promotion_codes: true,
           customer_email: ctx.user.email ?? undefined,
           client_reference_id: ctx.user.id.toString(),
+          line_items: [{
+            price_data: {
+              currency: "eur",
+              product_data: {
+                name: `TRASHit — ${input.creditType === "standard" ? "Стандартни" : "Рециклиращи"} кредити (${input.total} бр.)`,
+                description: input.bonus > 0 ? `${input.credits} кредита + ${input.bonus} безплатни = ${input.total} общо` : `${input.credits} кредита`,
+              },
+              unit_amount: Math.round(finalPrice * 100), // price validated below, discount applied above
+            },
+            quantity: 1,
+          }],
+          success_url: `${input.origin}/credits/success?session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${input.origin}/credits`,
           metadata: {
             user_id: ctx.user.id.toString(),
             user_open_id: ctx.user.openId,
@@ -1366,20 +1438,8 @@ export const appRouter = router({
             credits: input.credits.toString(),
             bonus: input.bonus.toString(),
             total_credits: input.total.toString(),
+            promo_code_id: discount ? String(discount.promoCodeId) : "",
           },
-          line_items: [{
-            price_data: {
-              currency: "eur",
-              product_data: {
-                name: `TRASHit — ${input.creditType === "standard" ? "Стандартни" : "Рециклиращи"} кредити (${input.total} бр.)`,
-                description: input.bonus > 0 ? `${input.credits} кредита + ${input.bonus} безплатни = ${input.total} общо` : `${input.credits} кредита`,
-              },
-              unit_amount: Math.round(input.price * 100), // price validated below
-            },
-            quantity: 1,
-          }],
-          success_url: `${input.origin}/credits/success?session_id={CHECKOUT_SESSION_ID}`,
-          cancel_url: `${input.origin}/credits`,
         });
         return { url: session.url, sessionId: session.id };
       }),
@@ -1437,6 +1497,13 @@ export const appRouter = router({
           purchaseVhod: purchaseUser?.addressVhod ?? undefined,
           note: `Покупка на ${total} ${creditType === "standard" ? "стандартни" : "рециклиращи"} кредита`,
         });
+        if (meta.promo_code_id) {
+          await recordPartnerEarningIfApplicable({
+            userOpenId: ctx.user.openId,
+            promoCodeId: parseInt(meta.promo_code_id),
+            grossAmount: pricePaid,
+          });
+        }
         return { success: true, creditsAdded: total, creditType };
       }),
 
@@ -2879,7 +2946,9 @@ export const appRouter = router({
             "30": Math.round(parseFloat(s["price_sub_rec_30"] ?? "21.99") * 100),
           },
         };
-        const unitAmount = priceMap[input.type][input.visits];
+        const baseUnitAmount = priceMap[input.type][input.visits];
+        const subDiscount = await getUserActiveDiscount(ctx.user.openId);
+        const unitAmount = subDiscount ? Math.round(baseUnitAmount * (1 - subDiscount.discountPercent / 100)) : baseUnitAmount;
         const labelMap: Record<string, Record<string, string>> = {
           standard: { "15": "Стандартен — 15 посещения/месец", "30": "Стандартен — 30 посещения/месец" },
           recycling: { "15": "Рециклиращ — 15 посещения/месец", "30": "Рециклиращ — 30 посещения/месец" },
@@ -2937,6 +3006,7 @@ export const appRouter = router({
             subscription_id: subId.toString(),
             payment_type: "subscription",
             auto_renew: input.autoRenew.toString(),
+            promo_code_id: subDiscount ? String(subDiscount.promoCodeId) : "",
           },
           success_url: `${input.origin}/subscription?sub_success=1&sub_id=${subId}`,
           cancel_url: `${input.origin}/subscription`,
