@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { toast } from "sonner";
+import ZoomableImage from "@/components/ZoomableImage";
 import {
   MapPin, Navigation, Phone, Mail, AlertTriangle,
   CheckCircle, ChevronDown, ChevronRight, LogOut,
@@ -421,10 +422,12 @@ function RequestCard({
         </div>
       )}
 
-      {req.imageUrl && (
-        <img src={req.imageUrl} alt="waste" className="max-h-48 w-auto object-contain rounded-xl" />
+      {req.description && (
+        <p className="text-xs text-gray-600 italic">"{req.description}"</p>
       )}
-
+      {req.imageUrl && (
+        <ZoomableImage src={req.imageUrl} alt="waste" className="max-h-48 w-auto object-contain rounded-xl" />
+      )}
       {/* Worker chat panel for nonstandard/construction requests */}
       {(req.type === "nonstandard" || req.type === "construction") && (
         <WorkerChatPanel requestId={req.id} deviceToken={deviceToken} isBg={isBg} />
@@ -1369,7 +1372,7 @@ function WorkerQuotesTab({ deviceToken, isBg }: { deviceToken: string; isBg: boo
             </div>
           )}
           {req.imageUrl && (
-            <img src={req.imageUrl} alt="waste" className="max-h-40 w-auto object-contain rounded-xl" />
+            <ZoomableImage src={req.imageUrl} alt="waste" className="max-h-40 w-auto object-contain rounded-xl" />
           )}
           {(req.status === "assigned" || req.status === "pending_payment") && (
             <div className="flex items-center gap-2 bg-blue-100 rounded-xl px-3 py-2">
@@ -1520,7 +1523,7 @@ function WorkerAssignmentsTab({ deviceToken }: { deviceToken: string }) {
                       </div>
                     )}
                     {req.imageUrl && (
-                      <img src={req.imageUrl} alt="waste" className="max-h-32 w-auto object-contain rounded-xl" />
+                      <ZoomableImage src={req.imageUrl} alt="waste" className="max-h-32 w-auto object-contain rounded-xl" />
                     )}
                     {req.gpsLat && req.gpsLng && (
                       <div className="flex gap-2 flex-wrap">

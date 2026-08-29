@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import AdminDashboard from "@/components/AdminDashboard";
+import ZoomableImage from "@/components/ZoomableImage";
 
 type Tab = "dashboard" | "workers" | "cities" | "districts" | "blocks" | "credits" | "requests" | "content" | "problems" | "descriptions" | "clients" | "subadmins" | "reports" | "subscriptions" | "partners";
 
@@ -1125,11 +1126,12 @@ function RequestsTab() {
                             {r.hasProblem && r.problemDescription && (
                               <p className="text-xs text-red-600 mt-0.5">{r.problemDescription}</p>
                             )}
-                            {/* Image for nonstandard/construction */}
+                            {/* Description + Image for nonstandard/construction */}
+                            {(r.type === "nonstandard" || r.type === "construction") && (r as any).description && (
+                              <p className="text-xs text-gray-600 mt-1 italic">"{(r as any).description}"</p>
+                            )}
                             {(r.type === "nonstandard" || r.type === "construction") && (r as any).imageUrl && (
-                              <a href={(r as any).imageUrl} target="_blank" rel="noopener noreferrer" className="mt-1.5 block">
-                                <img src={(r as any).imageUrl} alt="Снимка" className="rounded-lg max-h-20 w-auto object-contain border border-gray-200 hover:opacity-90 transition-opacity cursor-pointer" onClick={() => window.open((r as any).imageUrl, '_blank')} />
-                              </a>
+                              <ZoomableImage src={(r as any).imageUrl} alt="Снимка" className="mt-1.5 rounded-lg max-h-20 w-auto object-contain border border-gray-200" />
                             )}
                             {/* Contact info */}
                             <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
