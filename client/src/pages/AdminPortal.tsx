@@ -1364,7 +1364,7 @@ function AdminQuotePanel({ requestId }: { requestId: number }) {
           <p className="text-xs font-semibold text-blue-800">Изпрати оферта</p>
           <div className="flex gap-1.5">
             <Input value={newPrice} onChange={e => setNewPrice(e.target.value)}
-              placeholder="Цена (лв.)" className="h-7 text-xs flex-1" />
+              placeholder="Цена (€)" className="h-7 text-xs flex-1" />
             <Input value={newDate} onChange={e => setNewDate(e.target.value)}
               placeholder="Дата (незадълж.)" className="h-7 text-xs flex-1" />
           </div>
