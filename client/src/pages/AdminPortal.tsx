@@ -999,7 +999,7 @@ function RequestsTab() {
   const { data: districtsData } = trpc.districts.listAll.useQuery();
   const districtCityMap = new Map<string, number>();
   (districtsData ?? []).forEach((d: any) => districtCityMap.set(d.name, d.cityId));
-  const { data: allRequests } = trpc.requests.listAll.useQuery();
+  const { data: allRequests, refetch: refetchRequests } = trpc.requests.listAll.useQuery();
   const cancelRequest = trpc.requests.adminCancel.useMutation({
     onSuccess: () => { toast.success("Заявката е отказана"); refetchRequests(); },
     onError: (e: any) => toast.error(e.message),
