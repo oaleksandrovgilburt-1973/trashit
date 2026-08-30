@@ -991,7 +991,7 @@ function PricesTab() {
 
 // ─── Tab 5: Requests
 function RequestsTab() {
-  const [view, setView] = useState<"active" | "completed">("active");
+  const [view, setView] = useState<"standard" | "nonstandard" | "completed">("standard");
   const adminSession = typeof window !== "undefined" ? localStorage.getItem("admin_session") : null;
   const [openDates, setOpenDates] = useState<Set<string>>(new Set());
   const [selectedCityId, setSelectedCityId] = useState<number | null>(null);
@@ -1010,7 +1010,10 @@ function RequestsTab() {
   });
 
   const cityFilter = (r: any) => !selectedCityId || districtCityMap.get(r.district) === selectedCityId;
-  const active = (allRequests?.filter(r => r.status === "pending") ?? []).filter(cityFilter);
+  const allActive = (allRequests?.filter(r => r.status === "pending") ?? []).filter(cityFilter);
+  const activeStandard = allActive.filter(r => r.type === "standard" || r.type === "recycling");
+  const activeNonstandard = allActive.filter(r => r.type === "nonstandard" || r.type === "construction");
+  const active = view === "nonstandard" ? activeNonstandard : activeStandard;
   const completed = (allRequests?.filter(r => r.status === "completed") ?? []).filter(cityFilter);
 
   const completedByDate: { date: string; label: string; items: typeof completed }[] = (() => {
@@ -1075,9 +1078,13 @@ function RequestsTab() {
           ))}
         </div>
         <div className="flex gap-2">
-          <Button variant={view === "active" ? "default" : "outline"} size="sm" onClick={() => setView("active")}
-            className={`rounded-xl ${view === "active" ? "bg-green-600 hover:bg-green-700" : ""}`}>
-            Активни ({active.length})
+          <Button variant={view === "standard" ? "default" : "outline"} size="sm" onClick={() => setView("standard")}
+            className={`rounded-xl ${view === "standard" ? "bg-green-600 hover:bg-green-700" : ""}`}>
+            Стандартни/Рециклиране ({activeStandard.length})
+          </Button>
+          <Button variant={view === "nonstandard" ? "default" : "outline"} size="sm" onClick={() => setView("nonstandard")}
+            className={`rounded-xl ${view === "nonstandard" ? "bg-blue-600 hover:bg-blue-700" : ""}`}>
+            Нестандартни/Строителни ({activeNonstandard.length})
           </Button>
           <Button variant={view === "pending_payment" ? "default" : "outline"} size="sm" onClick={() => setView("pending_payment" as any)}
             className={`rounded-xl ${view === "pending_payment" ? "bg-red-600 hover:bg-red-700" : ""}`}>
@@ -1086,7 +1093,7 @@ function RequestsTab() {
         </div>
       </div>
 
-      {view === "active" && (
+      {(view === "standard" || view === "nonstandard") && (
         <div className="space-y-4">
           {Object.entries(grouped).map(([district, bloks]) => (
             <div key={district} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
