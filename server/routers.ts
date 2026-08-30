@@ -2925,6 +2925,60 @@ export const appRouter = router({
       .query(async ({ input }) => {
         return getQuotesByRequest(input.requestId);
       }),
+    /** Admin: send a fresh quote, optionally assigning one or several workers */
+    adminSend: adminProcedure
+      .input(z.object({
+        requestId: z.number(),
+        price: z.string().regex(/^\d+(\.\d{1,2})?$/, "Невалидна цена"),
+        proposedDate: z.string().optional(),
+        note: z.string().optional(),
+        workerIds: z.array(z.number()).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const req = await getRequestById(input.requestId);
+        if (!req) throw new TRPCError({ code: "NOT_FOUND", message: "Заявката не е намерена." });
+        if (req.type !== "nonstandard" && req.type !== "construction") {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Офертите са само за нестандартен/строителен отпадък." });
+        }
+        const existing = await getPendingQuoteForRequest(input.requestId);
+        if (existing) await updateQuoteStatus(existing.id, "rejected");
+
+        let workerOpenId = "";
+        let workerName = "Администратор";
+        if (input.workerIds && input.workerIds.length > 0) {
+          const allWorkers = await getAllWorkers();
+          const chosen = allWorkers.filter(w => input.workerIds!.includes(w.id));
+          if (chosen.length > 0) {
+            workerOpenId = chosen[0].openId;
+            workerName = chosen.map(w => w.name).join(", ");
+          }
+        }
+
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const { workerQuotes: wq } = await import("../drizzle/schema");
+        const result = await db.insert(wq).values({
+          requestId: input.requestId,
+          workerOpenId,
+          workerName,
+          price: input.price,
+          proposedDate: input.proposedDate,
+          note: input.note,
+          adminAssignedWorkerIds: input.workerIds && input.workerIds.length > 0 ? JSON.stringify(input.workerIds) : null,
+        });
+        const insertId = (result as any).insertId ?? (result as any)[0]?.insertId;
+
+        // Notify client
+        const client = await getUserByOpenId(req.userOpenId);
+        if (client?.fcmToken) {
+          await sendPushNotification(client.fcmToken, {
+            title: "💰 Получихте оферта",
+            body: `Получихте оферта за Вашата заявка. Влезте в приложението, за да я прегледате.`,
+            data: { requestId: String(input.requestId), type: "quote", url: "/" },
+          });
+        }
+        return { success: true, id: insertId };
+      }),
 
     /** Admin: accept a quote on behalf of the client */
     adminAccept: adminProcedure
@@ -2935,11 +2989,31 @@ export const appRouter = router({
         await updateQuoteStatus(input.quoteId, "accepted");
         const db = await getDb();
         if (db) {
-          const { requests: reqTable } = await import("../drizzle/schema");
+          const { requests: reqTable, requestWorkerAssignments: rwa } = await import("../drizzle/schema");
           const { eq } = await import("drizzle-orm");
           await db.update(reqTable)
             .set({ status: "assigned", workerOpenId: quote.workerOpenId })
             .where(eq(reqTable.id, quote.requestId));
+
+          // Populate request_worker_assignments — all admin-chosen workers, or the single worker who sent the quote
+          let workerIds: number[] = [];
+          if (quote.adminAssignedWorkerIds) {
+            try { workerIds = JSON.parse(quote.adminAssignedWorkerIds); } catch { /* ignore */ }
+          }
+          if (workerIds.length === 0 && quote.workerOpenId) {
+            const allWorkers = await getAllWorkers();
+            const w = allWorkers.find(w => w.openId === quote.workerOpenId);
+            if (w) workerIds = [w.id];
+          }
+          if (workerIds.length > 0) {
+            const allWorkers = await getAllWorkers();
+            for (const wid of workerIds) {
+              const w = allWorkers.find(w => w.id === wid);
+              if (w) {
+                await db.insert(rwa).values({ requestId: quote.requestId, workerId: w.id, workerOpenId: w.openId });
+              }
+            }
+          }
         }
         return { success: true };
       }),

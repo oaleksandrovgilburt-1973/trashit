@@ -1297,7 +1297,26 @@ function AdminQuotePanel({ requestId }: { requestId: number }) {
   const [editPrice, setEditPrice] = useState("");
   const [editNote, setEditNote] = useState("");
   const [editDate, setEditDate] = useState("");
+  const [newPrice, setNewPrice] = useState("");
+  const [newNote, setNewNote] = useState("");
+  const [newDate, setNewDate] = useState("");
+  const [selectedWorkerIds, setSelectedWorkerIds] = useState<number[]>([]);
   const { data: quotes = [], isLoading } = trpc.workerQuotes.adminGetForRequest.useQuery({ requestId });
+  const { data: workers = [] } = trpc.workersMgmt.listWithStats.useQuery();
+  const activeWorkers = workers.filter((w: any) => w.isActive);
+
+  const sendMutation = trpc.workerQuotes.adminSend.useMutation({
+    onSuccess: () => {
+      toast.success("Офертата е изпратена!");
+      setNewPrice(""); setNewNote(""); setNewDate(""); setSelectedWorkerIds([]);
+      utils.workerQuotes.adminGetForRequest.invalidate({ requestId });
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const toggleWorker = (id: number) => {
+    setSelectedWorkerIds(prev => prev.includes(id) ? prev.filter(w => w !== id) : [...prev, id]);
+  };
 
   const acceptMutation = trpc.workerQuotes.adminAccept.useMutation({
     onSuccess: () => {
@@ -1338,10 +1357,37 @@ function AdminQuotePanel({ requestId }: { requestId: number }) {
   const pending = quotes.filter((q: any) => q.status === "pending");
   const all = quotes;
 
-  if (all.length === 0) return null;
-
   return (
     <div className="mt-2 space-y-1.5">
+      {all.length === 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 space-y-2">
+          <p className="text-xs font-semibold text-blue-800">Изпрати оферта</p>
+          <div className="flex gap-1.5">
+            <Input value={newPrice} onChange={e => setNewPrice(e.target.value)}
+              placeholder="Цена (лв.)" className="h-7 text-xs flex-1" />
+            <Input value={newDate} onChange={e => setNewDate(e.target.value)}
+              placeholder="Дата (незадълж.)" className="h-7 text-xs flex-1" />
+          </div>
+          <Input value={newNote} onChange={e => setNewNote(e.target.value)}
+            placeholder="Бележка" className="h-7 text-xs" />
+          <div className="flex flex-wrap gap-1">
+            {activeWorkers.map((w: any) => (
+              <button key={w.id} type="button"
+                onClick={() => toggleWorker(w.id)}
+                className={`px-2 py-1 rounded-full text-xs font-medium border transition-colors ${
+                  selectedWorkerIds.includes(w.id) ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200"
+                }`}>
+                {w.name}
+              </button>
+            ))}
+          </div>
+          <Button size="sm" className="w-full h-6 text-xs bg-blue-600 hover:bg-blue-700 text-white"
+            disabled={!newPrice || sendMutation.isPending}
+            onClick={() => sendMutation.mutate({ requestId, price: newPrice, note: newNote || undefined, proposedDate: newDate || undefined, workerIds: selectedWorkerIds.length > 0 ? selectedWorkerIds : undefined })}>
+            <DollarSign className="w-3 h-3 mr-1" />Изпрати
+          </Button>
+        </div>
+      )}
       {pending.map((q: any) => (
         <div key={q.id} className="bg-amber-50 border border-amber-200 rounded-lg p-2 space-y-1">
           <div className="flex items-center justify-between">

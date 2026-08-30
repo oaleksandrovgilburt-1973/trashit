@@ -310,10 +310,11 @@ export const workerQuotes = mysqlTable("worker_quotes", {
   /** If admin edited the quote, store who edited it */
   adminEditedBy: varchar("adminEditedBy", { length: 128 }),
   adminEditedAt: timestamp("adminEditedAt"),
+  /** JSON array of worker IDs — only set when Admin sends the quote with one or more chosen workers */
+  adminAssignedWorkerIds: text("adminAssignedWorkerIds"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
-
 export type WorkerQuote = typeof workerQuotes.$inferSelect;
 export type InsertWorkerQuote = typeof workerQuotes.$inferInsert;
 
@@ -529,3 +530,13 @@ export const admins = mysqlTable("admins", {
 });
 export type Admin = typeof admins.$inferSelect;
 export type InsertAdmin = typeof admins.$inferInsert;
+
+export const requestWorkerAssignments = mysqlTable("request_worker_assignments", {
+  id: int("id").autoincrement().primaryKey(),
+  requestId: int("requestId").notNull(),
+  workerId: int("workerId").notNull(),
+  workerOpenId: varchar("workerOpenId", { length: 64 }).notNull(),
+  assignedAt: timestamp("assignedAt").defaultNow().notNull(),
+});
+export type RequestWorkerAssignment = typeof requestWorkerAssignments.$inferSelect;
+export type InsertRequestWorkerAssignment = typeof requestWorkerAssignments.$inferInsert;
