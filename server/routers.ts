@@ -2172,6 +2172,7 @@ export const appRouter = router({
             throw new TRPCError({ code: "FORBIDDEN", message: "Входът е приет от друг работник и не можете да го приключите." });
           }
         }
+        const needsPayment = reqBefore?.type === "nonstandard" || reqBefore?.type === "construction";
         if (needsPayment) {
           await completeRequestPendingPayment(input.requestId, worker.openId, worker.id);
         } else {

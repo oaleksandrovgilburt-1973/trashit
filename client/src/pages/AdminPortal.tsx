@@ -1442,7 +1442,6 @@ function AdminChatPanel({ requestId, adminToken }: { requestId: number; adminTok
   });
 
   if (isLoading) return null;
-  if (messages.length === 0 && !msg) return null;
 
   const roleLabel: Record<string, string> = { client: "Клиент", worker: "Работник", admin: "Админ" };
   const roleBg: Record<string, string> = { client: "bg-blue-50 border-blue-200", worker: "bg-green-50 border-green-200", admin: "bg-purple-50 border-purple-200" };
