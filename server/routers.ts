@@ -1080,7 +1080,8 @@ export const appRouter = router({
           await addQuantityToRequest(mergedRequestId, requestedQty);
           id = mergedRequestId;
         } else {
-          const existingClaim = await getAssignmentByEntrance(input.district, input.blok, input.vhod);
+          const isAssignableType = input.type === "standard" || input.type === "recycling";
+          const existingClaim = isAssignableType ? await getAssignmentByEntrance(input.district, input.blok, input.vhod) : null;
           id = await createRequest({
             type: input.type,
             status: existingClaim ? "assigned" : "pending",
