@@ -5,5 +5,5 @@ project(':capacitor-android').projectDir = new File('../node_modules/.pnpm/@capa
 include ':capacitor-push-notifications'
 project(':capacitor-push-notifications').projectDir = new File('../node_modules/.pnpm/@capacitor+push-notifications@8.1.2_@capacitor+core@8.3.4/node_modules/@capacitor/push-notifications/android')
 
-include ':codetrix-studio-capacitor-google-auth'
-project(':codetrix-studio-capacitor-google-auth').projectDir = new File('../node_modules/.pnpm/@codetrix-studio+capacitor-_1ce5087f8e5ee0524495d1c059103655/node_modules/@codetrix-studio/capacitor-google-auth/android')
+include ':capawesome-capacitor-google-sign-in'
+project(':capawesome-capacitor-google-sign-in').projectDir = new File('../node_modules/.pnpm/@capawesome+capacitor-googl_4ab180380c134cadd59d885024fd2928/node_modules/@capawesome/capacitor-google-sign-in/android')

@@ -742,6 +742,38 @@ export const appRouter = router({
         await db.update(admins).set({ isActive: input.isActive }).where(eq(admins.id, input.id));
         return { success: true };
       }),
+    // Self-service: an additional admin (logged in via loginAdditional) changes their own username/password
+    changeMyCredentials: publicProcedure
+      .input(z.object({
+        token: z.string(),
+        currentPassword: z.string().min(1),
+        newUsername: z.string().min(3),
+        newPassword: z.string().min(6),
+      }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const { admins } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        const all = await db.select().from(admins);
+        let matched = null;
+        for (const a of all) {
+          if (a.activeTokenHash && await bcrypt.compare(input.token, a.activeTokenHash)) {
+            matched = a;
+            break;
+          }
+        }
+        if (!matched) throw new TRPCError({ code: "UNAUTHORIZED", message: "Сесията не е валидна за допълнителен администратор." });
+        const passwordMatch = await bcrypt.compare(input.currentPassword, matched.passwordHash);
+        if (!passwordMatch) throw new TRPCError({ code: "UNAUTHORIZED", message: "Грешна текуща парола." });
+        if (input.newUsername !== matched.username) {
+          const existing = await db.select().from(admins).where(eq(admins.username, input.newUsername)).limit(1);
+          if (existing.length > 0) throw new TRPCError({ code: "BAD_REQUEST", message: "Това потребителско име вече съществува." });
+        }
+        const newHash = await bcrypt.hash(input.newPassword, 10);
+        await db.update(admins).set({ username: input.newUsername, passwordHash: newHash }).where(eq(admins.id, matched.id));
+        return { success: true };
+      }),
   }),
   // ─── Settings ─────────────────────────────────────────────────────────
   settings: router({
