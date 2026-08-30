@@ -1,4 +1,3 @@
-﻿
 import { TRPCError } from "@trpc/server";
 import { jwtVerify, createRemoteJWKSet } from "jose";
 import { z } from "zod";
@@ -2277,6 +2276,7 @@ export const appRouter = router({
   }),
   // ── Worker Quotes (nonstandard/construction only) ─────────────────────────
   workerQuotes: router({
+    pingTest: publicProcedure.query(() => "pong"),
     /** Worker sends a quote for a nonstandard/construction request */
     send: publicProcedure
       .input(z.object({
