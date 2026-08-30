@@ -1,0 +1,168 @@
+2389 : balance=0 :     adminEdit: adminProcedure
+2390 : balance=1 :       .input(z.object({
+2391 : balance=1 :         quoteId: z.number(),
+2392 : balance=1 :         price: z.string().regex(/^\d+(\.\d{1,2})?$/, "Невалидна цена"),
+2393 : balance=1 :         note: z.string().optional(),
+2394 : balance=1 :         proposedDate: z.string().optional(),
+2395 : balance=0 :       }))
+2396 : balance=1 :       .mutation(async ({ ctx, input }) => {
+2397 : balance=1 :         const quote = await getQuoteById(input.quoteId);
+2398 : balance=1 :         if (!quote) throw new TRPCError({ code: "NOT_FOUND", message: "Офертата не е намерена." });
+2399 : balance=1 :         const adminName = ctx.user?.name ?? ctx.user?.email ?? "Администратор";
+2400 : balance=1 :         await adminEditQuote(
+2401 : balance=1 :           input.quoteId,
+2402 : balance=1 :           input.price,
+2403 : balance=1 :           input.note ?? null,
+2404 : balance=1 :           input.proposedDate ?? null,
+2405 : balance=1 :           adminName,
+2406 : balance=1 :         );
+2407 : balance=1 :         // Notify client about updated quote
+2408 : balance=1 :         const req = await getRequestById(quote.requestId);
+2409 : balance=2 :         if (req) {
+2410 : balance=2 :           const client = await getUserByOpenId(req.userOpenId);
+2411 : balance=3 :           if (client?.fcmToken) {
+2412 : balance=4 :             await sendPushNotification(client.fcmToken, {
+2413 : balance=4 :               title: "?? Офертата е актуализирана",
+2414 : balance=4 :               body: `Администраторът е актуализирал офертата за вашата заявка. Нова цена: ${input.price} лв.`,
+2415 : balance=4 :               data: { requestId: String(quote.requestId), type: "quote", url: "/" },
+2416 : balance=3 :             });
+2417 : balance=2 :           }
+2418 : balance=1 :         }
+2419 : balance=1 :         return { success: true };
+2420 : balance=0 :       }),
+2421 : balance=-1 :   }),
+2422 : balance=-1 : /** Admin: get all quotes for a request */
+2423 : balance=-1 :     adminGetForRequest: adminProcedure
+2424 : balance=-1 :       .input(z.object({ requestId: z.number() }))
+2425 : balance=0 :       .query(async ({ input }) => {
+2426 : balance=0 :         return getQuotesByRequest(input.requestId);
+2427 : balance=-1 :       }),
+2428 : balance=-1 :     /** Admin: send a fresh quote, optionally assigning one or several workers */
+2429 : balance=-1 :     adminSend: adminProcedure
+2430 : balance=0 :       .input(z.object({
+2431 : balance=0 :         requestId: z.number(),
+2432 : balance=0 :         price: z.string().regex(/^\d+(\.\d{1,2})?$/, "Невалидна цена"),
+2433 : balance=0 :         proposedDate: z.string().optional(),
+2434 : balance=0 :         note: z.string().optional(),
+2435 : balance=0 :         workerIds: z.array(z.number()).optional(),
+2436 : balance=-1 :       }))
+2437 : balance=0 :       .mutation(async ({ input }) => {
+2438 : balance=0 :         const req = await getRequestById(input.requestId);
+2439 : balance=0 :         if (!req) throw new TRPCError({ code: "NOT_FOUND", message: "Заявката не е намерена." });
+2440 : balance=1 :         if (req.type !== "nonstandard" && req.type !== "construction") {
+2441 : balance=1 :           throw new TRPCError({ code: "BAD_REQUEST", message: "Офертите са само за нестандартен/строителен отпадък." });
+2442 : balance=0 :         }
+2443 : balance=0 :         const existing = await getPendingQuoteForRequest(input.requestId);
+2444 : balance=0 :         if (existing) await updateQuoteStatus(existing.id, "rejected");
+2445 : balance=0 : 
+2446 : balance=0 :         let workerOpenId = "";
+2447 : balance=0 :         let workerName = "Администратор";
+2448 : balance=1 :         if (input.workerIds && input.workerIds.length > 0) {
+2449 : balance=1 :           const allWorkers = await getAllWorkers();
+2450 : balance=1 :           const chosen = allWorkers.filter(w => input.workerIds!.includes(w.id));
+2451 : balance=2 :           if (chosen.length > 0) {
+2452 : balance=2 :             workerOpenId = chosen[0].openId;
+2453 : balance=2 :             workerName = chosen.map(w => w.name).join(", ");
+2454 : balance=1 :           }
+2455 : balance=0 :         }
+2456 : balance=0 : 
+2457 : balance=0 :         const db = await getDb();
+2458 : balance=0 :         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+2459 : balance=0 :         const { workerQuotes: wq } = await import("../drizzle/schema");
+2460 : balance=1 :         const result = await db.insert(wq).values({
+2461 : balance=1 :           requestId: input.requestId,
+2462 : balance=1 :           workerOpenId,
+2463 : balance=1 :           workerName,
+2464 : balance=1 :           price: input.price,
+2465 : balance=1 :           proposedDate: input.proposedDate,
+2466 : balance=1 :           note: input.note,
+2467 : balance=1 :           adminAssignedWorkerIds: input.workerIds && input.workerIds.length > 0 ? JSON.stringify(input.workerIds) : null,
+2468 : balance=0 :         });
+2469 : balance=0 :         const insertId = (result as any).insertId ?? (result as any)[0]?.insertId;
+2470 : balance=0 : 
+2471 : balance=0 :         // Notify client
+2472 : balance=0 :         const client = await getUserByOpenId(req.userOpenId);
+2473 : balance=1 :         if (client?.fcmToken) {
+2474 : balance=2 :           await sendPushNotification(client.fcmToken, {
+2475 : balance=2 :             title: "?? Получихте оферта",
+2476 : balance=2 :             body: `Получихте оферта за Вашата заявка. Влезте в приложението, за да я прегледате.`,
+2477 : balance=2 :             data: { requestId: String(input.requestId), type: "quote", url: "/" },
+2478 : balance=1 :           });
+2479 : balance=0 :         }
+2480 : balance=0 :         return { success: true, id: insertId };
+2481 : balance=-1 :       }),
+2482 : balance=-1 : 
+2483 : balance=-1 :     /** Admin: accept a quote on behalf of the client */
+2484 : balance=-1 :     adminAccept: adminProcedure
+2485 : balance=-1 :       .input(z.object({ quoteId: z.number() }))
+2486 : balance=0 :       .mutation(async ({ input }) => {
+2487 : balance=0 :         const quote = await getQuoteById(input.quoteId);
+2488 : balance=0 :         if (!quote) throw new TRPCError({ code: "NOT_FOUND" });
+2489 : balance=0 :         await updateQuoteStatus(input.quoteId, "accepted");
+2490 : balance=0 :         const db = await getDb();
+2491 : balance=1 :         if (db) {
+2492 : balance=1 :           const { requests: reqTable, requestWorkerAssignments: rwa } = await import("../drizzle/schema");
+2493 : balance=1 :           const { eq } = await import("drizzle-orm");
+2494 : balance=1 :           await db.update(reqTable)
+2495 : balance=1 :             .set({ status: "assigned", workerOpenId: quote.workerOpenId })
+2496 : balance=1 :             .where(eq(reqTable.id, quote.requestId));
+2497 : balance=1 : 
+2498 : balance=1 :           // Populate request_worker_assignments - all admin-chosen workers, or the single worker who sent the quote
+2499 : balance=1 :           let workerIds: number[] = [];
+2500 : balance=2 :           if (quote.adminAssignedWorkerIds) {
+2501 : balance=2 :             try { workerIds = JSON.parse(quote.adminAssignedWorkerIds); } catch { /* ignore */ }
+2502 : balance=1 :           }
+2503 : balance=2 :           if (workerIds.length === 0 && quote.workerOpenId) {
+2504 : balance=2 :             const allWorkers = await getAllWorkers();
+2505 : balance=2 :             const w = allWorkers.find(w => w.openId === quote.workerOpenId);
+2506 : balance=2 :             if (w) workerIds = [w.id];
+2507 : balance=1 :           }
+2508 : balance=2 :           if (workerIds.length > 0) {
+2509 : balance=2 :             const allWorkers = await getAllWorkers();
+2510 : balance=3 :             for (const wid of workerIds) {
+2511 : balance=3 :               const w = allWorkers.find(w => w.id === wid);
+2512 : balance=4 :               if (w) {
+2513 : balance=4 :                 await db.insert(rwa).values({ requestId: quote.requestId, workerId: w.id, workerOpenId: w.openId });
+2514 : balance=3 :               }
+2515 : balance=2 :             }
+2516 : balance=1 :           }
+2517 : balance=0 :         }
+2518 : balance=0 :         return { success: true };
+2519 : balance=-1 :       }),
+2520 : balance=-1 : 
+2521 : balance=-1 :     /** Admin: reject a quote and refund credits */
+2522 : balance=-1 :     adminReject: adminProcedure
+2523 : balance=-1 :       .input(z.object({ quoteId: z.number() }))
+2524 : balance=0 :       .mutation(async ({ input }) => {
+2525 : balance=0 :         const quote = await getQuoteById(input.quoteId);
+2526 : balance=0 :         if (!quote) throw new TRPCError({ code: "NOT_FOUND" });
+2527 : balance=0 :         const req = await getRequestById(quote.requestId);
+2528 : balance=0 :         if (!req) throw new TRPCError({ code: "NOT_FOUND" });
+2529 : balance=0 :         await updateQuoteStatus(input.quoteId, "rejected");
+2530 : balance=0 :         const db = await getDb();
+2531 : balance=1 :         if (db) {
+2532 : balance=1 :           const { requests: reqTable } = await import("../drizzle/schema");
+2533 : balance=1 :           const { eq } = await import("drizzle-orm");
+2534 : balance=1 :           await db.update(reqTable).set({ status: "cancelled" }).where(eq(reqTable.id, quote.requestId));
+2535 : balance=2 :           if (req.creditsUsed && parseFloat(req.creditsUsed) > 0) {
+2536 : balance=2 :             const user = await getUserByOpenId(req.userOpenId);
+2537 : balance=3 :             if (user) {
+2538 : balance=3 :               const refund = parseFloat(req.creditsUsed);
+2539 : balance=3 :               const isRecycling = req.creditType === "recycling";
+2540 : balance=3 :               const currentStandard = parseFloat(user.creditsStandard ?? "0");
+2541 : balance=3 :               const currentRecycling = parseFloat(user.creditsRecycling ?? "0");
+2542 : balance=3 :               const updateData = isRecycling
+2543 : balance=3 :                 ? { creditsRecycling: String(currentRecycling + refund) }
+2544 : balance=3 :                 : { creditsStandard: String(currentStandard + refund) };
+2545 : balance=3 :               const { users: usersTable } = await import("../drizzle/schema");
+2546 : balance=3 :               await db.update(usersTable).set(updateData).where(eq(usersTable.id, user.id));
+2547 : balance=2 :             }
+2548 : balance=1 :           }
+2549 : balance=0 :         }
+2550 : balance=0 :         return { success: true };
+2551 : balance=-1 :       }),
+2552 : balance=-2 :   }),
+2553 : balance=-2 :   // ─── Request Messages (bidirectional chat) ─────────────────────────────
+2554 : balance=-1 :   requestMessages: router({
+2555 : balance=-1 :     /** Get all messages for a request (client, worker, admin) */
+2556 : balance=-1 :     getForRequest: publicProcedure

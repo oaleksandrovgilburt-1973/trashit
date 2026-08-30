@@ -2418,7 +2418,6 @@ export const appRouter = router({
         }
         return { success: true };
       }),
-  }),
 /** Admin: get all quotes for a request */
     adminGetForRequest: adminProcedure
       .input(z.object({ requestId: z.number() }))
@@ -2549,8 +2548,8 @@ export const appRouter = router({
         }
         return { success: true };
       }),
-
-  // ── Request Messages (bidirectional chat) ─────────────────────────────────
+  }),
+  // ─── Request Messages (bidirectional chat) ─────────────────────────────
   requestMessages: router({
     /** Get all messages for a request (client, worker, admin) */
     getForRequest: publicProcedure
