@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
@@ -29,6 +30,8 @@ import RefundPage from "./pages/RefundPage";
 import { UpdateBanner } from "./components/UpdateBanner";
 import { FCMProvider } from "./components/FCMProvider";
 import { usePWA } from "./hooks/usePWA";
+import { App as CapacitorApp } from "@capacitor/app";
+import { Capacitor } from "@capacitor/core";
 
 function Router() {
   return (
@@ -74,6 +77,21 @@ function Router() {
 
 function AppInner() {
   const { updateAvailable, triggerUpdate } = usePWA();
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    const listenerPromise = CapacitorApp.addListener("backButton", ({ canGoBack }) => {
+      if (canGoBack) {
+        window.history.back();
+      } else {
+        CapacitorApp.exitApp();
+      }
+    });
+    return () => {
+      listenerPromise.then(listener => listener.remove());
+    };
+  }, []);
+
   return (
     <>
       <FCMProvider>
