@@ -8,7 +8,7 @@ import { trpc } from "@/lib/trpc";
 import { getLoginUrl } from "@/const";
 import MainLayout from "@/components/MainLayout";
 import { Capacitor } from "@capacitor/core";
-import { GoogleSignIn } from "@capawesome/capacitor-google-sign-in";
+import { SocialLogin } from "@capgo/capacitor-social-login";
 
 type Tab = "social" | "email" | "phone";
 type Mode = "login" | "register";
@@ -92,11 +92,17 @@ export default function ClientAuth() {
 
   const handleNativeGoogleSignIn = async () => {
     try {
-      await GoogleSignIn.initialize({
-        clientId: "1007790802752-qvc11eo6iuh6mvt3vhkmluqm2adhu9b8.apps.googleusercontent.com",
+      await SocialLogin.initialize({
+        google: {
+          webClientId: "1007790802752-qvc11eo6iuh6mvt3vhkmluqm2adhu9b8.apps.googleusercontent.com",
+          mode: "online",
+        },
       });
-      const result = await GoogleSignIn.signIn();
-      const credential = result.idToken;
+      const response = await SocialLogin.login({
+        provider: "google",
+        options: { scopes: ["profile", "email"] },
+      });
+      const credential = response.provider === "google" ? (response.result as any).idToken : undefined;
       if (!credential) {
         toast.error(language === "bg" ? "Грешка при вход" : "Login failed");
         return;

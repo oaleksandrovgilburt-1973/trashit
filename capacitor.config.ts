@@ -12,8 +12,10 @@ const config: CapacitorConfig = {
     CapacitorHttp: {
       enabled: false
     },
-    GoogleSignIn: {
-      clientId: '1007790802752-qvc11eo6iuh6mvt3vhkmluqm2adhu9b8.apps.googleusercontent.com'
+    SocialLogin: {
+      google: {
+        webClientId: '1007790802752-qvc11eo6iuh6mvt3vhkmluqm2adhu9b8.apps.googleusercontent.com'
+      }
     }
   }
 };
