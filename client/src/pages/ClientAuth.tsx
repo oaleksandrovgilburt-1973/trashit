@@ -8,7 +8,7 @@ import { trpc } from "@/lib/trpc";
 import { getLoginUrl } from "@/const";
 import MainLayout from "@/components/MainLayout";
 import { Capacitor } from "@capacitor/core";
-import { GoogleAuth } from "@codetrix-studio/capacitor-google-auth";
+import { GoogleSignIn } from "@capawesome/capacitor-google-sign-in";
 
 type Tab = "social" | "email" | "phone";
 type Mode = "login" | "register";
@@ -92,9 +92,11 @@ export default function ClientAuth() {
 
   const handleNativeGoogleSignIn = async () => {
     try {
-      await GoogleAuth.initialize();
-      const user = await GoogleAuth.signIn();
-      const credential = user.authentication?.idToken;
+      await GoogleSignIn.initialize({
+        clientId: "1007790802752-qvc11eo6iuh6mvt3vhkmluqm2adhu9b8.apps.googleusercontent.com",
+      });
+      const result = await GoogleSignIn.signIn();
+      const credential = result.idToken;
       if (!credential) {
         toast.error(language === "bg" ? "Грешка при вход" : "Login failed");
         return;
@@ -102,6 +104,7 @@ export default function ClientAuth() {
       googleLoginMutation.mutate({ credential });
     } catch (err) {
       console.error("Native Google Sign-In error:", err);
+      toast.error(language === "bg" ? "Грешка при вход с Google. Опитайте пак." : "Google Sign-In error. Please try again.");
     }
   };
 
