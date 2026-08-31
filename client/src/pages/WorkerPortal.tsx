@@ -484,6 +484,16 @@ function RequestCard({
         {isBg ? "Приключи" : "Complete"}
       </Button>
     )}
+    {(req.type === "standard" || req.type === "recycling") && req.hasProblem && (
+      <Button
+        size="sm"
+        className="flex-1 rounded-xl bg-green-600 hover:bg-green-700 text-white text-xs"
+        onClick={() => onComplete(req.id)}
+      >
+        <CheckCircle className="w-3 h-3 mr-1" />
+        {isBg ? "Приключи тази" : "Complete this"}
+      </Button>
+    )}
     {(req.type !== "nonstandard" && req.type !== "construction") && onClaim && (
       <Button
         size="sm"
@@ -1513,6 +1523,9 @@ function WorkerAssignmentsTab({ deviceToken }: { deviceToken: string }) {
                         {new Date(req.createdAt).toLocaleDateString(isBg ? "bg-BG" : "en-GB")}
                       </span>
                     </div>
+                    {req.hasProblem && req.problemDescription && (
+                      <p className="text-xs font-semibold text-red-600 bg-red-100 rounded-lg px-2 py-1">⚠️ {req.problemDescription}</p>
+                    )}
                     {req.description && (
                       <p className="text-xs text-muted-foreground italic">"{req.description}"</p>
                     )}
@@ -1546,6 +1559,25 @@ function WorkerAssignmentsTab({ deviceToken }: { deviceToken: string }) {
                         )}
                       </div>
                     )}
+                    {req.hasProblem && (
+                      <Button
+                        size="sm"
+                        className="w-full rounded-xl bg-green-600 hover:bg-green-700 text-white text-xs"
+                        onClick={() => {
+                          if (!navigator.geolocation) {
+                            completeMutation.mutate({ requestId: req.id, deviceToken });
+                            return;
+                          }
+                          navigator.geolocation.getCurrentPosition(
+                            (pos) => completeMutation.mutate({ requestId: req.id, deviceToken, workerLat: pos.coords.latitude, workerLng: pos.coords.longitude }),
+                            () => completeMutation.mutate({ requestId: req.id, deviceToken })
+                          );
+                        }}
+                      >
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        {isBg ? "Приключи тази заявка" : "Complete this request"}
+                      </Button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1556,7 +1588,6 @@ function WorkerAssignmentsTab({ deviceToken }: { deviceToken: string }) {
     </div>
   );
 }
-
 // ─── Main WorkerPortal ────────────────────────────────────────────────────────
 export default function WorkerPortal() {
   const { language } = useLanguage();
