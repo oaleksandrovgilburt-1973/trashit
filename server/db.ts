@@ -69,7 +69,9 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   if (user.creditsRecycling !== undefined) { values.creditsRecycling = user.creditsRecycling; updateSet.creditsRecycling = user.creditsRecycling; }
   if (user.credits !== undefined) { values.credits = user.credits; updateSet.credits = user.credits; }
   if (user.isFirstLogin !== undefined) { values.isFirstLogin = user.isFirstLogin; updateSet.isFirstLogin = user.isFirstLogin; }
-
+  if (user.emailVerified !== undefined) { values.emailVerified = user.emailVerified; updateSet.emailVerified = user.emailVerified; }
+  if (user.emailVerificationToken !== undefined) { values.emailVerificationToken = user.emailVerificationToken; updateSet.emailVerificationToken = user.emailVerificationToken; }
+  if (user.emailVerificationExpires !== undefined) { values.emailVerificationExpires = user.emailVerificationExpires; updateSet.emailVerificationExpires = user.emailVerificationExpires; }
   if (!values.lastSignedIn) values.lastSignedIn = new Date();
   if (Object.keys(updateSet).length === 0) updateSet.lastSignedIn = new Date();
 
