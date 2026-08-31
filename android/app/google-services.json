@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "1007790802752-b08g78n0j1mrfvouqnsr4tfcuj89c76e.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "bg.trashit.app",
+            "certificate_hash": "2f80d5c44d05aa8b52abca50fb47fc97a2ee114e"
+          }
+        },
+        {
           "client_id": "1007790802752-qvc11eo6iuh6mvt3vhkmluqm2adhu9b8.apps.googleusercontent.com",
           "client_type": 3
         }
