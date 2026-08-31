@@ -50,6 +50,10 @@ export const users = mysqlTable("users", {
   partnerId: int("partnerId"),
   /** Nullable — the exact promo code linked, needed since a partner can have multiple codes with different discount/commission */
   linkedPromoCodeId: int("linkedPromoCodeId"),
+  /** Email verification — only enforced for email/password-registered users, not social login (Google/Apple already verify email ownership) */
+  emailVerified: boolean("emailVerified").default(false).notNull(),
+  emailVerificationToken: varchar("emailVerificationToken", { length: 64 }),
+  emailVerificationExpires: timestamp("emailVerificationExpires"),
 });
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;

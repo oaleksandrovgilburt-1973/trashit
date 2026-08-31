@@ -17,6 +17,7 @@ import AdminLogin from "./pages/AdminLogin";
 import SubAdminPortal from "./pages/SubAdminPortal";
 import PartnerPortal from "./pages/PartnerPortal";
 import AdminLoginSecondary from "./pages/AdminLoginSecondary";
+import VerifyEmail from "./pages/VerifyEmail";
 import ClientAuth from "./pages/ClientAuth";
 import UserProfile from "./pages/UserProfile";
 import MyRequests from "./pages/MyRequests";
@@ -61,6 +62,7 @@ function Router() {
       <Route path="/subadmin" component={SubAdminPortal} />
       <Route path="/partner" component={PartnerPortal} />
       <Route path="/admin/login2" component={AdminLoginSecondary} />
+      <Route path="/verify-email" component={VerifyEmail} />
 
       {/* Legal */}
       <Route path="/download" component={DownloadPage} />

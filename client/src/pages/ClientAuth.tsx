@@ -33,21 +33,23 @@ export default function ClientAuth() {
   const [phoneForm, setPhoneForm] = useState({ name: "", phone: "", password: "", confirm: "" });
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showVerifyNotice, setShowVerifyNotice] = useState(false);
   const registerMutation = trpc.clientAuth.register.useMutation({
-    onSuccess: async (data) => {
-      await utils.auth.me.invalidate();
-      toast.success(t.bonusCreditsReceived);
-      navigate("/");
+    onSuccess: async () => {
+      setShowVerifyNotice(true);
     },
     onError: (err) => {
-      if (err.message.includes("імейл") || err.message.includes("email") || err.message.toLowerCase().includes("съществува")) {
+      if (err.message.includes("имейл") || err.message.includes("email") || err.message.toLowerCase().includes("съществува")) {
         setErrors(e => ({ ...e, email: t.errorEmailExists }));
       } else {
         toast.error(err.message);
       }
     },
   });
-
+  const resendVerificationMutation = trpc.clientAuth.resendVerification.useMutation({
+    onSuccess: () => toast.success(isBg ? "Изпратихме нов имейл за потвърждение!" : "Sent a new verification email!"),
+    onError: (err) => toast.error(err.message),
+  });
   const loginMutation = trpc.clientAuth.login.useMutation({
     onSuccess: async () => {
       await utils.auth.me.invalidate();
@@ -229,7 +231,7 @@ export default function ClientAuth() {
     if (!validate()) return;
     if (tab === "email") {
       if (mode === "register") {
-        registerMutation.mutate({ name: emailForm.name, email: emailForm.email, password: emailForm.password, phone: emailForm.phone });
+        registerMutation.mutate({ name: emailForm.name, email: emailForm.email, password: emailForm.password, phone: emailForm.phone, origin: window.location.origin });
       } else {
         loginMutation.mutate({ email: emailForm.email, password: emailForm.password });
       }
@@ -243,6 +245,32 @@ export default function ClientAuth() {
   };
 
   const isPending = registerMutation.isPending || loginMutation.isPending || phoneRegisterMutation.isPending || phoneLoginMutation.isPending;
+
+if (showVerifyNotice) {
+    return (
+      <MainLayout>
+        <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center px-4 py-8">
+          <div className="w-full max-w-sm text-center">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Mail className="w-8 h-8 text-green-600" />
+            </div>
+            <h2 className="text-xl font-bold mb-2">{isBg ? "Проверете пощата си!" : "Check your email!"}</h2>
+            <p className="text-muted-foreground mb-6">
+              {isBg ? `Изпратихме линк за потвърждение на ${emailForm.email}. Кликнете върху него, за да активирате акаунта си.` : `We sent a confirmation link to ${emailForm.email}. Click it to activate your account.`}
+            </p>
+            <Button
+              variant="outline"
+              onClick={() => resendVerificationMutation.mutate({ email: emailForm.email, origin: window.location.origin })}
+              disabled={resendVerificationMutation.isPending}
+              className="rounded-xl"
+            >
+              {resendVerificationMutation.isPending ? "..." : (isBg ? "Изпрати отново" : "Resend email")}
+            </Button>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>

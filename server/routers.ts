@@ -239,8 +239,9 @@ export const appRouter = router({
         email: z.string().email("Невалиден имейл адрес"),
         password: z.string().min(6, "Паролата трябва да е поне 6 символа"),
         phone: z.string().min(8, "Телефонният номер трябва да е поне 8 цифри"),
+        origin: z.string().url(),
       }))
-      .mutation(async ({ ctx, input }) => {
+      .mutation(async ({ input }) => {
         const existing = await getUserByEmail(input.email);
         if (existing) {
           throw new TRPCError({ code: "CONFLICT", message: "Вече съществува акаунт с този имейл." });
@@ -252,6 +253,8 @@ export const appRouter = router({
         const alreadyUsedBonus = emailUsedBonus || phoneUsedBonus;
         if (!emailUsedBonus) await markBonusUsed(input.email);
         if (!phoneUsedBonus) await markBonusUsed(input.phone);
+        const verificationToken = nanoid(32);
+        const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
         await upsertUser({
           openId,
           name: input.name,
@@ -265,11 +268,13 @@ export const appRouter = router({
           bonusGranted: !alreadyUsedBonus,
           isFirstLogin: false,
           lastSignedIn: new Date(),
-        });
-        const sessionToken = await sdk.createSessionToken(openId, { name: input.name, expiresInMs: ONE_YEAR_MS });
-        const cookieOptions = getSessionCookieOptions(ctx.req);
-        ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
-        return { success: true, bonusCredits: alreadyUsedBonus ? 0 : BONUS_CREDITS, openId };
+          emailVerified: false,
+          emailVerificationToken: verificationToken,
+          emailVerificationExpires: verificationExpires,
+        } as any);
+        const { sendVerificationEmail } = await import("./email");
+        await sendVerificationEmail(input.email, input.name, verificationToken, input.origin);
+        return { success: true, requiresVerification: true };
       }),
 
     login: publicProcedure
@@ -286,13 +291,53 @@ export const appRouter = router({
         if (!valid) {
           throw new TRPCError({ code: "UNAUTHORIZED", message: "Грешен имейл или парола." });
         }
+        if (!(user as any).emailVerified) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Моля, потвърдете имейла си преди да влезете. Проверете пощата си." });
+        }
         await upsertUser({ openId: user.openId, lastSignedIn: new Date() });
         const sessionToken = await sdk.createSessionToken(user.openId, { name: user.name ?? "", expiresInMs: ONE_YEAR_MS });
         const cookieOptions = getSessionCookieOptions(ctx.req);
         ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
         return { success: true, openId: user.openId, name: user.name, role: user.role };
       }),
-
+    // Verify email via token from the verification link
+    verifyEmail: publicProcedure
+      .input(z.object({ token: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const { users: usersTable } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        const rows = await db.select().from(usersTable).where(eq(usersTable.emailVerificationToken, input.token)).limit(1);
+        const user = rows[0];
+        if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "Невалиден или изтекъл линк." });
+        if (user.emailVerificationExpires && new Date(user.emailVerificationExpires) < new Date()) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Линкът е изтекъл. Моля, поискайте нов." });
+        }
+        await db.update(usersTable).set({ emailVerified: true, emailVerificationToken: null, emailVerificationExpires: null }).where(eq(usersTable.id, user.id));
+        const sessionToken = await sdk.createSessionToken(user.openId, { name: user.name ?? "", expiresInMs: ONE_YEAR_MS });
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+        return { success: true, openId: user.openId, name: user.name };
+      }),
+    // Resend verification email if the original didn't arrive
+    resendVerification: publicProcedure
+      .input(z.object({ email: z.string().email(), origin: z.string().url() }))
+      .mutation(async ({ input }) => {
+        const user = await getUserByEmail(input.email);
+        if (!user) return { success: true }; // don't reveal whether the email exists
+        if ((user as any).emailVerified) return { success: true };
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const { users: usersTable } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        const verificationToken = nanoid(32);
+        const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        await db.update(usersTable).set({ emailVerificationToken: verificationToken, emailVerificationExpires: verificationExpires }).where(eq(usersTable.id, user.id));
+        const { sendVerificationEmail } = await import("./email");
+        await sendVerificationEmail(input.email, user.name, verificationToken, input.origin);
+        return { success: true };
+      }),
     // Phone registration (stub — real SMS OTP requires external service)
     registerPhone: publicProcedure
       .input(z.object({
