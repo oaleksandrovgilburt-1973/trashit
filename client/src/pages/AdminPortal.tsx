@@ -1017,6 +1017,8 @@ function RequestsTab() {
   const activeStandard = allActive.filter(r => r.type === "standard" || r.type === "recycling");
   const activeNonstandard = allActive.filter(r => r.type === "nonstandard" || r.type === "construction");
   const active = view === "nonstandard" ? activeNonstandard : activeStandard;
+  const activeUnclaimed = active.filter(r => r.status === "pending");
+  const activeClaimed = active.filter(r => r.status === "assigned");
   const completed = (allRequests?.filter(r => r.status === "completed") ?? []).filter(cityFilter);
 
   const completedByDate: { date: string; label: string; items: typeof completed }[] = (() => {
@@ -1118,7 +1120,7 @@ function RequestsTab() {
                         <Badge variant="secondary" className="text-xs">{reqs.length} {reqs.length === 1 ? "заявка" : "заявки"}</Badge>
                       </div>
                       <div className="pl-5 space-y-1.5">
-                        {reqs.map(r => (
+                        {[...reqs].sort((a, b) => a.status === b.status ? 0 : a.status === "pending" ? -1 : 1).map(r => (
                           <div key={r.id} className={`rounded-lg px-2 py-2 text-sm ${r.hasProblem ? 'bg-red-50 border border-red-200' : ''}`}>
                             <div className="flex items-center justify-between">
                               <span className={r.hasProblem ? 'text-red-700 font-medium' : 'text-gray-700'}>
