@@ -1000,6 +1000,9 @@ function RequestsTab() {
   const districtCityMap = new Map<string, number>();
   (districtsData ?? []).forEach((d: any) => districtCityMap.set(d.name, d.cityId));
   const { data: allRequests, refetch: refetchRequests } = trpc.requests.listAll.useQuery();
+  const { data: allWorkersForNames = [] } = trpc.workersMgmt.listWithStats.useQuery();
+  const workerNameById = new Map<string, string>();
+  (allWorkersForNames as any[]).forEach(w => workerNameById.set(w.openId, w.name));
   const cancelRequest = trpc.requests.adminCancel.useMutation({
     onSuccess: () => { toast.success("Заявката е отказана"); refetchRequests(); },
     onError: (e: any) => toast.error(e.message),
@@ -1010,7 +1013,7 @@ function RequestsTab() {
   });
 
   const cityFilter = (r: any) => !selectedCityId || districtCityMap.get(r.district) === selectedCityId;
-  const allActive = (allRequests?.filter(r => r.status === "pending") ?? []).filter(cityFilter);
+  const allActive = (allRequests?.filter(r => r.status === "pending" || r.status === "assigned") ?? []).filter(cityFilter);
   const activeStandard = allActive.filter(r => r.type === "standard" || r.type === "recycling");
   const activeNonstandard = allActive.filter(r => r.type === "nonstandard" || r.type === "construction");
   const active = view === "nonstandard" ? activeNonstandard : activeStandard;
@@ -1123,6 +1126,11 @@ function RequestsTab() {
                               </span>
                               <div className="flex items-center gap-2">
                                 <Badge variant="outline" className="text-xs">{typeLabel[r.type] ?? r.type}</Badge>
+                                {r.status === "assigned" && (r as any).workerOpenId && (
+                                  <Badge className="text-xs bg-blue-100 text-blue-700">
+                                    {workerNameById.get((r as any).workerOpenId) ?? (r as any).workerOpenId}
+                                  </Badge>
+                                )}
                                 {r.contactPhone && (
                                   <a href={`tel:${r.contactPhone}`} className="text-green-600 hover:text-green-700">
                                     <Phone className="w-3.5 h-3.5" />
@@ -1232,6 +1240,9 @@ function RequestsTab() {
                           </span>
                           <p className="text-xs text-gray-500 mt-0.5">
                             {typeLabel[r.type] ?? r.type}
+                            {(r as any).workerOpenId && (
+                              <> · <span className="text-blue-600 font-medium">{workerNameById.get((r as any).workerOpenId) ?? (r as any).workerOpenId}</span></>
+                            )}
                             {r.contactPhone && (
                               <> · <a href={`tel:${r.contactPhone}`} className="text-green-600 hover:underline">{r.contactPhone}</a></>
                             )}
