@@ -57,6 +57,10 @@ export default function ClientAuth() {
       navigate("/");
     },
     onError: (err) => {
+      if (err.message.includes("потвърдете имейла")) {
+        setShowVerifyNotice(true);
+        return;
+      }
       toast.error(err.message || t.errorInvalidCredentials);
     },
   });
