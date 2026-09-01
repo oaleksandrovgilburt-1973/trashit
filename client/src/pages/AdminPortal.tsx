@@ -535,6 +535,10 @@ function BlocksTab() {
     onSuccess: () => { refetch(); refetchActiveBlocks(); toast.success("Входът е изтрит"); },
     onError: (e) => toast.error(e.message),
   });
+  const sendAccessEmailMutation = trpc.entranceAccess.sendAccessEmail.useMutation({
+    onSuccess: () => toast.success("Имейлът е изпратен!"),
+    onError: (e) => toast.error(e.message),
+  });
 
   const accessMap = new Map<string, boolean>();
   (accessRecords ?? []).forEach(r => {
@@ -655,10 +659,24 @@ function BlocksTab() {
                               )}
                             </div>
                             {!isApproved && (entrance.contactPhone || entrance.contactEmail) && (
-                              <div className="text-xs text-gray-500 pl-4">
+                              <div className="text-xs text-gray-500 pl-4 flex items-center gap-2 flex-wrap">
                                 {entrance.contactPhone && <span>📞 {entrance.contactPhone}</span>}
                                 {entrance.contactPhone && entrance.contactEmail && <span> · </span>}
                                 {entrance.contactEmail && <span>✉️ {entrance.contactEmail}</span>}
+                                {entrance.contactEmail && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-6 px-2 text-xs rounded-lg text-blue-600 border-blue-200 hover:bg-blue-50"
+                                    disabled={sendAccessEmailMutation.isPending}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      sendAccessEmailMutation.mutate({ district: entrance.district, blok: entrance.blok, vhod: entrance.vhod, contactEmail: entrance.contactEmail! });
+                                    }}
+                                  >
+                                    <Mail className="w-3 h-3 mr-1" />Изпрати имейл
+                                  </Button>
+                                )}
                               </div>
                             )}
                           </div>

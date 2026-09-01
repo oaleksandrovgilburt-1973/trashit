@@ -27,3 +27,32 @@ export async function sendVerificationEmail(to: string, name: string | null, tok
     console.error("[email] Failed to send verification email:", err);
   }
 }
+export async function sendEntranceAccessRequestEmail(to: string, district: string, blok: string, vhod: string): Promise<void> {
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY not set, skipping entrance access email");
+    return;
+  }
+  try {
+    await resend.emails.send({
+      from: "TRASHit <noreply@trashit.bg>",
+      to,
+      subject: "Молба за достъп до вход — TRASHit",
+      html: `
+        <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+          <p>Здравейте,</p>
+          <p>Благодарим Ви за проявения интерес към услугата на TRASHit.</p>
+          <p>За да можем да събираме отпадъците от посочения от Вас адрес (<strong>${district}, Бл. ${blok}, Вх. ${vhod}</strong>), е необходимо да осигурим достъп за нашия екип. Това може да бъде чип за входната врата, ключ, код за достъп или друг подходящ начин според организацията на сградата.</p>
+          <p>Моля да ни уведомите кой вариант е възможен и как можем да получим необходимото средство за достъп.</p>
+          <p>Предоставеният достъп ще бъде използван единствено за извършване на заявената услуга.</p>
+          <p>Благодарим Ви за съдействието!</p>
+          <p style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #eee; color: #666; font-size: 14px;">
+            📞 0888 418 024 &nbsp;·&nbsp; 🌐 <a href="https://trashit.bg" style="color: #16a34a;">trashit.bg</a>
+          </p>
+          <p style="margin-top: 16px;">С уважение,<br>Екипът на TRASHit</p>
+        </div>
+      `,
+    });
+  } catch (err) {
+    console.error("[email] Failed to send entrance access request email:", err);
+  }
+}

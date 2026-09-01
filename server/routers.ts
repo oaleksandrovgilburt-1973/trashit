@@ -1994,6 +1994,19 @@ export const appRouter = router({
         await upsertEntranceAccess(input.district, input.blok, input.vhod, input.isApproved);
         return { success: true };
       }),
+    // Admin: manually send an access-request email for a pending entrance
+    sendAccessEmail: adminProcedure
+      .input(z.object({
+        district: z.string().min(1),
+        blok: z.string().min(1),
+        vhod: z.string().min(1),
+        contactEmail: z.string().email(),
+      }))
+      .mutation(async ({ input }) => {
+        const { sendEntranceAccessRequestEmail } = await import("./email");
+        await sendEntranceAccessRequestEmail(input.contactEmail, input.district, input.blok, input.vhod);
+        return { success: true };
+      }),
     // Delete a specific entrance record (admin)
     delete: adminProcedure
       .input(z.object({
