@@ -1147,6 +1147,9 @@ function RequestsTab() {
                             {(r.type === "nonstandard" || r.type === "construction") && (r as any).description && (
                               <p className="text-xs text-gray-600 mt-1 italic">"{(r as any).description}"</p>
                             )}
+                            {(r.type === "nonstandard" || r.type === "construction") && (r as any).estimatedVolume && (
+                              <p className="text-xs text-orange-600 mt-0.5">📦 Прогнозен обем: {(r as any).estimatedVolume}</p>
+                            )}
                             {(r.type === "nonstandard" || r.type === "construction") && (r as any).imageUrl && (
                               <ZoomableImage src={(r as any).imageUrl} alt="Снимка" className="mt-1.5 rounded-lg max-h-20 w-auto object-contain border border-gray-200" />
                             )}
