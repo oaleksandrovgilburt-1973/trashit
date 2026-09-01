@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+﻿import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { Mail, Phone, ArrowLeft, Sparkles, Eye, EyeOff, X } from "lucide-react";
@@ -10,7 +10,7 @@ import MainLayout from "@/components/MainLayout";
 import { Capacitor } from "@capacitor/core";
 import { SocialLogin } from "@capgo/capacitor-social-login";
 
-type Tab = "social" | "email" | "phone";
+type Tab = "social" | "email";
 type Mode = "login" | "register";
 
 export default function ClientAuth() {
@@ -305,7 +305,7 @@ if (showVerifyNotice) {
 
             {/* Tab selector */}
             <div className="flex gap-1 bg-muted rounded-xl p-1 mb-6">
-              {(["social", "email", "phone"] as Tab[]).map(tabKey => (
+              {(["social", "email"] as Tab[]).map(tabKey => (
                 <button
                   key={tabKey}
                   onClick={() => setTab(tabKey)}
@@ -313,7 +313,7 @@ if (showVerifyNotice) {
                     tab === tabKey ? "bg-white shadow text-primary" : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  {tabKey === "social" ? "Social" : tabKey === "email" ? t.email : t.phoneNumber}
+                  {tabKey === "social" ? "Social" : t.email}
                 </button>
               ))}
             </div>
@@ -383,11 +383,12 @@ if (showVerifyNotice) {
       {t.loginWithEmail}
     </button>
     <button
-      onClick={() => setTab("phone")}
-      className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl border border-border hover:bg-muted text-foreground text-sm font-medium transition-all"
+      disabled
+      title={isBg ? "Очаквайте скоро" : "Coming soon"}
+      className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl border border-border text-foreground/40 text-sm font-medium cursor-not-allowed opacity-50"
     >
-      <Phone className="w-4 h-4" />
-      {t.loginWithPhone}
+      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+      Facebook — {isBg ? "Очаквайте скоро" : "Coming soon"}
     </button>
   </div>
 )}
@@ -527,131 +528,6 @@ if (showVerifyNotice) {
               </div>
             )}
 
-            {/* Phone tab */}
-            {tab === "phone" && (
-              <div className="space-y-4">
-                {/* Mode toggle */}
-                <div className="flex gap-1 bg-muted rounded-xl p-1 mb-2">
-                  <button
-                    onClick={() => setMode("login")}
-                    className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${mode === "login" ? "bg-white shadow text-primary" : "text-muted-foreground"}`}
-                  >
-                    {t.login}
-                  </button>
-                  <button
-                    onClick={() => setMode("register")}
-                    className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${mode === "register" ? "bg-white shadow text-primary" : "text-muted-foreground"}`}
-                  >
-                    {t.register}
-                  </button>
-                </div>
-                {mode === "register" && (
-                  <div className="bg-primary/5 rounded-xl p-3 text-sm text-muted-foreground text-center">
-                    <Sparkles className="w-4 h-4 inline mr-1 text-yellow-500" />
-                    {t.bonusCreditsMessage}
-                  </div>
-                )}
-                {mode === "register" && (
-                  <div>
-                    <input
-                      type="text"
-                      value={phoneForm.name}
-                      onChange={e => setPhoneForm(f => ({ ...f, name: e.target.value }))}
-                      placeholder={t.name}
-                      className={`w-full px-4 py-3 rounded-xl border text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all ${errors.name ? "border-red-400" : "border-border"}`}
-                    />
-                    {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
-                  </div>
-                )}
-                <div>
-                  <input
-                    type="tel"
-                    value={phoneForm.phone}
-                    onChange={e => setPhoneForm(f => ({ ...f, phone: e.target.value }))}
-                    placeholder={t.phoneNumber + " (+359...)"}
-                    className={`w-full px-4 py-3 rounded-xl border text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all ${errors.phone ? "border-red-400" : "border-border"}`}
-                  />
-                  {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
-                </div>
-                <div>
-                  <div className="relative">
-                    <input
-                      type={showPhonePassword ? "text" : "password"}
-                      value={phoneForm.password}
-                      onChange={e => setPhoneForm(f => ({ ...f, password: e.target.value }))}
-                      placeholder={t.password}
-                      className={`w-full px-4 py-3 pr-11 rounded-xl border text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all ${
-                        mode === "register" && phoneForm.password
-                          ? (phoneForm.password.length >= 6 ? "border-green-400" : "border-red-400")
-                          : errors.password ? "border-red-400" : "border-border"
-                      }`}
-                      onKeyDown={e => e.key === "Enter" && handleSubmit()}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPhonePassword(v => !v)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      {showPhonePassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                  {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
-                </div>
-                {mode === "register" && (
-                  <div>
-                    <div className="relative">
-                      <input
-                        type={showPhoneConfirm ? "text" : "password"}
-                        value={phoneForm.confirm}
-                        onChange={e => setPhoneForm(f => ({ ...f, confirm: e.target.value }))}
-                        placeholder={t.confirmPassword}
-                        className={`w-full px-4 py-3 pr-11 rounded-xl border text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all ${
-                          phoneForm.confirm
-                            ? (phoneForm.confirm === phoneForm.password ? "border-green-400" : "border-red-400")
-                            : errors.confirm ? "border-red-400" : "border-border"
-                        }`}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPhoneConfirm(v => !v)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      >
-                        {showPhoneConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                    {errors.confirm && <p className="text-red-500 text-xs mt-1">{errors.confirm}</p>}
-                  </div>
-                )}
-                {mode === "register" && (
-                  <div className="flex items-start gap-2">
-                    <input
-                      type="checkbox"
-                      id="terms-phone"
-                      checked={termsAccepted}
-                      onChange={e => setTermsAccepted(e.target.checked)}
-                      className="mt-0.5 w-4 h-4 accent-primary cursor-pointer"
-                    />
-                    <label htmlFor="terms-phone" className="text-xs text-muted-foreground leading-relaxed">
-                      Приемам{" "}
-                      <button
-                        type="button"
-                        onClick={() => setShowTermsModal(true)}
-                        className="text-primary underline font-medium"
-                      >
-                        Общите условия
-                      </button>
-                    </label>
-                  </div>
-                )}
-                <button
-                  onClick={handleSubmit}
-                  disabled={isPending || (mode === "register" && !termsAccepted)}
-                  className="w-full py-3 rounded-xl bg-primary text-white font-semibold text-sm hover:bg-primary/90 disabled:opacity-60 transition-all shadow-md"
-                >
-                  {isPending ? t.loading : mode === "login" ? t.login : t.register}
-                </button>
-              </div>
-            )}
           </div>
         </div>
       </div>
