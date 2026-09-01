@@ -376,13 +376,6 @@ if (showVerifyNotice) {
       <div className="relative flex justify-center text-xs"><span className="bg-card px-2 text-muted-foreground">{t.or}</span></div>
     </div>
     <button
-      onClick={() => setTab("email")}
-      className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl border border-border hover:bg-muted text-foreground text-sm font-medium transition-all"
-    >
-      <Mail className="w-4 h-4" />
-      {t.loginWithEmail}
-    </button>
-    <button
       disabled
       title={isBg ? "Очаквайте скоро" : "Coming soon"}
       className="flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl border border-border text-foreground/40 text-sm font-medium cursor-not-allowed opacity-50"
