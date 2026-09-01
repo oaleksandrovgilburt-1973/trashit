@@ -1419,6 +1419,7 @@ export const appRouter = router({
         .replace(/```json\s*/gi, "")
         .replace(/```\s*/gi, "")
         .trim();
+      console.log("[estimateVolume] Claude raw response:", cleaned);
       const parsed = JSON.parse(cleaned) as {
         object?: string;
         volume?: string;
