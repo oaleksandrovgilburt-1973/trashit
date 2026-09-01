@@ -312,6 +312,10 @@ export default function WasteDisposal() {
       toast.error(isBg ? "Снимката е задължителна за този вид отпадък" : "Photo is required");
       return;
     }
+    if ((selectedType === "nonstandard" || selectedType === "construction") && (moderateImageMutation.isPending || !isImageApproved)) {
+      toast.error(isBg ? "Моля изчакайте проверката на снимката." : "Please wait for image verification.");
+      return;
+    }
     // Register entrance in DB on submit (only writes to DB here, not on every keystroke)
     if (district && blok && normalizedVhod) {
       registerEntrance.mutate({
