@@ -36,7 +36,7 @@ export async function sendEntranceAccessRequestEmail(to: string, district: strin
     await resend.emails.send({
       from: "TRASHit <noreply@trashit.bg>",
       to,
-      subject: "Молба за достъп до вход — TRASHit",
+      subject: "Молба за достъп до вход / Entrance access request — TRASHit",
       html: `
         <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
           <p>Здравейте,</p>
@@ -45,10 +45,20 @@ export async function sendEntranceAccessRequestEmail(to: string, district: strin
           <p>Моля да ни уведомите кой вариант е възможен и как можем да получим необходимото средство за достъп.</p>
           <p>Предоставеният достъп ще бъде използван единствено за извършване на заявената услуга.</p>
           <p>Благодарим Ви за съдействието!</p>
+
+          <hr style="margin: 24px 0; border: none; border-top: 1px solid #eee;" />
+
+          <p>Hello,</p>
+          <p>Thank you for your interest in TRASHit's service.</p>
+          <p>In order to collect waste from the address you provided (<strong>${district}, Bl. ${blok}, Entr. ${vhod}</strong>), our team needs access to the entrance. This could be a door chip, key, access code, or another arrangement suitable for your building.</p>
+          <p>Please let us know which option is available and how we can obtain the necessary access.</p>
+          <p>The access provided will be used solely to carry out the requested service.</p>
+          <p>Thank you for your cooperation!</p>
+
           <p style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #eee; color: #666; font-size: 14px;">
             📞 0888 418 024 &nbsp;·&nbsp; 🌐 <a href="https://trashit.bg" style="color: #16a34a;">trashit.bg</a>
           </p>
-          <p style="margin-top: 16px;">С уважение,<br>Екипът на TRASHit</p>
+          <p style="margin-top: 16px;">С уважение / Best regards,<br>Екипът на TRASHit / The TRASHit Team</p>
         </div>
       `,
     });
