@@ -1081,6 +1081,18 @@ export async function getSubscriptionByStripeId(stripeSubscriptionId: string): P
 
 // ─── Subscription Visits ──────────────────────────────────────────────────────
 
+export async function expireOldSubscriptions(): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+  const { subscriptions } = await import("../drizzle/schema");
+  const { eq, and, lt } = await import("drizzle-orm");
+  const now = new Date();
+  const result = await db.update(subscriptions)
+    .set({ status: "expired" })
+    .where(and(eq(subscriptions.status, "active"), lt(subscriptions.currentPeriodEnd, now)));
+  return (result as any).affectedRows ?? (result as any)[0]?.affectedRows ?? 0;
+}
+
 export async function getTodayVisitsBySlot(today: string, timeSlot: "morning" | "evening"): Promise<(SubscriptionVisit & { subscription: Subscription })[]> {
   const db = await getDb();
   if (!db) return [];

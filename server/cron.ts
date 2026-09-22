@@ -1,5 +1,5 @@
 import cron from "node-cron";
-import { getAllSubscriptions, createDailyVisitsForSubscription, getDb, deleteOldCompletedRequests, expireOldPendingRequests } from "./db";
+import { getAllSubscriptions, createDailyVisitsForSubscription, getDb, deleteOldCompletedRequests, expireOldPendingRequests, expireOldSubscriptions } from "./db";
 import { users, requests, subscriptions, transactions, workerProblems } from "../drizzle/schema";
 
 function shouldVisitToday(visitDays: string, todayDate: string): boolean {
@@ -137,4 +137,17 @@ export function startCronJobs(): void {
     }
   });
   console.log("[Cron] Request expiration job scheduled (every 15 minutes)");
+
+  // ─── Daily: expire subscriptions whose period has ended (admin-created ones never get a Stripe webhook) ──
+  cron.schedule("5 2 * * *", async () => {
+    try {
+      const count = await expireOldSubscriptions();
+      if (count > 0) {
+        console.log(`[Cron/SubExpire] Expired ${count} subscriptions past their currentPeriodEnd`);
+      }
+    } catch (err) {
+      console.error("[Cron/SubExpire] Error expiring old subscriptions:", err);
+    }
+  });
+  console.log("[Cron] Subscription expiration job scheduled (every day at 02:05)");
 }
