@@ -409,8 +409,9 @@ if (selectedType !== "nonstandard" && selectedType !== "construction") {
             {WASTE_TYPES.map((wt) => (
               <button
                 key={wt.id}
+                disabled={wt.id === "construction"}
                 onClick={() => handleTypeSelect(wt.id)}
-                className="w-full text-left rounded-2xl border border-gray-200 bg-white hover:border-primary hover:shadow-md transition-all p-4 flex items-center gap-4 group"
+                className={`w-full text-left rounded-2xl border border-gray-200 bg-white transition-all p-4 flex items-center gap-4 group ${wt.id === "construction" ? "opacity-50 cursor-not-allowed" : "hover:border-primary hover:shadow-md"}`}
               >
                 <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${wt.color} text-white flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform`}>
                   {wt.icon}
@@ -422,8 +423,8 @@ if (selectedType !== "nonstandard" && selectedType !== "construction") {
                   <p className="text-sm text-gray-500 mt-0.5">
                     {isBg ? wt.descBg : wt.descEn}
                   </p>
-                  <span className="inline-block mt-1 text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                    {wt.creditInfo}
+                                    <span className="inline-block mt-1 text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                    {wt.id === "construction" ? (isBg ? "Очаквайте скоро" : "Coming soon") : wt.creditInfo}
                   </span>
                 </div>
                 <ChevronLeft className="w-5 h-5 text-gray-400 rotate-180 flex-shrink-0" />
