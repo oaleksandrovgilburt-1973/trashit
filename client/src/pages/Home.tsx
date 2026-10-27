@@ -544,8 +544,8 @@ export default function Home() {
 
               <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-xs text-green-800 font-medium">
                 🔒 {isBg
-                  ? "Преди одобрението на адреса ви — няма как да похарчите и един цент в приложението. Системата е изградена така, че да няма никакви загуби за вас."
-                  : "Before your address is approved — you cannot spend a single cent in the app. The system is built so that you can never lose money."}
+                  ? "Преди одобрението на адреса ви плащанията в приложението все още не са активни. Системата е изградена така, че да няма никакви загуби за вас."
+                  : "Before your address is approved, payments in the app are not active yet. The system is built so that you can never lose money."}
               </div>
 
               <button
