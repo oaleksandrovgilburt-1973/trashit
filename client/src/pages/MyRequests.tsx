@@ -30,11 +30,11 @@ const STATUS_LABELS: Record<string, { bg: string; en: string; icon: React.ReactN
 };
 function getExpectedSession(createdAt: string | Date, isBg: boolean): string {
   const hour = new Date(createdAt).getHours();
-  // 08:00–19:59 -> вечерна сесия (след 20:00)
-  // 20:00–07:59 -> сутрешна сесия (след 08:00)
-  const isEveningSession = hour >= 8 && hour < 20;
+  // 08:00–17:59 -> вечерна сесия (след 18:00)
+  // 18:00–07:59 -> сутрешна сесия (след 08:00)
+  const isEveningSession = hour >= 8 && hour < 18;
   if (isEveningSession) {
-    return isBg ? "Очаквайте посещение след 20:00 ч." : "Expect a visit after 8:00 PM";
+    return isBg ? "Очаквайте посещение след 18:00 ч." : "Expect a visit after 6:00 PM";
   }
   return isBg ? "Очаквайте посещение след 08:00 ч." : "Expect a visit after 8:00 AM";
 }

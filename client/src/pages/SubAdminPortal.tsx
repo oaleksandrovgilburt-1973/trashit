@@ -1142,7 +1142,7 @@ function SubscriptionsViewTab() {
   const active = subs?.filter(s => s.status === "active") ?? [];
   const inactive = subs?.filter(s => s.status !== "active") ?? [];
   const typeLabel = (t: string) => t === "standard" ? "Стандартен" : "Рециклиращ";
-  const slotLabel = (s: string) => s === "morning" ? "08:00–12:00" : "20:00–00:00";
+  const slotLabel = (s: string) => s === "morning" ? "08:00–12:00" : "18:00–22:00";
   const statusColor = (s: string) =>
     s === "active" ? "bg-green-100 text-green-700" :
     s === "cancelled" ? "bg-red-100 text-red-700" :

@@ -55,7 +55,7 @@ export default function Subscription() {
   };
   const SLOT_LABELS: Record<string, string> = {
     morning: "08:00 – 12:00",
-    evening: "20:00 – 00:00",
+    evening: "18:00 – 22:00",
   };
   const STATUS_LABELS: Record<string, { label: string; color: string }> = {
     active: { label: isBg ? "Активен" : "Active", color: "bg-green-100 text-green-800" },
@@ -277,7 +277,7 @@ export default function Subscription() {
                     {new Date(nextVisit.visitDate).toLocaleDateString(isBg ? "bg-BG" : "en-GB", { day: "2-digit", month: "long", year: "numeric" })}
                   </p>
                   <p className="text-green-700 text-xs mt-0.5">
-                    {isBg ? "след" : "after"} {nextVisit.timeSlot === "morning" ? "08:00" : "20:00"} {isBg ? "часа" : "o'clock"}
+                    {isBg ? "след" : "after"} {nextVisit.timeSlot === "morning" ? "08:00" : "18:00"} {isBg ? "часа" : "o'clock"}
                   </p>
                   {(nextVisit as any).assignedWorkerName && (
                     <button

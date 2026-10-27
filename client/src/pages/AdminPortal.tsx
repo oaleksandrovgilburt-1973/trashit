@@ -2809,7 +2809,7 @@ function SubscriptionsTab() {
   const active = subs?.filter(s => s.status === "active") ?? [];
   const cancelled = subs?.filter(s => s.status !== "active") ?? [];
   const typeLabel = (t: string) => t === "standard" ? "Стандартен" : "Рециклиращ";
-  const slotLabel = (s: string) => s === "morning" ? "08:00–12:00" : "20:00–00:00";
+  const slotLabel = (s: string) => s === "morning" ? "08:00–12:00" : "18:00–22:00";
   const statusColor = (s: string) => s === "active" ? "bg-green-100 text-green-700" : s === "cancelled" ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-600";
 
   return (
@@ -2889,7 +2889,7 @@ function SubscriptionsTab() {
             <select value={newSlot} onChange={e => setNewSlot(e.target.value as any)}
               className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none">
               <option value="morning">08:00–12:00</option>
-              <option value="evening">20:00–00:00</option>
+              <option value="evening">18:00–22:00</option>
             </select>
           </div>
           {/* Дати */}

@@ -350,7 +350,7 @@ function WorkerChatPanel({ requestId, deviceToken, isBg }: { requestId: number; 
 // ─── Request Card ─────────────────────────────────────────────────────────────
 function getSessionInfo(createdAt: string | Date, isBg: boolean): { label: string; isEvening: boolean } {
   const hour = new Date(createdAt).getHours();
-  const isEvening = hour >= 8 && hour < 20;
+  const isEvening = hour >= 8 && hour < 18;
   return {
     isEvening,
     label: isEvening
@@ -660,7 +660,7 @@ function GroupedRequestsView({ deviceToken }: { deviceToken: string }) {
           visibleReqs = visibleReqs.filter(r => {
             if (r.type !== "standard" && r.type !== "recycling") return true;
             const hour = new Date(r.createdAt).getHours();
-            const isEvening = hour >= 8 && hour < 20;
+            const isEvening = hour >= 8 && hour < 18;
             return sessionFilter === "evening" ? isEvening : !isEvening;
           });
         }
@@ -1050,7 +1050,7 @@ function WorkerSubscriptionsTab({ deviceToken, isBg }: { deviceToken: string; is
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <Moon className="w-4 h-4 text-blue-500" />
-              <span className="font-semibold text-sm">20:00 – 00:00</span>
+              <span className="font-semibold text-sm">18:00 – 22:00</span>
               <Badge variant="secondary" className="text-xs">{eveningAvailable.length}</Badge>
             </div>
             {eveningAvailable.length === 0 ? (
@@ -1181,7 +1181,7 @@ function WorkerSubscriptionsTab({ deviceToken, isBg }: { deviceToken: string; is
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <Moon className="w-4 h-4 text-blue-500" />
-              <span className="font-semibold text-sm">20:00 – 00:00</span>
+              <span className="font-semibold text-sm">18:00 – 22:00</span>
               <Badge variant="secondary" className="text-xs">{evening.length}</Badge>
             </div>
             {evening.length === 0 ? (

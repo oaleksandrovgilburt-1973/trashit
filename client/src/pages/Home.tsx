@@ -100,9 +100,9 @@ export default function Home() {
   };
   const getReqSessionLabel = (createdAt: string | Date) => {
     const hour = new Date(createdAt).getHours();
-    const isEvening = hour >= 8 && hour < 20;
+    const isEvening = hour >= 8 && hour < 18;
     return isEvening
-      ? (isBg ? "Очаквайте посещение след 20:00 ч." : "Expect a visit after 8:00 PM")
+      ? (isBg ? "Очаквайте посещение след 18:00 ч." : "Expect a visit after 6:00 PM")
       : (isBg ? "Очаквайте посещение след 08:00 ч." : "Expect a visit after 8:00 AM");
   };
   const services = [
@@ -207,7 +207,7 @@ export default function Home() {
                   {nextVisit && (
                     <div className="flex items-center gap-1.5 bg-white/20 backdrop-blur-sm rounded-xl px-3 py-1.5">
                       <span className="text-white text-[11px] font-semibold">
-                        📅 {isBg ? "Чакате посещение на" : "Next visit on"} {new Date(nextVisit.visitDate).toLocaleDateString(isBg ? "bg-BG" : "en-GB", { day: "2-digit", month: "short" })} {isBg ? "след" : "after"} {nextVisit.timeSlot === "morning" ? "08:00" : "20:00"}ч.
+                        📅 {isBg ? "Чакате посещение на" : "Next visit on"} {new Date(nextVisit.visitDate).toLocaleDateString(isBg ? "bg-BG" : "en-GB", { day: "2-digit", month: "short" })} {isBg ? "след" : "after"} {nextVisit.timeSlot === "morning" ? "08:00" : "18:00"}ч.
                       </span>
                     </div>
                   )}
