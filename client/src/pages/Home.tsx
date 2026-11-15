@@ -4,6 +4,7 @@ import MainLayout from "@/components/MainLayout";
 import { Trash2, Sparkles, LogIn, UserPlus, ChevronRight, Leaf, User, CreditCard, Recycle, LogOut, Bell, BellOff, Package, HardHat, Building2, Home as HomeIcon, MoreHorizontal, CalendarDays, X, AlertTriangle, MapPin, Clock, CheckCircle } from "lucide-react";
 import { StandardCoin, RecyclingCoin } from "@/components/CreditCoin";
 import AppStoreBadges from "@/components/AppStoreBadges";
+import EntranceChecker from "@/components/EntranceChecker";
 import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useState, useEffect } from "react";
@@ -410,6 +411,8 @@ export default function Home() {
               </div>
             </div>
           )}
+
+          {!user && <EntranceChecker isBg={isBg} />}
 
           {/* Quick links */}
           {user && (
