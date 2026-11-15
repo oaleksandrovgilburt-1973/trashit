@@ -46,7 +46,7 @@ export default function EntranceChecker({ isBg = true }: { isBg?: boolean }) {
   return (
     <div className="w-full max-w-xl mx-auto bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-5 text-left">
       <h3 className="font-semibold text-gray-900 mb-1">
-        {isBg ? "Провери дали обслужваме входа ти" : "Check if we serve your entrance"}
+        {isBg ? "Проверете дали обслужваме Вашия вход" : "Check if we serve your entrance"}
       </h3>
       <p className="text-xs text-gray-500 mb-3">
         {isBg ? "Без регистрация. Само квартал, блок и вход." : "No sign-up needed. Just district, block and entrance."}
@@ -75,18 +75,18 @@ export default function EntranceChecker({ isBg = true }: { isBg?: boolean }) {
         data.approved ? (
           <div className="mt-3 rounded-xl bg-green-50 border border-green-200 p-3 text-sm text-green-800">
             {isBg
-              ? "Обслужваме този вход. Можеш да направиш заявка от приложението."
+              ? "Обслужваме този вход. Можете да направите заявка от приложението."
               : "We serve this entrance. You can place a request in the app."}
           </div>
         ) : (
           <div className="mt-3 rounded-xl bg-amber-50 border border-amber-200 p-3 text-sm text-amber-900">
             {sent ? (
-              <p>{isBg ? "Благодарим! Ще се свържем с теб, когато можем да включим този вход." : "Thank you! We'll contact you when we can add this entrance."}</p>
+              <p>{isBg ? "Благодарим! Ще се свържем с Вас, когато можем да включим този вход." : "Thank you! We'll contact you when we can add this entrance."}</p>
             ) : (
               <>
                 <p className="mb-2">
                   {isBg
-                    ? "Все още не обслужваме този вход. Остави имейл или телефон и ще се свържем с теб, когато можем да го включим."
+                    ? "Все още не обслужваме този вход. Остави имейл или телефон и ще се свържем с Вас, когато можем да го включим."
                     : "We don't serve this entrance yet. Leave an email or phone and we'll contact you when we can add it."}
                 </p>
                 <div className="flex gap-2">
