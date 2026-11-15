@@ -2069,6 +2069,26 @@ export const appRouter = router({
             }
           }
         }
+        // Interest signal: someone left a contact for an entrance we don't serve yet
+        if ((input.contactPhone || input.contactEmail) && !existing?.isApproved) {
+          const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+          const contactLine = [input.contactPhone, input.contactEmail].filter(Boolean).join(" / ");
+          const interestKind = isNewEntrance ? "Нов вход с контакт" : "Повторен интерес към вход";
+          sendTelegramMessage(TELEGRAM_CHATS.requests,
+            `<b>${interestKind}</b>\nКвартал: ${esc(input.district)}\nБлок: ${esc(input.blok)}\nВход: ${esc(input.vhod)}\nКонтакт: ${esc(contactLine)}`
+          ).catch(() => {});
+          const interestAdmins = await getUsersByRole("admin");
+          for (const adminUser of interestAdmins) {
+            if (adminUser.fcmToken) {
+              await sendPushNotification(adminUser.fcmToken, {
+                title: interestKind,
+                body: `${input.district}, бл. ${input.blok}, вх. ${input.vhod} - ${contactLine}`,
+                data: { type: "entrance_interest", district: input.district, blok: input.blok, vhod: input.vhod },
+              }).catch(() => {});
+            }
+          }
+        }
+
         return { approved: existing?.isApproved === true };
       }),
   }),
