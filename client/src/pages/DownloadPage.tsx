@@ -1,13 +1,14 @@
-import { useEffect } from "react";
+import { Capacitor } from "@capacitor/core";
 import MainLayout from "@/components/MainLayout";
 import AppStoreBadges from "@/components/AppStoreBadges";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 const PLAY_URL = "https://play.google.com/store/apps/details?id=bg.trashit.app";
-const APP_STORE_URL = "https://apps.apple.com/app/id6798248622";
+const APP_STORE_URL = "https://apps.apple.com/app/trashit-bg/id6798248622";
 
 function detectPlatform(): "android" | "ios" | "other" {
   if (typeof navigator === "undefined") return "other";
+  if (Capacitor.isNativePlatform()) return "other";
   const ua = navigator.userAgent || "";
   if (/android/i.test(ua)) return "android";
   if (/iPhone|iPad|iPod/i.test(ua)) return "ios";
@@ -19,36 +20,11 @@ function detectPlatform(): "android" | "ios" | "other" {
 export default function DownloadPage() {
   const { language } = useLanguage();
   const isBg = language === "bg";
+  const platform = detectPlatform();
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("noredirect") === "1") return;
-
-    const platform = detectPlatform();
-        if (platform === "android") {
-      // UTM параметрите отиват към Google Play (виждат се в Play Console → Acquisition)
-      const utm = params.toString();
-      const referrer = utm ? `&referrer=${encodeURIComponent(utm)}` : "";
-      const webUrl = `${PLAY_URL}${referrer}`;
-      // intent:// отваря директно приложението Play Store на страницата на TRASHit;
-      // ако не може (стар телефон, браузър без поддръжка) — отваря уеб линка
-      const intentUrl =
-        `intent://details?id=bg.trashit.app${referrer}` +
-        `#Intent;scheme=market;package=com.android.vending;` +
-        `S.browser_fallback_url=${encodeURIComponent(webUrl)};end`;
-      window.location.replace(intentUrl);
-        } else if (platform === "ios") {
-      // itms-apps:// отваря директно приложението App Store;
-      // ако след 1.5 сек. страницата още е тук — отваряме обикновения линк
-      const fallback = window.setTimeout(() => {
-        if (!document.hidden) window.location.replace(APP_STORE_URL);
-      }, 1500);
-      document.addEventListener("visibilitychange", () => {
-        if (document.hidden) window.clearTimeout(fallback);
-      }, { once: true });
-      window.location.href = "itms-apps://apps.apple.com/app/id6798248622";
-    }
-  }, []);
+  // UTM параметрите от рекламата отиват към Google Play (Play Console → Acquisition)
+  const utm = typeof window !== "undefined" ? window.location.search.replace(/^\?/, "") : "";
+  const playHref = utm ? `${PLAY_URL}&referrer=${encodeURIComponent(utm)}` : PLAY_URL;
 
   return (
     <MainLayout showFooter>
@@ -64,7 +40,26 @@ export default function DownloadPage() {
             ? "Извозване на битови отпадъци от дома — направо от телефона."
             : "Household waste collection — right from your phone."}
         </p>
-        <AppStoreBadges />
+
+        {platform === "android" && (
+          <a
+            href={playHref}
+            className="inline-flex items-center justify-center w-full max-w-xs px-6 py-4 rounded-2xl bg-black text-white text-lg font-semibold hover:bg-gray-800 transition-colors"
+          >
+            {isBg ? "Изтегли от Google Play" : "Get it on Google Play"}
+          </a>
+        )}
+
+        {platform === "ios" && (
+          <a
+            href={APP_STORE_URL}
+            className="inline-flex items-center justify-center w-full max-w-xs px-6 py-4 rounded-2xl bg-black text-white text-lg font-semibold hover:bg-gray-800 transition-colors"
+          >
+            {isBg ? "Изтегли от App Store" : "Download on the App Store"}
+          </a>
+        )}
+
+        {platform === "other" && <AppStoreBadges />}
       </div>
     </MainLayout>
   );
