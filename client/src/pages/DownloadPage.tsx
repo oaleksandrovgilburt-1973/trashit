@@ -25,13 +25,28 @@ export default function DownloadPage() {
     if (params.get("noredirect") === "1") return;
 
     const platform = detectPlatform();
-    if (platform === "android") {
+        if (platform === "android") {
       // UTM параметрите отиват към Google Play (виждат се в Play Console → Acquisition)
       const utm = params.toString();
-      const target = utm ? `${PLAY_URL}&referrer=${encodeURIComponent(utm)}` : PLAY_URL;
-      window.location.replace(target);
-    } else if (platform === "ios") {
-      window.location.replace(APP_STORE_URL);
+      const referrer = utm ? `&referrer=${encodeURIComponent(utm)}` : "";
+      const webUrl = `${PLAY_URL}${referrer}`;
+      // intent:// отваря директно приложението Play Store на страницата на TRASHit;
+      // ако не може (стар телефон, браузър без поддръжка) — отваря уеб линка
+      const intentUrl =
+        `intent://details?id=bg.trashit.app${referrer}` +
+        `#Intent;scheme=market;package=com.android.vending;` +
+        `S.browser_fallback_url=${encodeURIComponent(webUrl)};end`;
+      window.location.replace(intentUrl);
+        } else if (platform === "ios") {
+      // itms-apps:// отваря директно приложението App Store;
+      // ако след 1.5 сек. страницата още е тук — отваряме обикновения линк
+      const fallback = window.setTimeout(() => {
+        if (!document.hidden) window.location.replace(APP_STORE_URL);
+      }, 1500);
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) window.clearTimeout(fallback);
+      }, { once: true });
+      window.location.href = "itms-apps://apps.apple.com/app/id6798248622";
     }
   }, []);
 
