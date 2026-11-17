@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Capacitor } from "@capacitor/core";
 import MainLayout from "@/components/MainLayout";
 import AppStoreBadges from "@/components/AppStoreBadges";
@@ -8,7 +9,6 @@ const APP_STORE_URL = "https://apps.apple.com/app/trashit-bg/id6798248622";
 
 function detectPlatform(): "android" | "ios" | "other" {
   if (typeof navigator === "undefined") return "other";
-  if (Capacitor.isNativePlatform()) return "other";
   const ua = navigator.userAgent || "";
   if (/android/i.test(ua)) return "android";
   if (/iPhone|iPad|iPod/i.test(ua)) return "ios";
@@ -20,11 +20,24 @@ function detectPlatform(): "android" | "ios" | "other" {
 export default function DownloadPage() {
   const { language } = useLanguage();
   const isBg = language === "bg";
-  const platform = detectPlatform();
 
-  // UTM параметрите от рекламата отиват към Google Play (Play Console → Acquisition)
-  const utm = typeof window !== "undefined" ? window.location.search.replace(/^\?/, "") : "";
-  const playHref = utm ? `${PLAY_URL}&referrer=${encodeURIComponent(utm)}` : PLAY_URL;
+  useEffect(() => {
+    // Вътре в самото приложение (Capacitor) никога не пренасочваме
+    if (Capacitor.isNativePlatform()) return;
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("noredirect") === "1") return;
+
+    const platform = detectPlatform();
+    if (platform === "android") {
+      // UTM параметрите отиват към Google Play (виждат се в Play Console → Acquisition)
+      const utm = params.toString();
+      const target = utm ? `${PLAY_URL}&referrer=${encodeURIComponent(utm)}` : PLAY_URL;
+      window.location.replace(target);
+    } else if (platform === "ios") {
+      window.location.replace(APP_STORE_URL);
+    }
+  }, []);
 
   return (
     <MainLayout showFooter>
@@ -40,26 +53,7 @@ export default function DownloadPage() {
             ? "Извозване на битови отпадъци от дома — направо от телефона."
             : "Household waste collection — right from your phone."}
         </p>
-
-        {platform === "android" && (
-          <a
-            href={playHref}
-            className="inline-flex items-center justify-center w-full max-w-xs px-6 py-4 rounded-2xl bg-black text-white text-lg font-semibold hover:bg-gray-800 transition-colors"
-          >
-            {isBg ? "Изтегли от Google Play" : "Get it on Google Play"}
-          </a>
-        )}
-
-        {platform === "ios" && (
-          <a
-            href={APP_STORE_URL}
-            className="inline-flex items-center justify-center w-full max-w-xs px-6 py-4 rounded-2xl bg-black text-white text-lg font-semibold hover:bg-gray-800 transition-colors"
-          >
-            {isBg ? "Изтегли от App Store" : "Download on the App Store"}
-          </a>
-        )}
-
-        {platform === "other" && <AppStoreBadges />}
+        <AppStoreBadges />
       </div>
     </MainLayout>
   );
